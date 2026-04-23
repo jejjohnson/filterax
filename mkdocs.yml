@@ -1,5 +1,5 @@
 site_name: filterax
-site_description: My short description for my project.
+site_description: Differentiable ensemble Kalman filters, smoothers, and processes for JAX.
 site_author: J. Emmanuel Johnson
 repo_url: https://github.com/jejjohnson/filterax
 repo_name: jejjohnson/filterax
@@ -42,9 +42,9 @@ plugins:
 
 nav:
   - Home: index.md
-  - Examples:
-      - Demo: notebooks/example_demo.ipynb
-  - API Reference: api/reference.md
+  - API Reference:
+      - Overview: api/reference.md
+      - Primitives (Layer 0): api/primitives.md
   - Contributing: contributing.md
   - Changelog: CHANGELOG.md
 
