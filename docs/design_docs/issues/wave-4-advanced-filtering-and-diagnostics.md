@@ -20,15 +20,15 @@ wave doc so the issues remain self-contained.
 Normalized innovation:
 
 $$
-u = S^{-1/2}(y - Har{x}_f)$$
+u = S^{-1/2}(y - H\bar{x}_f)$$
 
 Desroziers consistency target:
 
-$$\mathbb{E}[d^a (d^o)^	op] pprox R, \qquad \mathbb{E}[d^o (d^f)^	op] pprox HP_fH^	op$$
+$$\mathbb{E}[d^a (d^o)^\top] \approx R, \qquad \mathbb{E}[d^o (d^f)^\top] \approx HP_fH^\top$$
 
 Spread-skill ratio target:
 
-$$	ext{SSR} = rac{\sqrt{	ext{ensemble spread}}}{	ext{RMSE}} pprox 1$$
+$$\text{SSR} = \frac{\sqrt{\text{ensemble spread}}}{\text{RMSE}} \approx 1$$
 
 ## Canonical API Snapshot
 Representative advanced-usage surface in this wave:
