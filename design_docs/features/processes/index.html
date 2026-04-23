@@ -1,0 +1,1158 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX x Ensemble Kalman Processes - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-x-ensemble-kalman-processes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX x Ensemble Kalman Processes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-common-mathematical-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 Common Mathematical Framework
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gap-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 Gap Catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 Gap Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gap-1-eki-ensemble-kalman-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 1: EKI -- Ensemble Kalman Inversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-2-etki-ensemble-transform-kalman-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 2: ETKI -- Ensemble Transform Kalman Inversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-3-eks-aldi-ensemble-kalman-sampler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 3: EKS / ALDI -- Ensemble Kalman Sampler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-4-uki-unscented-kalman-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 4: UKI -- Unscented Kalman Inversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-5-gnki-gauss-newton-kalman-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 5: GNKI -- Gauss-Newton Kalman Inversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-6-sparseeki-sparse-ensemble-kalman-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 6: SparseEKI -- Sparse Ensemble Kalman Inversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-7-teki-tikhonov-regularized-ensemble-kalman-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 7: TEKI -- Tikhonov-Regularized Ensemble Kalman Inversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-shared-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 Shared Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-comparison-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-x-ensemble-kalman-processes">ekalmX x Ensemble Kalman Processes<a class="headerlink" href="#ekalmx-x-ensemble-kalman-processes" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Iterative ensemble methods for derivative-free parameter estimation
+and calibration of expensive black-box simulators.</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="1-scope">1  Scope<a class="headerlink" href="#1-scope" title="Permanent link">&para;</a></h2>
+<p>Ensemble Kalman Processes (EKP) are iterative ensemble methods that solve
+inverse problems without requiring gradients of the forward model. They are
+the tool of choice when the simulator <span class="arithmatex">\(G\)</span> is expensive, non-differentiable,
+or only available as a black box (climate models, PDE solvers, lab equipment).</p>
+<p>All methods in this catalog implement <code>AbstractProcess</code> (see
+<a href="../../api/components/">api/components.md</a>). The caller provides forward
+evaluations <span class="arithmatex">\(\{G(\theta^{(j)})\}\)</span> at each iteration; the process provides the
+ensemble update rule.</p>
+<p><strong>In scope:</strong> EKI, ETKI, EKS/ALDI, UKI, GNKI, SparseEKI, TEKI
+<strong>Out of scope:</strong> Sequential data assimilation filters (<code>AbstractSequentialFilter</code>),
+smoothers, neural-operator surrogates (those are upstream of <span class="arithmatex">\(G\)</span>).</p>
+<p><strong>Key insight:</strong> Every method in this catalog shares the same outer loop --
+only the update rule and state representation differ. The <code>AbstractProcess</code>
+protocol (init / update) captures this cleanly: the caller owns the forward
+model calls, the process owns the ensemble algebra.</p>
+<hr />
+<h2 id="2-common-mathematical-framework">2  Common Mathematical Framework<a class="headerlink" href="#2-common-mathematical-framework" title="Permanent link">&para;</a></h2>
+<p>The EKP framework (Iglesias, Law &amp; Stuart 2013) treats parameter estimation
+as an iterative filtering problem in artificial time.</p>
+<p><strong>Forward model.</strong> <span class="arithmatex">\(G: \mathbb{R}^p \to \mathbb{R}^d\)</span> maps parameters
+<span class="arithmatex">\(\theta\)</span> to observables.</p>
+<p><strong>Observations.</strong> <span class="arithmatex">\(y = G(\theta^\dagger) + \eta\)</span>, where
+<span class="arithmatex">\(\eta \sim \mathcal{N}(0, \Gamma)\)</span> is observation noise.</p>
+<p><strong>Ensemble.</strong> <span class="arithmatex">\(\{\theta_n^{(j)}\}_{j=1}^J\)</span>, with forward evaluations
+<span class="arithmatex">\(\{G(\theta_n^{(j)})\}\)</span>.</p>
+<p><strong>Empirical statistics.</strong></p>
+<div class="arithmatex">\[\bar\theta_n = \frac{1}{J}\sum_j \theta_n^{(j)}, \qquad \bar G_n = \frac{1}{J}\sum_j G(\theta_n^{(j)})\]</div>
+<div class="arithmatex">\[C_n^{\theta G} = \frac{1}{J-1}\sum_j (\theta_n^{(j)} - \bar\theta_n)(G(\theta_n^{(j)}) - \bar G_n)^\top \quad \text{(cross-covariance)}\]</div>
+<div class="arithmatex">\[C_n^{GG} = \frac{1}{J-1}\sum_j (G(\theta_n^{(j)}) - \bar G_n)(G(\theta_n^{(j)}) - \bar G_n)^\top \quad \text{(obs-space covariance)}\]</div>
+<div class="arithmatex">\[C_n^{\theta\theta} = \frac{1}{J-1}\sum_j (\theta_n^{(j)} - \bar\theta_n)(\theta_n^{(j)} - \bar\theta_n)^\top \quad \text{(parameter covariance)}\]</div>
+<p><strong>Generic update.</strong></p>
+<div class="arithmatex">\[\theta_{n+1}^{(j)} = \theta_n^{(j)} + \Delta t_n \cdot C_n^{\theta G}\bigl(C_n^{GG} + \Delta t_n^{-1}\,\Gamma\bigr)^{-1}\bigl(y - G(\theta_n^{(j)})\bigr)\]</div>
+<p>The step size <span class="arithmatex">\(\Delta t_n\)</span> plays the role of a learning rate. When
+<span class="arithmatex">\(\Delta t_n \to 0\)</span> the update vanishes; when <span class="arithmatex">\(\Delta t_n \to \infty\)</span> the
+noise covariance <span class="arithmatex">\(\Gamma\)</span> is ignored and the update becomes a full
+Kalman step.</p>
+<p><strong>Connection to gradient flow.</strong> In the continuous-time limit
+(<span class="arithmatex">\(\Delta t \to 0\)</span>), EKI implements preconditioned gradient descent on the
+data-misfit functional <span class="arithmatex">\(\frac{1}{2}\|y - G(\theta)\|_{\Gamma^{-1}}^2\)</span>, where
+the preconditioner is the ensemble-estimated covariance <span class="arithmatex">\(C^{\theta\theta}\)</span>.
+The ensemble provides a derivative-free approximation to the Jacobian
+<span class="arithmatex">\(\nabla_\theta G\)</span> via the cross-covariance <span class="arithmatex">\(C^{\theta G}\)</span>.</p>
+<hr />
+<h2 id="3-gap-catalog">3  Gap Catalog<a class="headerlink" href="#3-gap-catalog" title="Permanent link">&para;</a></h2>
+<h3 id="gap-1-eki-ensemble-kalman-inversion">Gap 1: EKI -- Ensemble Kalman Inversion<a class="headerlink" href="#gap-1-eki-ensemble-kalman-inversion" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Iglesias, Law &amp; Stuart (2013)</p>
+<p><strong>Purpose:</strong> Standard inversion (optimization). Produces a point estimate
+of <span class="arithmatex">\(\theta\)</span> by iterating the ensemble update until convergence.</p>
+<p><strong>Update:</strong></p>
+<div class="arithmatex">\[\theta_{n+1}^{(j)} = \theta_n^{(j)} + \Delta t_n \cdot C_n^{\theta G}\bigl(C_n^{GG} + \Delta t_n^{-1}\,\Gamma\bigr)^{-1}\bigl(y - G(\theta_n^{(j)})\bigr)\]</div>
+<p><strong>Behavior:</strong> The ensemble collapses to a point estimate as <span class="arithmatex">\(n \to \infty\)</span>.
+The ensemble mean <span class="arithmatex">\(\bar\theta_n\)</span> converges to a regularized least-squares
+solution. Ensemble spread vanishes -- no posterior uncertainty.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(J^2 d + J p)\)</span> per step (<span class="arithmatex">\(J\)</span> = ensemble size, <span class="arithmatex">\(d\)</span> = obs
+dimension, <span class="arithmatex">\(p\)</span> = parameter dimension).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EKI</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">prior_mean</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">prior_cov</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractLinearOperator</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Default choice for calibration when only a point estimate
+is needed. Works well even when <span class="arithmatex">\(J \ll p\)</span> (underdetermined regime).</p>
+<hr />
+<h3 id="gap-2-etki-ensemble-transform-kalman-inversion">Gap 2: ETKI -- Ensemble Transform Kalman Inversion<a class="headerlink" href="#gap-2-etki-ensemble-transform-kalman-inversion" title="Permanent link">&para;</a></h3>
+<p><strong>Purpose:</strong> Output-scalable variant of EKI. Performs the update via a
+transform matrix in ensemble space rather than observation space.</p>
+<p><strong>Math:</strong> Instead of forming the <span class="arithmatex">\(d \times d\)</span> matrix
+<span class="arithmatex">\((C^{GG} + \Delta t^{-1}\Gamma)\)</span>, ETKI works in the <span class="arithmatex">\(J \times J\)</span> ensemble
+subspace:</p>
+<div class="arithmatex">\[T = \bigl(I_J + \Delta t \cdot Y^\top \Gamma^{-1} Y\bigr)^{-1}\]</div>
+<p>where <span class="arithmatex">\(Y \in \mathbb{R}^{d \times J}\)</span> is the matrix of centered forward
+evaluations. The ensemble is updated via <span class="arithmatex">\(\Theta_{n+1} = \Theta_n \cdot W\)</span>
+for an appropriate weight matrix <span class="arithmatex">\(W\)</span> derived from <span class="arithmatex">\(T\)</span>.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(J^2 d)\)</span> per step instead of <span class="arithmatex">\(O(d^3)\)</span>. The key advantage
+is avoiding the <span class="arithmatex">\(d \times d\)</span> solve when <span class="arithmatex">\(d \gg J\)</span>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ETKI</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+</code></pre></div>
+<p><strong>When to use:</strong> High-dimensional observation spaces (<span class="arithmatex">\(d \gg J\)</span>), e.g.
+satellite retrievals, image-based observations, full-field comparisons.</p>
+<hr />
+<h3 id="gap-3-eks-aldi-ensemble-kalman-sampler">Gap 3: EKS / ALDI -- Ensemble Kalman Sampler<a class="headerlink" href="#gap-3-eks-aldi-ensemble-kalman-sampler" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Garbuno-Inigo, Hoffmann, Li &amp; Stuart (2020)</p>
+<p><strong>Purpose:</strong> Posterior sampling. Unlike EKI, the ensemble does NOT collapse --
+it produces approximate posterior samples at stationarity.</p>
+<p><strong>Update (ALDI form):</strong></p>
+<div class="arithmatex">\[d\theta^{(j)} = C_n^{\theta G}\,\Gamma^{-1}(y - G(\theta^{(j)}))\,dt - \frac{d+1}{J}(\theta^{(j)} - \bar\theta)\,dt + \sqrt{2\,C_n^{\theta\theta}}\,dW^{(j)}\]</div>
+<p>The first term drives particles toward the data. The second term is a
+finite-sample drift correction. The third term is Langevin noise scaled by
+the ensemble covariance, ensuring ergodicity -- the ensemble explores the
+posterior rather than collapsing.</p>
+<p><strong>Behavior:</strong> Ensemble spread is maintained. At stationarity, particles are
+approximate samples from the posterior <span class="arithmatex">\(p(\theta | y)\)</span>. Requires careful
+step-size control (use <code>EKSStableScheduler</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EKS_Process</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>  <span class="c1"># use EKSStableScheduler</span>
+</code></pre></div>
+<p><strong>When to use:</strong> When posterior uncertainty quantification is needed, not
+just a point estimate. Climate sensitivity studies, model structural
+uncertainty, Bayesian model evidence.</p>
+<hr />
+<h3 id="gap-4-uki-unscented-kalman-inversion">Gap 4: UKI -- Unscented Kalman Inversion<a class="headerlink" href="#gap-4-uki-unscented-kalman-inversion" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Huang, Schneider &amp; Stuart (2022)</p>
+<p><strong>Purpose:</strong> Parametric inversion with uncertainty. Maintains an explicit
+mean <span class="arithmatex">\(\mu_n\)</span> and covariance <span class="arithmatex">\(\Sigma_n\)</span> (not a random ensemble). Uses
+<span class="arithmatex">\(2p+1\)</span> deterministic sigma points for quadrature.</p>
+<p><strong>Update:</strong></p>
+<div class="arithmatex">\[\text{Sigma points:} \quad \hat\theta^0 = \hat\mu, \quad \hat\theta^{\pm j} = \hat\mu \pm c_j\,[\sqrt{\hat\Sigma}]_j, \quad j = 1,\dots,p\]</div>
+<div class="arithmatex">\[C^{\theta y} = \sum_j W_j\,(\hat\theta^{(j)} - \hat\mu)(\hat y^{(j)} - \hat y^0)^\top\]</div>
+<div class="arithmatex">\[C^{yy} = \sum_j W_j\,(\hat y^{(j)} - \hat y^0)(\hat y^{(j)} - \hat y^0)^\top + \Sigma_\nu\]</div>
+<div class="arithmatex">\[\mu_{n+1} = \hat\mu + C^{\theta y}(C^{yy})^{-1}(y - \hat y^0)\]</div>
+<div class="arithmatex">\[\Sigma_{n+1} = \hat\Sigma - C^{\theta y}(C^{yy})^{-1}(C^{\theta y})^\top\]</div>
+<p><strong>Behavior:</strong> Deterministic -- no sampling noise. Does not suffer from
+ensemble collapse. The covariance <span class="arithmatex">\(\Sigma_n\)</span> provides calibrated
+uncertainty estimates (converges to the posterior covariance in the
+linear-Gaussian case).</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(p^2 d)\)</span> per step. Requires <span class="arithmatex">\(2p+1\)</span> forward evaluations
+per iteration (fixed, not tunable).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UKI</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>   <span class="c1"># sigma-point spread</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>    <span class="c1"># higher-order moment weighting</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>   <span class="c1"># secondary scaling</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">covariance</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">noise_cov</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UKIState</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">UKIState</span><span class="p">,</span> <span class="n">forward_evals</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UKIState</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Moderate parameter dimension (<span class="arithmatex">\(p \lesssim 100\)</span>) where
+calibrated uncertainty is important. Better UQ than EKI, deterministic
+(reproducible), no ensemble-size tuning.</p>
+<hr />
+<h3 id="gap-5-gnki-gauss-newton-kalman-inversion">Gap 5: GNKI -- Gauss-Newton Kalman Inversion<a class="headerlink" href="#gap-5-gnki-gauss-newton-kalman-inversion" title="Permanent link">&para;</a></h3>
+<p><strong>Purpose:</strong> Faster convergence via explicit Jacobian estimation from
+ensemble perturbations.</p>
+<p><strong>Math:</strong> The ensemble-estimated Jacobian is:</p>
+<div class="arithmatex">\[\tilde J_n \approx C_n^{\theta G}(C_n^{\theta\theta})^{-1}\]</div>
+<p>This is used in a Gauss-Newton update:</p>
+<div class="arithmatex">\[\delta\theta = \bigl(\tilde J_n^\top\,\Gamma^{-1}\,\tilde J_n + \Sigma_{\text{prior}}^{-1}\bigr)^{-1}\tilde J_n^\top\,\Gamma^{-1}(y - G(\theta))\]</div>
+<p>The update includes both a data-fit term and a prior-pull term:</p>
+<div class="arithmatex">\[\theta_{n+1}^{(j)} = \theta_n^{(j)} + \alpha\bigl\{K_n(y - G(\theta_n^{(j)})) + (I - K_n\tilde J_n)(m_0 - \theta_n^{(j)})\bigr\}\]</div>
+<p><strong>Behavior:</strong> Faster convergence than EKI for well-conditioned problems.
+In the linear-Gaussian case, GNKI recovers the exact posterior mean and
+covariance. Requires <span class="arithmatex">\(J &gt; p\)</span> for <span class="arithmatex">\(C^{\theta\theta}\)</span> to be invertible.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GNKI</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Well-conditioned inverse problems where fast convergence
+matters. Requires <span class="arithmatex">\(J &gt; p\)</span> (cannot operate in the underdetermined regime
+unlike EKI).</p>
+<hr />
+<h3 id="gap-6-sparseeki-sparse-ensemble-kalman-inversion">Gap 6: SparseEKI -- Sparse Ensemble Kalman Inversion<a class="headerlink" href="#gap-6-sparseeki-sparse-ensemble-kalman-inversion" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Schneider, Stuart &amp; Wu</p>
+<p><strong>Purpose:</strong> Variable selection and sparse parameter recovery. Adds an
+<span class="arithmatex">\(L_1\)</span> sparsity penalty to the EKI update.</p>
+<p><strong>Math:</strong> Modified update with proximal operator for <span class="arithmatex">\(L_1\)</span> regularization:</p>
+<div class="arithmatex">\[\theta_{n+1}^{(j)} = \text{prox}_{\lambda\|\cdot\|_1}\bigl(\theta_n^{(j)} + \Delta t \cdot K_n(y - G(\theta_n^{(j)}))\bigr)\]</div>
+<p>where <span class="arithmatex">\(\text{prox}_{\lambda\|\cdot\|_1}(z)_i = \text{sign}(z_i)\max(|z_i| - \lambda, 0)\)</span> is the soft-thresholding operator.</p>
+<p><strong>Behavior:</strong> Drives inactive parameters to exactly zero. Useful when the
+true parameter vector is sparse or when performing feature/variable
+selection. The proximal step is applied element-wise after each EKI update.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SparseInversion</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">penalty</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;l1&quot;</span>       <span class="c1"># &quot;l0&quot; | &quot;l1&quot;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">penalty_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+</code></pre></div>
+<p><strong>When to use:</strong> High-dimensional parameter spaces where most parameters
+are expected to be zero or near-zero. Source localization, sensor
+placement, sparse physics discovery.</p>
+<hr />
+<h3 id="gap-7-teki-tikhonov-regularized-ensemble-kalman-inversion">Gap 7: TEKI -- Tikhonov-Regularized Ensemble Kalman Inversion<a class="headerlink" href="#gap-7-teki-tikhonov-regularized-ensemble-kalman-inversion" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Chada, Chen &amp; Stuart</p>
+<p><strong>Purpose:</strong> Prevents ensemble collapse toward degenerate solutions by
+adding prior regularization directly to the EKI update.</p>
+<p><strong>Math:</strong> The forward map, data, and noise covariance are augmented:</p>
+<div class="arithmatex">\[\tilde G(\theta) = \begin{bmatrix} G(\theta) \\ \theta \end{bmatrix}, \qquad \tilde y = \begin{bmatrix} y \\ m_0 \end{bmatrix}, \qquad \tilde\Gamma = \begin{bmatrix} \Gamma &amp; 0 \\ 0 &amp; C_0 \end{bmatrix}\]</div>
+<p>The standard EKI update is then applied in the augmented space. The
+identity block in <span class="arithmatex">\(C^{\theta\tilde G}\)</span> pulls particles back toward the
+prior mean <span class="arithmatex">\(m_0\)</span>, preventing the ensemble from drifting arbitrarily far
+from the prior.</p>
+<p><strong>Behavior:</strong> Converges to the MAP estimate (not just MLE). More stable
+than vanilla EKI when the problem is ill-posed. The regularization
+strength is controlled by the prior covariance <span class="arithmatex">\(C_0\)</span>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TEKI</span><span class="p">(</span><span class="n">AbstractProcess</span><span class="p">):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">prior_mean</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">prior_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Ill-posed inverse problems where vanilla EKI diverges or
+produces physically implausible solutions. When the MAP estimate
+(incorporating prior information) is preferred over the MLE.</p>
+<hr />
+<h2 id="4-shared-infrastructure">4  Shared Infrastructure<a class="headerlink" href="#4-shared-infrastructure" title="Permanent link">&para;</a></h2>
+<p>All EKP methods share common infrastructure -- they differ only in the
+update rule and state representation.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensemble statistics</td>
+<td><code>ekalmX._src.ensemble</code></td>
+<td><span class="arithmatex">\(\bar\theta\)</span>, <span class="arithmatex">\(C^{\theta G}\)</span>, <span class="arithmatex">\(C^{GG}\)</span>, <span class="arithmatex">\(C^{\theta\theta}\)</span></td>
+</tr>
+<tr>
+<td><code>FixedScheduler</code></td>
+<td><code>ekalmX.schedulers</code></td>
+<td>Constant <span class="arithmatex">\(\Delta t\)</span></td>
+</tr>
+<tr>
+<td><code>DataMisfitController</code></td>
+<td><code>ekalmX.schedulers</code></td>
+<td>Adaptive <span class="arithmatex">\(\Delta t\)</span>; terminates when <code>algo_time</code> reaches 1.0</td>
+</tr>
+<tr>
+<td><code>EKSStableScheduler</code></td>
+<td><code>ekalmX.schedulers</code></td>
+<td>Stability-aware for EKS/ALDI Langevin dynamics</td>
+</tr>
+<tr>
+<td>gaussx operators</td>
+<td><code>gaussx</code></td>
+<td>Structured covariance: <code>DiagonalLinearOperator</code>, <code>LowRankUpdate</code>, <code>Kronecker</code></td>
+</tr>
+<tr>
+<td>optax integration</td>
+<td><code>optax</code></td>
+<td>Learning rate schedules, gradient clipping for hybrid methods</td>
+</tr>
+<tr>
+<td><code>ProcessState</code></td>
+<td><code>ekalmX.types</code></td>
+<td>Particles, forward evals, obs, noise_cov, step, algo_time</td>
+</tr>
+<tr>
+<td><code>UKIState</code></td>
+<td><code>ekalmX.types</code></td>
+<td>Mean, covariance (parametric state for UKI)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Scheduler selection guidance:</strong></p>
+<ul>
+<li><code>FixedScheduler(dt=1.0)</code> -- simple, requires manual tuning.</li>
+<li><code>DataMisfitController(target_misfit=1.0)</code> -- adaptive, standard choice for EKI/ETKI/GNKI. Adjusts <span class="arithmatex">\(\Delta t\)</span> so the data misfit decreases at a controlled rate.</li>
+<li><code>EKSStableScheduler(max_dt=1.0)</code> -- required for EKS/ALDI to prevent divergence in the Langevin dynamics.</li>
+</ul>
+<hr />
+<h2 id="5-comparison-table">5  Comparison Table<a class="headerlink" href="#5-comparison-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Convergence</th>
+<th>Output</th>
+<th>Obs scaling</th>
+<th>Ensemble size</th>
+<th>UQ</th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EKI</strong></td>
+<td>Collapse <span class="arithmatex">\(\to\)</span> point</td>
+<td>MLE / regularized LS</td>
+<td><span class="arithmatex">\(O(d^3)\)</span> or <span class="arithmatex">\(O(J^2 d)\)</span></td>
+<td><span class="arithmatex">\(J \geq p+1\)</span> (flexible)</td>
+<td>None (spread <span class="arithmatex">\(\to 0\)</span>)</td>
+<td>Default calibration</td>
+</tr>
+<tr>
+<td><strong>ETKI</strong></td>
+<td>Collapse <span class="arithmatex">\(\to\)</span> point</td>
+<td>MLE</td>
+<td><span class="arithmatex">\(O(J^2 d)\)</span></td>
+<td><span class="arithmatex">\(J \geq p+1\)</span></td>
+<td>None</td>
+<td>High-dim observations</td>
+</tr>
+<tr>
+<td><strong>EKS/ALDI</strong></td>
+<td>Ergodic (no collapse)</td>
+<td>Posterior samples</td>
+<td><span class="arithmatex">\(O(J^2 d)\)</span></td>
+<td><span class="arithmatex">\(J \geq p+1\)</span> (larger = better)</td>
+<td>Full posterior</td>
+<td>Uncertainty quantification</td>
+</tr>
+<tr>
+<td><strong>UKI</strong></td>
+<td>Parametric convergence</td>
+<td>MAP + covariance</td>
+<td><span class="arithmatex">\(O(p^2 d)\)</span></td>
+<td><span class="arithmatex">\(2p+1\)</span> (fixed)</td>
+<td>Calibrated <span class="arithmatex">\(\Sigma\)</span></td>
+<td>Moderate <span class="arithmatex">\(p\)</span>, needs UQ</td>
+</tr>
+<tr>
+<td><strong>GNKI</strong></td>
+<td>Fast (Gauss-Newton)</td>
+<td>MAP + spread</td>
+<td><span class="arithmatex">\(O(p^3)\)</span></td>
+<td><span class="arithmatex">\(J &gt; p\)</span> (required)</td>
+<td>Via ensemble spread</td>
+<td>Well-conditioned, fast convergence</td>
+</tr>
+<tr>
+<td><strong>SparseEKI</strong></td>
+<td>Collapse + sparsity</td>
+<td>Sparse point estimate</td>
+<td><span class="arithmatex">\(O(J^2 d)\)</span></td>
+<td><span class="arithmatex">\(J \geq p+1\)</span></td>
+<td>None</td>
+<td>Variable selection</td>
+</tr>
+<tr>
+<td><strong>TEKI</strong></td>
+<td>Collapse <span class="arithmatex">\(\to\)</span> MAP</td>
+<td>MAP estimate</td>
+<td><span class="arithmatex">\(O((d+p)^3)\)</span></td>
+<td><span class="arithmatex">\(J \geq p+1\)</span></td>
+<td>None</td>
+<td>Ill-posed problems</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision tree:</strong></p>
+<ol>
+<li>Need posterior samples? <span class="arithmatex">\(\to\)</span> <strong>EKS/ALDI</strong></li>
+<li>Need calibrated covariance? <span class="arithmatex">\(\to\)</span> <strong>UKI</strong> (if <span class="arithmatex">\(p \lesssim 100\)</span>)</li>
+<li>Sparse parameters? <span class="arithmatex">\(\to\)</span> <strong>SparseEKI</strong></li>
+<li>Ill-posed / need prior regularization? <span class="arithmatex">\(\to\)</span> <strong>TEKI</strong></li>
+<li>High-dim observations (<span class="arithmatex">\(d \gg J\)</span>)? <span class="arithmatex">\(\to\)</span> <strong>ETKI</strong></li>
+<li>Well-conditioned, want fast convergence? <span class="arithmatex">\(\to\)</span> <strong>GNKI</strong> (if <span class="arithmatex">\(J &gt; p\)</span>)</li>
+<li>Otherwise <span class="arithmatex">\(\to\)</span> <strong>EKI</strong> (simple, robust default)</li>
+</ol>
+<hr />
+<h2 id="6-references">6  References<a class="headerlink" href="#6-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Iglesias, M. A., Law, K. J. H., &amp; Stuart, A. M. (2013). <em>Ensemble Kalman methods for inverse problems.</em> Inverse Problems, 29(4), 045001.</li>
+<li>Huang, D. Z., Schneider, T., &amp; Stuart, A. M. (2022). <em>Iterated Kalman methodology for inverse problems.</em> Journal of Computational Physics, 463, 111262.</li>
+<li>Garbuno-Inigo, A., Hoffmann, F., Li, W., &amp; Stuart, A. M. (2020). <em>Interacting Langevin diffusions: gradient structure and ensemble Kalman sampler.</em> SIAM Journal on Applied Dynamical Systems, 19(1), 412-441.</li>
+<li>Chada, N. K., Chen, Y., &amp; Stuart, A. M. (2019). <em>Tikhonov regularization within ensemble Kalman inversion.</em> SIAM Journal on Numerical Analysis.</li>
+<li>Kovachki, N. B., &amp; Stuart, A. M. (2019). <em>Ensemble Kalman inversion: a derivative-free technique for machine learning tasks.</em> Inverse Problems, 35(9), 095005.</li>
+<li>Schneider, T., Stuart, A. M., &amp; Wu, J.-L. (2022). <em>Ensemble Kalman inversion for sparse learning of dynamical systems from time-averaged data.</em> Journal of Computational Physics.</li>
+<li>Calvello, E., Reich, S., &amp; Stuart, A. M. (2022). <em>Ensemble Kalman methods: a mean field perspective.</em> arXiv:2209.11371.</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

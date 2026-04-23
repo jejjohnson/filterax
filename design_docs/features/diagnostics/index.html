@@ -1,0 +1,1324 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>filterX x Ensemble DA Diagnostics: Gap Analysis - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#filterx-x-ensemble-da-diagnostics-gap-analysis" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              filterX x Ensemble DA Diagnostics: Gap Analysis
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-gap-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 Gap Catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2 Gap Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gap-1-ensemble-spread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 1: Ensemble Spread
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-2-rmse-vs-truth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 2: RMSE (vs Truth)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-3-rank-histogram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 3: Rank Histogram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-4-innovation-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 4: Innovation Statistics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-5-desroziers-consistency-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 5: Desroziers Consistency Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-6-effective-ensemble-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 6: Effective Ensemble Size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-7-chi-squared-consistency-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 7: Chi-Squared Consistency Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-8-spread-skill-ratio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 8: Spread-Skill Ratio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-9-crps-ensemble-form" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 9: CRPS (Ensemble Form)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-10-degrees-of-freedom-for-signal-dfs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 10: Degrees of Freedom for Signal (DFS)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-diagnostic-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 Diagnostic Workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 Diagnostic Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-basic-health-checks-every-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Basic health checks (every cycle)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-calibration-assessment-accumulated-over-a-window" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Calibration assessment (accumulated over a window)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-error-covariance-diagnosis-offline-long-accumulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Error covariance diagnosis (offline, long accumulation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-forecast-skill-evaluation-verification-against-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Forecast skill evaluation (verification against observations)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary table
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="filterx-x-ensemble-da-diagnostics-gap-analysis">filterX x Ensemble DA Diagnostics: Gap Analysis<a class="headerlink" href="#filterx-x-ensemble-da-diagnostics-gap-analysis" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Evaluation metrics and diagnostics specific to ensemble data
+assimilation. Pure functions operating on ensemble statistics and observations.</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="1-scope">1  Scope<a class="headerlink" href="#1-scope" title="Permanent link">&para;</a></h2>
+<p>Diagnostics for validating ensemble data assimilation systems: spread-skill
+analysis, innovation statistics, rank histograms, consistency tests, and
+proper scoring rules. All functions are pure -- they take ensemble arrays,
+observations, and operator outputs, and return scalar or array diagnostics.</p>
+<p><strong>In scope:</strong> Ensemble DA evaluation metrics, filter consistency checks,
+reliability diagnostics, proper scoring rules for ensemble forecasts.</p>
+<p><strong>Out of scope:</strong> GP regression metrics (see <code>pyrox.gp</code> metrics),
+deterministic forecast verification, observation quality control,
+adaptive tuning algorithms (inflation/localization optimization).</p>
+<p><strong>Key principle:</strong> These diagnostics answer "is the filter working correctly?"
+They do not fix filter problems -- they detect them.</p>
+<hr />
+<h2 id="2-gap-catalog">2  Gap Catalog<a class="headerlink" href="#2-gap-catalog" title="Permanent link">&para;</a></h2>
+<h3 id="gap-1-ensemble-spread">Gap 1: Ensemble Spread<a class="headerlink" href="#gap-1-ensemble-spread" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Dispersion</p>
+<p><strong>Math:</strong> Per-variable ensemble spread (standard deviation of ensemble members
+around the ensemble mean):</p>
+<div class="arithmatex">\[\sigma_{\text{spread},i} = \sqrt{\frac{1}{N_e - 1} \sum_{j=1}^{N_e} (x_i^{(j)} - \bar{x}_i)^2}\]</div>
+<p>where <span class="arithmatex">\(\bar{x}_i = \frac{1}{N_e} \sum_{j=1}^{N_e} x_i^{(j)}\)</span> is the ensemble
+mean for variable <span class="arithmatex">\(i\)</span>. The scalar summary is the RMS spread over all variables:</p>
+<div class="arithmatex">\[\text{RMS-spread} = \sqrt{\frac{1}{N_x} \sum_{i=1}^{N_x} \sigma_{\text{spread},i}^2}\]</div>
+<p>Track over assimilation cycles. A well-calibrated filter has spread <span class="arithmatex">\(\approx\)</span> RMSE
+(the spread-skill relationship).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">ensemble_spread</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-variable ensemble spread (std dev). Shape (Nx,).&quot;&quot;&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">...</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">rms_spread</span><span class="p">(</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Root-mean-square spread over all variables. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Every assimilation cycle. Compare against RMSE to check
+calibration. Decreasing spread over time signals filter divergence.</p>
+<p><strong>Ref:</strong> Whitaker, J. S. &amp; Loughe, A. F. (1998). <em>The Relationship between
+Ensemble Spread and Ensemble Mean Skill.</em> Monthly Weather Review, 126(12).</p>
+<hr />
+<h3 id="gap-2-rmse-vs-truth">Gap 2: RMSE (vs Truth)<a class="headerlink" href="#gap-2-rmse-vs-truth" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Point accuracy</p>
+<p><strong>Math:</strong> Root mean squared error of the ensemble mean against the true state
+(available in twin/OSSE experiments):</p>
+<div class="arithmatex">\[\text{RMSE} = \sqrt{\frac{1}{N_x} \sum_{i=1}^{N_x} (\bar{x}_{a,i} - x_{\text{true},i})^2}\]</div>
+<p>where <span class="arithmatex">\(\bar{x}_a\)</span> is the analysis ensemble mean and <span class="arithmatex">\(x_{\text{true}}\)</span> is the
+true state. Can be computed for forecast or analysis, per variable or globally.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">rmse_vs_truth</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">ensemble_mean</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">x_true</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;RMSE of ensemble mean against true state. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="o">...</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">rmse_per_variable</span><span class="p">(</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">ensemble_mean</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">x_true</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">]:</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Time-averaged RMSE per variable. Shape (Nx,).&quot;&quot;&quot;</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Twin experiments / OSSEs where the true state is known.
+The primary accuracy metric. Track over time to detect filter divergence
+(RMSE growing without bound).</p>
+<p><strong>Ref:</strong> Standard. See Evensen, G. (2009). <em>Data Assimilation: The Ensemble
+Kalman Filter.</em> Springer. Ch. 6.</p>
+<hr />
+<h3 id="gap-3-rank-histogram">Gap 3: Rank Histogram<a class="headerlink" href="#gap-3-rank-histogram" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Reliability</p>
+<p><strong>Math:</strong> For each variable <span class="arithmatex">\(i\)</span> at each time step, compute the rank of the
+true value <span class="arithmatex">\(x_{\text{true},i}\)</span> among the <span class="arithmatex">\(N_e\)</span> ensemble members
+<span class="arithmatex">\(\{x_i^{(1)}, \ldots, x_i^{(N_e)}\}\)</span>. The rank <span class="arithmatex">\(r_i \in \{1, \ldots, N_e+1\}\)</span>
+counts how many ensemble members are smaller than the truth.</p>
+<p>Aggregate ranks across all variables and times into a histogram with <span class="arithmatex">\(N_e + 1\)</span>
+bins. For a reliable ensemble, the histogram should be <strong>uniform</strong>.</p>
+<p>Diagnostic shapes:
+- <strong>U-shaped:</strong> underdispersive (spread too small, need more inflation)
+- <strong>Dome-shaped:</strong> overdispersive (spread too large)
+- <strong>Skewed:</strong> systematic bias in the ensemble mean</p>
+<p>Statistical test: <span class="arithmatex">\(\chi^2 = \sum_{k=1}^{N_e+1} \frac{(O_k - E_k)^2}{E_k}\)</span>
+where <span class="arithmatex">\(E_k = N_{\text{total}} / (N_e + 1)\)</span> is the expected count per bin.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">rank_histogram</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">x_true</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Int</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne1&quot;</span><span class="p">]:</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Rank histogram counts. Shape (Ne+1,). Should be approximately uniform.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="o">...</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">rank_histogram_chi2</span><span class="p">(</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">counts</span><span class="p">:</span> <span class="n">Int</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne1&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Chi-squared test statistic for rank histogram flatness. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Aggregate over many assimilation cycles (at least 100+) for
+meaningful statistics. The primary diagnostic for ensemble reliability.</p>
+<p><strong>Ref:</strong> Hamill, T. M. (2001). <em>Interpretation of Rank Histograms for Verifying
+Ensemble Forecasts.</em> Monthly Weather Review, 129(3), 550--560.</p>
+<hr />
+<h3 id="gap-4-innovation-statistics">Gap 4: Innovation Statistics<a class="headerlink" href="#gap-4-innovation-statistics" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Consistency</p>
+<p><strong>Math:</strong> The innovation vector is the difference between observations and the
+prior (forecast) mapped to observation space:</p>
+<div class="arithmatex">\[\mathbf{d}_f = \mathbf{y} - H\bar{\mathbf{x}}_f\]</div>
+<p>For a correctly specified filter, the innovations should satisfy:</p>
+<div class="arithmatex">\[E[\mathbf{d}_f] = \mathbf{0}, \qquad \text{Cov}(\mathbf{d}_f) = HPH^T + R\]</div>
+<p>The normalized innovation is:</p>
+<div class="arithmatex">\[\hat{d}_i = \frac{d_{f,i}}{\sqrt{(HPH^T + R)_{ii}}}\]</div>
+<p>which should be <span class="arithmatex">\(\mathcal{N}(0, 1)\)</span> for each observation component.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">innovation</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">y_obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">Hx_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Innovation vector d = y - H x_f. Shape (Ny,).&quot;&quot;&quot;</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="o">...</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">normalized_innovation</span><span class="p">(</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">y_obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">Hx_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">innovation_var</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalized innovation d / sqrt(diag(HPH^T + R)). Should be ~N(0,1).&quot;&quot;&quot;</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="o">...</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">innovation_mean_test</span><span class="p">(</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="n">innovations</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Time-averaged innovation per obs component. Should be ~0.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Monitor every cycle. Non-zero mean innovations indicate
+bias; innovation variance departing from <span class="arithmatex">\(HPH^T + R\)</span> indicates misspecified
+error covariances.</p>
+<p><strong>Ref:</strong> Kalnay, E. (2002). <em>Atmospheric Modeling, Data Assimilation and
+Predictability.</em> Cambridge University Press. Ch. 5.</p>
+<hr />
+<h3 id="gap-5-desroziers-consistency-diagnostics">Gap 5: Desroziers Consistency Diagnostics<a class="headerlink" href="#gap-5-desroziers-consistency-diagnostics" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Consistency</p>
+<p><strong>Math:</strong> Uses products of innovation vectors to diagnose error covariance
+specification. Define the forecast and analysis departures:</p>
+<div class="arithmatex">\[\mathbf{d}_f = \mathbf{y} - H\bar{\mathbf{x}}_f, \qquad \mathbf{d}_a = \mathbf{y} - H\bar{\mathbf{x}}_a\]</div>
+<p>Then the following expectations hold for a consistent system:</p>
+<div class="arithmatex">\[E[\mathbf{d}_a \mathbf{d}_f^T] \approx R \qquad \text{(a posteriori estimate of observation error covariance)}\]</div>
+<div class="arithmatex">\[E[\mathbf{d}_f \mathbf{d}_f^T] \approx HPH^T + R \qquad \text{(innovation covariance)}\]</div>
+<div class="arithmatex">\[E[\mathbf{d}_a \mathbf{d}_a^T] \approx R - HAH^T \qquad \text{(analysis residual covariance)}\]</div>
+<p>The first relation provides a diagnostic estimate of <span class="arithmatex">\(R\)</span> that can be compared
+to the assumed <span class="arithmatex">\(R\)</span>. If <span class="arithmatex">\(E[\mathbf{d}_a \mathbf{d}_f^T] \neq R_{\text{assumed}}\)</span>,
+the observation error covariance is misspecified.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">desroziers_R_estimate</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">d_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">d_a</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A posteriori estimate of R from E[d_a d_f^T]. Shape (Ny, Ny).&quot;&quot;&quot;</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="o">...</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">desroziers_innovation_cov</span><span class="p">(</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">d_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Innovation covariance E[d_f d_f^T] ~ HPH^T + R. Shape (Ny, Ny).&quot;&quot;&quot;</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="o">...</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">desroziers_analysis_residual_cov</span><span class="p">(</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="n">d_a</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Analysis residual covariance E[d_a d_a^T] ~ R - HAH^T. Shape (Ny, Ny).&quot;&quot;&quot;</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> A posteriori diagnostic. Requires accumulation over many
+cycles (typically 100+). Compare <span class="arithmatex">\(E[\mathbf{d}_a \mathbf{d}_f^T]\)</span> to the
+prescribed <span class="arithmatex">\(R\)</span> to detect observation error misspecification. Compare
+<span class="arithmatex">\(E[\mathbf{d}_f \mathbf{d}_f^T]\)</span> to <span class="arithmatex">\(HPH^T + R\)</span> to check overall consistency.</p>
+<p><strong>Ref:</strong> Desroziers, G., Berre, L., Chapnik, B., &amp; Poli, P. (2005).
+<em>Diagnosis of Observation, Background and Analysis-Error Statistics in
+Observation Space.</em> Quarterly Journal of the Royal Meteorological Society,
+131(613), 3385--3396.</p>
+<hr />
+<h3 id="gap-6-effective-ensemble-size">Gap 6: Effective Ensemble Size<a class="headerlink" href="#gap-6-effective-ensemble-size" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Degeneracy</p>
+<p><strong>Math:</strong> For weighted ensembles (particle filters, importance-weighted EnKF),
+the effective ensemble size measures weight concentration:</p>
+<div class="arithmatex">\[N_{\text{eff}} = \frac{1}{\sum_{j=1}^{N_e} w_j^2}\]</div>
+<p>where <span class="arithmatex">\(w_j\)</span> are normalized importance weights (<span class="arithmatex">\(\sum_j w_j = 1\)</span>).</p>
+<ul>
+<li><span class="arithmatex">\(N_{\text{eff}} = N_e\)</span> when all weights are equal (no degeneracy)</li>
+<li><span class="arithmatex">\(N_{\text{eff}} = 1\)</span> when one particle has all the weight (complete degeneracy)</li>
+<li>Common resampling threshold: <span class="arithmatex">\(N_{\text{eff}} &lt; N_e / 2\)</span></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">effective_ensemble_size</span><span class="p">(</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">weights</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ne&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Effective ensemble size from normalized weights. Scalar in [1, Ne].&quot;&quot;&quot;</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="o">...</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">weight_entropy</span><span class="p">(</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">weights</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ne&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Shannon entropy of weights: -sum(w log w). Max = log(Ne) for uniform.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Every cycle for particle filters or any weighted ensemble.
+<span class="arithmatex">\(N_{\text{eff}} \ll N_e\)</span> triggers resampling. Also useful for diagnosing
+observation impact in localized EnKF.</p>
+<p><strong>Ref:</strong> Liu, J. S. &amp; Chen, R. (1998). <em>Sequential Monte Carlo Methods for
+Dynamic Systems.</em> Journal of the American Statistical Association, 93(443),
+1032--1044.</p>
+<hr />
+<h3 id="gap-7-chi-squared-consistency-test">Gap 7: Chi-Squared Consistency Test<a class="headerlink" href="#gap-7-chi-squared-consistency-test" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Consistency</p>
+<p><strong>Math:</strong> The normalized innovation squared statistic:</p>
+<div class="arithmatex">\[\chi^2 = \mathbf{d}_f^T S^{-1} \mathbf{d}_f\]</div>
+<p>where <span class="arithmatex">\(S = HPH^T + R\)</span> is the innovation covariance. Under correct filter
+specification, <span class="arithmatex">\(\chi^2 \sim \chi^2(N_y)\)</span> with:</p>
+<div class="arithmatex">\[E[\chi^2] = N_y, \qquad \text{Var}(\chi^2) = 2 N_y\]</div>
+<p>The normalized statistic <span class="arithmatex">\(\chi^2 / N_y\)</span> should be <span class="arithmatex">\(\approx 1\)</span>:
+- <span class="arithmatex">\(\chi^2 / N_y \gg 1\)</span>: innovations too large (underestimated errors)
+- <span class="arithmatex">\(\chi^2 / N_y \ll 1\)</span>: innovations too small (overestimated errors)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">chi2_consistency</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">d_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">S_inv_d</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Chi-squared statistic d^T S^{-1} d. Should be ~Ny.&quot;&quot;&quot;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="o">...</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">chi2_normalized</span><span class="p">(</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">d_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">S_inv_d</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalized chi-squared: d^T S^{-1} d / Ny. Should be ~1.&quot;&quot;&quot;</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Every cycle. The most compact single-number consistency check.
+Time series of <span class="arithmatex">\(\chi^2 / N_y\)</span> immediately reveals filter health.</p>
+<p><strong>Ref:</strong> Mehra, R. K. (1970). <em>On the Identification of Variances and Adaptive
+Kalman Filtering.</em> IEEE Transactions on Automatic Control, 15(2), 175--184.</p>
+<hr />
+<h3 id="gap-8-spread-skill-ratio">Gap 8: Spread-Skill Ratio<a class="headerlink" href="#gap-8-spread-skill-ratio" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Calibration</p>
+<p><strong>Math:</strong> The ratio of ensemble spread to RMSE:</p>
+<div class="arithmatex">\[\text{SSR} = \frac{\text{RMS-spread}}{\text{RMSE}} = \frac{\sqrt{\frac{1}{N_x} \sum_i \sigma_{\text{spread},i}^2}}{\sqrt{\frac{1}{N_x} \sum_i (\bar{x}_{a,i} - x_{\text{true},i})^2}}\]</div>
+<p>Interpretation:
+- <span class="arithmatex">\(\text{SSR} \approx 1\)</span>: well-calibrated ensemble
+- <span class="arithmatex">\(\text{SSR} &lt; 1\)</span>: underdispersive (spread too small, errors larger than expected -- increase inflation)
+- <span class="arithmatex">\(\text{SSR} &gt; 1\)</span>: overdispersive (spread too large, errors smaller than expected -- decrease inflation)</p>
+<p>Track as a time series and as a scatter plot (spread vs. error per variable).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">spread_skill_ratio</span><span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">x_true</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Spread-skill ratio. Should be ~1 for calibrated filter. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="o">...</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">spread_skill_binned</span><span class="p">(</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">spreads</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; T&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="n">rmses</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; T&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">n_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; B&quot;</span><span class="p">],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; B&quot;</span><span class="p">]]:</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Binned spread vs. RMSE for spread-skill scatter plot.&quot;&quot;&quot;</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Summary diagnostic. Compute over a window of cycles.
+Directly informs inflation tuning.</p>
+<p><strong>Ref:</strong> Fortin, V., Abaza, M., Anctil, F., &amp; Turcotte, R. (2014). <em>Why
+Should Ensemble Spread Match the RMSE of the Ensemble Mean?</em> Journal of
+Hydrometeorology, 15(4), 1708--1713.</p>
+<hr />
+<h3 id="gap-9-crps-ensemble-form">Gap 9: CRPS (Ensemble Form)<a class="headerlink" href="#gap-9-crps-ensemble-form" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Proper scoring rule</p>
+<p><strong>Math:</strong> The Continuous Ranked Probability Score for an ensemble forecast:</p>
+<div class="arithmatex">\[\text{CRPS}(F, y) = E|X - y| - \frac{1}{2} E|X - X'|\]</div>
+<p>For an ensemble <span class="arithmatex">\(\{x^{(1)}, \ldots, x^{(N_e)}\}\)</span> with equal weights:</p>
+<div class="arithmatex">\[\text{CRPS} = \frac{1}{N_e} \sum_{j=1}^{N_e} |x^{(j)} - y| - \frac{1}{2 N_e^2} \sum_{j=1}^{N_e} \sum_{k=1}^{N_e} |x^{(j)} - x^{(k)}|\]</div>
+<p>The second term can be computed efficiently using sorted members:</p>
+<div class="arithmatex">\[\frac{1}{2 N_e^2} \sum_{j=1}^{N_e} \sum_{k=1}^{N_e} |x^{(j)} - x^{(k)}| = \frac{1}{N_e^2} \sum_{j=1}^{N_e} x_{(j)} (2j - 1 - N_e)\]</div>
+<p>where <span class="arithmatex">\(x_{(j)}\)</span> are the sorted ensemble members. Total cost: <span class="arithmatex">\(O(N_e \log N_e)\)</span> per observation.</p>
+<p>Lower is better. CRPS is a strictly proper scoring rule and has the same units
+as the observed variable.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">crps_ensemble</span><span class="p">(</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ne&quot;</span><span class="p">],</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">y_obs</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;CRPS for a single observation against an ensemble. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="o">...</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">crps_ensemble_batch</span><span class="p">(</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="n">y_obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Mean CRPS over all observations. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> When evaluating ensemble forecasts against observations.
+Preferred over RMSE because it rewards both accuracy and calibration.
+Univariate -- apply per observation component and average.</p>
+<p><strong>Ref:</strong> Gneiting, T. &amp; Raftery, A. E. (2007). <em>Strictly Proper Scoring Rules,
+Prediction, and Estimation.</em> Journal of the American Statistical Association,
+102(477), 359--378.</p>
+<hr />
+<h3 id="gap-10-degrees-of-freedom-for-signal-dfs">Gap 10: Degrees of Freedom for Signal (DFS)<a class="headerlink" href="#gap-10-degrees-of-freedom-for-signal-dfs" title="Permanent link">&para;</a></h3>
+<p><strong>Type:</strong> Information content</p>
+<p><strong>Math:</strong> The DFS measures how much information observations add to the
+analysis relative to the prior:</p>
+<div class="arithmatex">\[\text{DFS} = \text{tr}(I - KH) = N_y - \text{tr}(KH)\]</div>
+<p>equivalently:</p>
+<div class="arithmatex">\[\text{DFS} = \text{tr}(KH) = \text{tr}\!\left(\frac{\partial \bar{\mathbf{x}}_a}{\partial \mathbf{y}}\right)\]</div>
+<p>where <span class="arithmatex">\(K = PH^T(HPH^T + R)^{-1}\)</span> is the Kalman gain. Interpretation:</p>
+<ul>
+<li><span class="arithmatex">\(\text{DFS} \approx N_y\)</span>: observations dominate the analysis (strong constraint)</li>
+<li><span class="arithmatex">\(\text{DFS} \approx 0\)</span>: prior dominates the analysis (weak observations)</li>
+<li><span class="arithmatex">\(0 \leq \text{DFS} \leq N_y\)</span> always</li>
+</ul>
+<p>For ensemble methods, <span class="arithmatex">\(\text{DFS}\)</span> can be estimated from the ensemble
+perturbation update without forming <span class="arithmatex">\(K\)</span> explicitly:</p>
+<div class="arithmatex">\[\text{DFS} \approx \text{tr}\!\left(\frac{1}{N_e - 1} \sum_{j=1}^{N_e} \frac{(\mathbf{x}_a^{(j)} - \bar{\mathbf{x}}_a)(\mathbf{x}_f^{(j)} - \bar{\mathbf{x}}_f)^T}{\sigma_f^2}\right)\]</div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">dfs_from_gain</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">K</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Nx Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">H</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;DFS = tr(KH). Scalar in [0, Ny].&quot;&quot;&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="o">...</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">dfs_from_ensemble</span><span class="p">(</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">ensemble_f</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">ensemble_a</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble-based DFS estimate from forecast/analysis perturbations. Scalar.&quot;&quot;&quot;</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="o">...</span>
+</code></pre></div>
+<p><strong>When to use:</strong> Observation impact studies. Identifies which observations
+contribute most to the analysis. Useful for observation network design and
+for diagnosing observation redundancy.</p>
+<p><strong>Ref:</strong> Cardinali, C., Pezzulli, S., &amp; Andersson, E. (2004). <em>Influence-Matrix
+Diagnostic of a Data Assimilation System.</em> Quarterly Journal of the Royal
+Meteorological Society, 130(603), 2767--2786.</p>
+<hr />
+<h2 id="3-diagnostic-workflow">3  Diagnostic Workflow<a class="headerlink" href="#3-diagnostic-workflow" title="Permanent link">&para;</a></h2>
+<p>A standard diagnostic pipeline for validating an ensemble DA system:</p>
+<h3 id="phase-1-basic-health-checks-every-cycle">Phase 1: Basic health checks (every cycle)<a class="headerlink" href="#phase-1-basic-health-checks-every-cycle" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Innovation statistics</strong> (Gap 4): Compute <span class="arithmatex">\(\mathbf{d}_f = \mathbf{y} - H\bar{\mathbf{x}}_f\)</span>. Check that normalized innovations are <span class="arithmatex">\(\sim \mathcal{N}(0, 1)\)</span>.</li>
+<li><strong>Chi-squared test</strong> (Gap 7): Compute <span class="arithmatex">\(\chi^2 / N_y\)</span>. Should be <span class="arithmatex">\(\approx 1\)</span>. Flag cycles where it exceeds a threshold (e.g., &gt; 3).</li>
+<li><strong>Ensemble spread</strong> (Gap 1): Track RMS-spread. If it collapses to zero, the filter has diverged.</li>
+<li><strong>Effective ensemble size</strong> (Gap 6): For particle filters, check <span class="arithmatex">\(N_{\text{eff}}\)</span> and trigger resampling if needed.</li>
+</ol>
+<h3 id="phase-2-calibration-assessment-accumulated-over-a-window">Phase 2: Calibration assessment (accumulated over a window)<a class="headerlink" href="#phase-2-calibration-assessment-accumulated-over-a-window" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Spread-skill ratio</strong> (Gap 8): Compute over a rolling window (e.g., 50--100 cycles). Tune multiplicative inflation to drive SSR toward 1.</li>
+<li><strong>RMSE vs truth</strong> (Gap 2): Track analysis and forecast RMSE. The gap between them is the observation impact.</li>
+<li><strong>Rank histogram</strong> (Gap 3): Accumulate over 100+ cycles. Visual + chi-squared test for uniformity.</li>
+</ol>
+<h3 id="phase-3-error-covariance-diagnosis-offline-long-accumulation">Phase 3: Error covariance diagnosis (offline, long accumulation)<a class="headerlink" href="#phase-3-error-covariance-diagnosis-offline-long-accumulation" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Desroziers diagnostics</strong> (Gap 5): Accumulate <span class="arithmatex">\(\mathbf{d}_f\)</span> and <span class="arithmatex">\(\mathbf{d}_a\)</span> over many cycles. Compare <span class="arithmatex">\(E[\mathbf{d}_a \mathbf{d}_f^T]\)</span> to prescribed <span class="arithmatex">\(R\)</span>.</li>
+<li><strong>DFS</strong> (Gap 10): Assess observation information content. Identify redundant or ineffective observations.</li>
+</ol>
+<h3 id="phase-4-forecast-skill-evaluation-verification-against-observations">Phase 4: Forecast skill evaluation (verification against observations)<a class="headerlink" href="#phase-4-forecast-skill-evaluation-verification-against-observations" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>CRPS</strong> (Gap 9): Evaluate ensemble forecast quality as a proper scoring rule. Compare across different filter configurations.</li>
+</ol>
+<h3 id="summary-table">Summary table<a class="headerlink" href="#summary-table" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Diagnostic</th>
+<th>Frequency</th>
+<th>Requires truth?</th>
+<th>Key threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Innovation mean/var</td>
+<td>Every cycle</td>
+<td>No</td>
+<td><span class="arithmatex">\(E[d] \approx 0\)</span></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\chi^2 / N_y\)</span></td>
+<td>Every cycle</td>
+<td>No</td>
+<td><span class="arithmatex">\(\approx 1\)</span></td>
+</tr>
+<tr>
+<td>RMS spread</td>
+<td>Every cycle</td>
+<td>No</td>
+<td>Non-collapsing</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(N_{\text{eff}}\)</span></td>
+<td>Every cycle</td>
+<td>No</td>
+<td><span class="arithmatex">\(&gt; N_e / 2\)</span></td>
+</tr>
+<tr>
+<td>Spread-skill ratio</td>
+<td>Rolling window</td>
+<td>Yes</td>
+<td><span class="arithmatex">\(\approx 1\)</span></td>
+</tr>
+<tr>
+<td>RMSE</td>
+<td>Rolling window</td>
+<td>Yes</td>
+<td>Stable / decreasing</td>
+</tr>
+<tr>
+<td>Rank histogram</td>
+<td>100+ cycles</td>
+<td>Yes</td>
+<td>Uniform (<span class="arithmatex">\(\chi^2\)</span> test)</td>
+</tr>
+<tr>
+<td>Desroziers</td>
+<td>100+ cycles</td>
+<td>No</td>
+<td><span class="arithmatex">\(E[d_a d_f^T] \approx R\)</span></td>
+</tr>
+<tr>
+<td>DFS</td>
+<td>As needed</td>
+<td>No</td>
+<td><span class="arithmatex">\(0 \leq \text{DFS} \leq N_y\)</span></td>
+</tr>
+<tr>
+<td>CRPS</td>
+<td>Verification</td>
+<td>Obs only</td>
+<td>Lower is better</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-references">4  References<a class="headerlink" href="#4-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Whitaker, J. S. &amp; Loughe, A. F. (1998). <em>The Relationship between Ensemble Spread and Ensemble Mean Skill.</em> Monthly Weather Review, 126(12), 3292--3302.</li>
+<li>Evensen, G. (2009). <em>Data Assimilation: The Ensemble Kalman Filter.</em> 2nd ed. Springer.</li>
+<li>Hamill, T. M. (2001). <em>Interpretation of Rank Histograms for Verifying Ensemble Forecasts.</em> Monthly Weather Review, 129(3), 550--560.</li>
+<li>Kalnay, E. (2002). <em>Atmospheric Modeling, Data Assimilation and Predictability.</em> Cambridge University Press.</li>
+<li>Desroziers, G., Berre, L., Chapnik, B., &amp; Poli, P. (2005). <em>Diagnosis of Observation, Background and Analysis-Error Statistics in Observation Space.</em> QJRMS, 131(613), 3385--3396.</li>
+<li>Liu, J. S. &amp; Chen, R. (1998). <em>Sequential Monte Carlo Methods for Dynamic Systems.</em> JASA, 93(443), 1032--1044.</li>
+<li>Mehra, R. K. (1970). <em>On the Identification of Variances and Adaptive Kalman Filtering.</em> IEEE Trans. Automatic Control, 15(2), 175--184.</li>
+<li>Fortin, V., Abaza, M., Anctil, F., &amp; Turcotte, R. (2014). <em>Why Should Ensemble Spread Match the RMSE of the Ensemble Mean?</em> Journal of Hydrometeorology, 15(4), 1708--1713.</li>
+<li>Gneiting, T. &amp; Raftery, A. E. (2007). <em>Strictly Proper Scoring Rules, Prediction, and Estimation.</em> JASA, 102(477), 359--378.</li>
+<li>Cardinali, C., Pezzulli, S., &amp; Andersson, E. (2004). <em>Influence-Matrix Diagnostic of a Data Assimilation System.</em> QJRMS, 130(603), 2767--2786.</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

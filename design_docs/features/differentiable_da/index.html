@@ -1,0 +1,1603 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX x Differentiable Data Assimilation - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-x-differentiable-data-assimilation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX x Differentiable Data Assimilation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 The Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-why-jax-makes-this-free" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 Why JAX Makes This Free
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-training-signal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 The Training Signal
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 The Training Signal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#alternative-losses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative losses
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-gradient-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 Gradient Computation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4 Gradient Computation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#forward-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Forward pass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backward-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backward pass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comparison-with-adjoint-4dvar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison with adjoint 4DVar
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-challenges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 Challenges
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5 Challenges">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-memory-ot-cdot-n_e-cdot-n_x-for-backprop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Memory: \(O(T \cdot N_e \cdot N_x)\) for backprop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-stochastic-gradients-from-perturbed-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Stochastic gradients from perturbed observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-small-ensemble-rightarrow-noisy-gradients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Small ensemble \(\Rightarrow\) noisy gradients
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-localization-and-differentiability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Localization and differentiability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-inflation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 Inflation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-architecture-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 Architecture Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6 Architecture Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-a-learn-dynamics-neural-ode-through-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern A: Learn Dynamics (Neural ODE through Filter)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-b-learn-observation-operator-neural-decoder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern B: Learn Observation Operator (Neural Decoder)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-c-optimize-filter-hyperparameters-meta-learning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern C: Optimize Filter Hyperparameters (Meta-Learning)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-d-road-enkf-reduced-order-autodiff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern D: ROAD-EnKF (Reduced-Order Autodiff)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-complexity-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7 Complexity Table
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7 Complexity Table">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#comparison-with-adjoint-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison with adjoint methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8 Implementation Notes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8 Implementation Notes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-jaxlaxscan-for-the-time-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 jax.lax.scan for the time loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-jaxvmap-for-ensemble-parallelism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 jax.vmap for ensemble parallelism
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-jaxcheckpoint-remat-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 jax.checkpoint (remat) placement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-jit-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 JIT considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85-double-precision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5 Double precision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#86-gradient-clipping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.6 Gradient clipping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9 References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-x-differentiable-data-assimilation">ekalmX x Differentiable Data Assimilation<a class="headerlink" href="#ekalmx-x-differentiable-data-assimilation" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Backpropagating through ensemble Kalman filters to learn dynamics,
+observation operators, and filter hyperparameters end-to-end.
+This is ekalmX's key differentiator: all filters are differentiable by
+construction (Decision D9).</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="1-the-problem">1  The Problem<a class="headerlink" href="#1-the-problem" title="Permanent link">&para;</a></h2>
+<p>Traditional data assimilation treats the filter as a <strong>black box</strong>: given a
+dynamics model <span class="arithmatex">\(f\)</span> and an observation operator <span class="arithmatex">\(H\)</span>, the filter produces
+analyses <span class="arithmatex">\(\{x^a_t\}\)</span>, but no gradient information flows back to the model
+parameters. This prevents four important capabilities:</p>
+<ol>
+<li><strong>Learn dynamics model parameters</strong> <span class="arithmatex">\(\theta_f\)</span> by backpropagating the
+   observation-fit loss through the forecast step.</li>
+<li><strong>Learn observation operator parameters</strong> <span class="arithmatex">\(\theta_H\)</span> (e.g., a neural
+   decoder mapping state space to observation space).</li>
+<li><strong>Optimize filter hyperparameters</strong> — inflation factor <span class="arithmatex">\(\rho\)</span>,
+   localization radius <span class="arithmatex">\(r_\text{loc}\)</span>, observation error variance <span class="arithmatex">\(R\)</span> — by
+   gradient-based meta-learning rather than hand-tuning.</li>
+<li><strong>Train neural surrogate models</strong> end-to-end: replace the physics-based
+   <span class="arithmatex">\(f\)</span> with a neural network and train it jointly with the filter.</li>
+</ol>
+<p>In classical DA, these are addressed by separate, often ad hoc methods:
+cross-validation for hyperparameters, offline regression for model error
+correction, adjoint models for 4DVar. A differentiable filter unifies all
+four under a single gradient-based framework.</p>
+<hr />
+<h2 id="2-why-jax-makes-this-free">2  Why JAX Makes This Free<a class="headerlink" href="#2-why-jax-makes-this-free" title="Permanent link">&para;</a></h2>
+<p>In JAX, automatic differentiation flows through any computation that
+satisfies three properties:</p>
+<ol>
+<li><strong>No in-place mutation.</strong> All state is immutable arrays. Satisfied by
+   <code>eqx.Module</code> (frozen dataclass) and functional array updates.</li>
+<li><strong>No non-differentiable operations on the critical path.</strong> Sorting,
+   argmax, integer indexing — these break gradient flow. The EnKF critical
+   path (matrix multiply, solve, mean, covariance) is smooth.</li>
+<li><strong>Static control flow.</strong> Ensemble size <span class="arithmatex">\(N_e\)</span> is fixed at JIT time; the
+   number of assimilation steps <span class="arithmatex">\(T\)</span> is either fixed or handled by
+   <code>jax.lax.scan</code>.</li>
+</ol>
+<p>If these hold, <code>jax.grad</code> composes with <code>jax.jit</code> and <code>jax.vmap</code>
+automatically. No special "differentiable EnKF" class is needed — the
+standard EnKF implementation <em>is</em> differentiable.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># This just works:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">loss</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ensemble</span><span class="p">):</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">analyses</span> <span class="o">=</span> <span class="n">run_enkf</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ensemble</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">return</span> <span class="o">-</span><span class="n">log_likelihood</span><span class="p">(</span><span class="n">analyses</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">loss</span><span class="p">)(</span><span class="n">params</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ensemble</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Key insight:</strong> differentiability is not a feature we add — it is a property
+we preserve by writing clean functional code.</p>
+<hr />
+<h2 id="3-the-training-signal">3  The Training Signal<a class="headerlink" href="#3-the-training-signal" title="Permanent link">&para;</a></h2>
+<p>The natural loss function is the <strong>observation-space log-likelihood</strong>,
+accumulated over assimilation windows.</p>
+<p>At each time step <span class="arithmatex">\(t\)</span>, the forecast produces an ensemble mean
+<span class="arithmatex">\(\bar{x}^f_t\)</span> and forecast covariance <span class="arithmatex">\(P^f_t\)</span>. The innovation statistics:</p>
+<div class="arithmatex">\[v_t = y_t - H\bar{x}^f_t, \qquad S_t = H P^f_t H^\top + R\]</div>
+<p>The log-likelihood of the observations given the forecast:</p>
+<div class="arithmatex">\[\log p(y_t \mid \bar{x}^f_t) = -\frac{1}{2}\Bigl[N_y \log(2\pi) + \log|S_t| + v_t^\top S_t^{-1} v_t\Bigr]\]</div>
+<p>where <span class="arithmatex">\(N_y\)</span> is the observation dimension.</p>
+<p><strong>Total loss</strong> over <span class="arithmatex">\(T\)</span> assimilation steps:</p>
+<div class="arithmatex">\[\mathcal{L}(\theta) = -\sum_{t=1}^{T} \log p\bigl(y_t \mid \bar{x}^f_t(\theta)\bigr)\]</div>
+<p>This is precisely the negative log-marginal-likelihood of the observations
+under the filter's predictive distribution. It penalizes both bias
+(innovation mean) and miscalibration (innovation covariance).</p>
+<h3 id="alternative-losses">Alternative losses<a class="headerlink" href="#alternative-losses" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Loss</th>
+<th>Formula</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NLL (above)</td>
+<td><span class="arithmatex">\(-\sum_t \log p(y_t \mid \text{forecast}_t)\)</span></td>
+<td>Default — calibrated uncertainty</td>
+</tr>
+<tr>
+<td>MSE</td>
+<td><span class="arithmatex">\(\sum_t \|v_t\|^2\)</span></td>
+<td>Point accuracy only</td>
+</tr>
+<tr>
+<td>CRPS</td>
+<td><span class="arithmatex">\(\sum_t \text{CRPS}(\text{ensemble}_t, y_t)\)</span></td>
+<td>Calibration without Gaussianity</td>
+</tr>
+<tr>
+<td>Spread-skill</td>
+<td><span class="arithmatex">\(\sum_t (\text{spread}_t - \text{RMSE}_t)^2\)</span></td>
+<td>Reliability tuning</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-gradient-computation">4  Gradient Computation<a class="headerlink" href="#4-gradient-computation" title="Permanent link">&para;</a></h2>
+<h3 id="forward-pass">Forward pass<a class="headerlink" href="#forward-pass" title="Permanent link">&para;</a></h3>
+<p>The filter unrolls as a sequence of forecast-analysis cycles:</p>
+<div class="arithmatex">\[X^f_t = f_\theta(X^a_{t-1}), \qquad X^a_t = \text{EnKF\_update}(X^f_t, y_t)\]</div>
+<p>where <span class="arithmatex">\(X \in \mathbb{R}^{N_e \times N_x}\)</span> is the ensemble matrix.</p>
+<h3 id="backward-pass">Backward pass<a class="headerlink" href="#backward-pass" title="Permanent link">&para;</a></h3>
+<p>For dynamics parameters <span class="arithmatex">\(\theta\)</span>, the gradient decomposes as:</p>
+<div class="arithmatex">\[\frac{\partial \mathcal{L}}{\partial \theta} = \sum_{t=1}^{T} \frac{\partial \log p}{\partial \bar{x}^f_t} \cdot \frac{\partial \bar{x}^f_t}{\partial \theta}\]</div>
+<p>The forecast mean <span class="arithmatex">\(\bar{x}^f_t = \frac{1}{N_e}\sum_i f_\theta(x^{a,i}_{t-1})\)</span>
+is where <span class="arithmatex">\(\theta\)</span> enters. But <span class="arithmatex">\(x^a_{t-1}\)</span> itself depends on <span class="arithmatex">\(\theta\)</span> through
+earlier forecast steps, so the full gradient chains through <span class="arithmatex">\(T\)</span> steps:</p>
+<div class="arithmatex">\[\frac{\partial \bar{x}^f_t}{\partial \theta} = \frac{1}{N_e}\sum_i \Bigl[\frac{\partial f_\theta}{\partial \theta}\Big|_{x^{a,i}_{t-1}} + \frac{\partial f_\theta}{\partial x}\Big|_{x^{a,i}_{t-1}} \cdot \frac{\partial x^{a,i}_{t-1}}{\partial \theta}\Bigr]\]</div>
+<p>This is the <strong>unrolled backpropagation</strong> through the filter — analogous to
+backpropagation through time (BPTT) in RNNs.</p>
+<h3 id="comparison-with-adjoint-4dvar">Comparison with adjoint 4DVar<a class="headerlink" href="#comparison-with-adjoint-4dvar" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Adjoint 4DVar</th>
+<th>Differentiable EnKF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gradient method</td>
+<td>Hand-coded adjoint model</td>
+<td>Automatic differentiation</td>
+</tr>
+<tr>
+<td>Development cost</td>
+<td>Months (adjoint coding)</td>
+<td>Zero (JAX autodiff)</td>
+</tr>
+<tr>
+<td>Nonlinear dynamics</td>
+<td>Tangent linear approximation</td>
+<td>Exact (ensemble-based)</td>
+</tr>
+<tr>
+<td>Uncertainty</td>
+<td>Requires B matrix specification</td>
+<td>Ensemble-based, flow-dependent</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td><span class="arithmatex">\(O(T \cdot N_x)\)</span> (checkpointing)</td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-challenges">5  Challenges<a class="headerlink" href="#5-challenges" title="Permanent link">&para;</a></h2>
+<h3 id="51-memory-ot-cdot-n_e-cdot-n_x-for-backprop">5.1  Memory: <span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span> for backprop<a class="headerlink" href="#51-memory-ot-cdot-n_e-cdot-n_x-for-backprop" title="Permanent link">&para;</a></h3>
+<p>Reverse-mode AD stores all intermediate states. For <span class="arithmatex">\(T = 1000\)</span> steps with
+<span class="arithmatex">\(N_e = 50\)</span> ensemble members in <span class="arithmatex">\(N_x = 10^6\)</span> state space, this is
+<span class="arithmatex">\(\sim 400\)</span> GB in float64.</p>
+<p><strong>Mitigation: gradient checkpointing</strong> via <code>jax.checkpoint</code> (also called
+<code>jax.remat</code>). Trade memory for recomputation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@jax</span><span class="o">.</span><span class="n">checkpoint</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">single_step</span><span class="p">(</span><span class="n">carry</span><span class="p">,</span> <span class="n">obs_t</span><span class="p">):</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">ensemble</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">carry</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">forecast</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span> <span class="o">=</span> <span class="n">analysis</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">obs_t</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="k">return</span> <span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">log_lik</span>
+</code></pre></div>
+<p>This reduces memory from <span class="arithmatex">\(O(T)\)</span> to <span class="arithmatex">\(O(\sqrt{T})\)</span> (binomial checkpointing)
+or <span class="arithmatex">\(O(1)\)</span> per step (recompute everything) at 2-3x compute cost.</p>
+<h3 id="52-stochastic-gradients-from-perturbed-observations">5.2  Stochastic gradients from perturbed observations<a class="headerlink" href="#52-stochastic-gradients-from-perturbed-observations" title="Permanent link">&para;</a></h3>
+<p>The <strong>perturbed-observation EnKF</strong> draws random samples
+<span class="arithmatex">\(y^{(i)}_t \sim \mathcal{N}(y_t, R)\)</span> to form the update. These samples
+introduce non-smooth randomness into the computation graph.</p>
+<p><strong>Solution:</strong> use <strong>deterministic square-root filters</strong>:
+- ETKF (Ensemble Transform Kalman Filter)
+- EnSRF (Ensemble Square Root Filter)
+- ESTKF (Error-Subspace Transform Kalman Filter)</p>
+<p>These compute the analysis ensemble via a deterministic matrix square root —
+no observation perturbation, smooth gradients.</p>
+<h3 id="53-small-ensemble-rightarrow-noisy-gradients">5.3  Small ensemble <span class="arithmatex">\(\Rightarrow\)</span> noisy gradients<a class="headerlink" href="#53-small-ensemble-rightarrow-noisy-gradients" title="Permanent link">&para;</a></h3>
+<p>Ensemble-based covariance is a rank-<span class="arithmatex">\((N_e - 1)\)</span> approximation. With
+<span class="arithmatex">\(N_e = 20\)</span>, the gradient through the covariance estimate is itself noisy.</p>
+<p><strong>Mitigations:</strong>
+- Accumulate gradients over multiple assimilation windows (mini-batching
+  over time windows or independent trajectories).
+- Use larger ensembles for gradient computation than for operational
+  forecasting (<span class="arithmatex">\(N_e^\text{train} &gt; N_e^\text{deploy}\)</span>).
+- Low-rank gradient approximations (see ROAD-EnKF, Section 6).</p>
+<h3 id="54-localization-and-differentiability">5.4  Localization and differentiability<a class="headerlink" href="#54-localization-and-differentiability" title="Permanent link">&para;</a></h3>
+<p>Some localization methods break differentiability:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Differentiable?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gaspari-Cohn taper</td>
+<td>Yes</td>
+<td>Smooth bump function</td>
+</tr>
+<tr>
+<td>Gaussian taper</td>
+<td>Yes</td>
+<td><span class="arithmatex">\(\exp(-d^2 / 2r^2)\)</span></td>
+</tr>
+<tr>
+<td>Hard cutoff (<span class="arithmatex">\(d &gt; r \Rightarrow 0\)</span>)</td>
+<td>No</td>
+<td>Discontinuous</td>
+</tr>
+<tr>
+<td>Domain localization (observation selection)</td>
+<td>No</td>
+<td>Discrete selection</td>
+</tr>
+<tr>
+<td>Serial obs processing with selection</td>
+<td>No</td>
+<td>Data-dependent branching</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> use <strong>smooth tapers</strong> (Gaspari-Cohn, Gaussian) and apply them as
+element-wise multiplication on the covariance matrix. Avoid hard cutoffs
+and observation-selection schemes.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">gaspari_cohn</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Array</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Smooth compactly-supported correlation taper. C^4 at origin.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">r</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">/</span> <span class="n">radius</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="c1"># Piecewise polynomial, smooth everywhere, exactly 0 for r &gt;= 2</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">5</span><span class="o">/</span><span class="mi">3</span><span class="o">*</span><span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">5</span><span class="o">/</span><span class="mi">8</span><span class="o">*</span><span class="n">r</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">r</span><span class="o">**</span><span class="mi">4</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">r</span><span class="o">**</span><span class="mi">5</span><span class="o">/</span><span class="mi">4</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>           <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span> <span class="o">-</span> <span class="mi">5</span><span class="o">*</span><span class="n">r</span> <span class="o">+</span> <span class="mi">5</span><span class="o">/</span><span class="mi">3</span><span class="o">*</span><span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">5</span><span class="o">/</span><span class="mi">8</span><span class="o">*</span><span class="n">r</span><span class="o">**</span><span class="mi">3</span> <span class="o">-</span> <span class="n">r</span><span class="o">**</span><span class="mi">4</span><span class="o">/</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r</span><span class="o">**</span><span class="mi">5</span><span class="o">/</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">r</span><span class="p">),</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>           <span class="mf">0.0</span><span class="p">))</span>
+</code></pre></div>
+<h3 id="55-inflation">5.5  Inflation<a class="headerlink" href="#55-inflation" title="Permanent link">&para;</a></h3>
+<p>Multiplicative inflation <span class="arithmatex">\(X^a_t \leftarrow \bar{x}^a_t + \rho(X^a_t - \bar{x}^a_t)\)</span>
+with <span class="arithmatex">\(\rho &gt; 1\)</span> is differentiable w.r.t. <span class="arithmatex">\(\rho\)</span>. Additive inflation
+(adding random noise) has the same stochasticity issue as perturbed
+observations — use a fixed seed or reparameterization trick.</p>
+<hr />
+<h2 id="6-architecture-patterns">6  Architecture Patterns<a class="headerlink" href="#6-architecture-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="pattern-a-learn-dynamics-neural-ode-through-filter">Pattern A: Learn Dynamics (Neural ODE through Filter)<a class="headerlink" href="#pattern-a-learn-dynamics-neural-ode-through-filter" title="Permanent link">&para;</a></h3>
+<p>Replace or augment the dynamics model with a neural network. The filter
+provides the training signal.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">NeuralDynamics</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">net</span><span class="p">:</span> <span class="n">eqx</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MLP</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">]:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># residual form</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">train_dynamics</span><span class="p">(</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">model</span><span class="p">:</span> <span class="n">NeuralDynamics</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">y_obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;T Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">x0_ens</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ne Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">H</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Nx&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">R</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Ny&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">n_epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NeuralDynamics</span><span class="p">:</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Train dynamics by backprop through the filter.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">loss_fn</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">):</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>            <span class="c1"># Forecast: apply dynamics to each ensemble member</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>            <span class="n">ensemble</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">model</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>            <span class="c1"># Analysis: deterministic ETKF update</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>            <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span> <span class="o">=</span> <span class="n">etkf_update</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>            <span class="k">return</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>        <span class="n">_</span><span class="p">,</span> <span class="n">log_liks</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>            <span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">y_obs</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>        <span class="p">)</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>        <span class="k">return</span> <span class="o">-</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">log_liks</span><span class="p">)</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    <span class="n">opt</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">)</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>    <span class="n">opt_state</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">eqx</span><span class="o">.</span><span class="n">is_array</span><span class="p">))</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">):</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>        <span class="n">grads</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">filter_grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">)(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>        <span class="n">updates</span><span class="p">,</span> <span class="n">opt_state</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">opt_state</span><span class="p">)</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>    <span class="k">return</span> <span class="n">model</span>
+</code></pre></div>
+<h3 id="pattern-b-learn-observation-operator-neural-decoder">Pattern B: Learn Observation Operator (Neural Decoder)<a class="headerlink" href="#pattern-b-learn-observation-operator-neural-decoder" title="Permanent link">&para;</a></h3>
+<p>The observation operator <span class="arithmatex">\(H\)</span> maps from state space to observation space. When
+this mapping is nonlinear or partially known, parameterize it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">NeuralObsOp</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">encoder</span><span class="p">:</span> <span class="n">eqx</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MLP</span>   <span class="c1"># x -&gt; y_predicted</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Nx&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">loss_fn</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">dynamics</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">):</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="n">ensemble</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">dynamics</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="c1"># H is now a learned function applied to each member</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">obs_op</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span> <span class="o">=</span> <span class="n">etkf_update_nonlinear</span><span class="p">(</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>            <span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">,</span> <span class="n">obs_op</span><span class="p">,</span> <span class="n">R</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="p">)</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="k">return</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">log_liks</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">)</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="k">return</span> <span class="o">-</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">log_liks</span><span class="p">)</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1"># Gradient flows through obs_op AND dynamics jointly</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">filter_grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">)(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">dynamics</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="pattern-c-optimize-filter-hyperparameters-meta-learning">Pattern C: Optimize Filter Hyperparameters (Meta-Learning)<a class="headerlink" href="#pattern-c-optimize-filter-hyperparameters-meta-learning" title="Permanent link">&para;</a></h3>
+<p>Treat inflation and localization as differentiable hyperparameters:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">FilterParams</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">log_inflation</span><span class="p">:</span> <span class="nb">float</span>           <span class="c1"># rho = exp(log_inflation) &gt; 0</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">log_loc_radius</span><span class="p">:</span> <span class="nb">float</span>          <span class="c1"># r = exp(log_loc_radius) &gt; 0</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">log_obs_noise</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; Ny&quot;</span><span class="p">]</span>  <span class="c1"># R_diag = exp(log_obs_noise)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="nd">@property</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">inflation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_inflation</span><span class="p">)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="nd">@property</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">loc_radius</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_loc_radius</span><span class="p">)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="nd">@property</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">R</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;Ny Ny&quot;</span><span class="p">]:</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_obs_noise</span><span class="p">))</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="k">def</span><span class="w"> </span><span class="nf">meta_loss</span><span class="p">(</span><span class="n">filter_params</span><span class="p">,</span> <span class="n">dynamics</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">distances</span><span class="p">):</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">):</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">ensemble</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">dynamics</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="c1"># Apply smooth localization</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>        <span class="n">taper</span> <span class="o">=</span> <span class="n">gaspari_cohn</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">filter_params</span><span class="o">.</span><span class="n">loc_radius</span><span class="p">)</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span> <span class="o">=</span> <span class="n">etkf_update_localized</span><span class="p">(</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>            <span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">filter_params</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">taper</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>        <span class="p">)</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>        <span class="c1"># Apply multiplicative inflation</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="n">mean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        <span class="n">ensemble</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">filter_params</span><span class="o">.</span><span class="n">inflation</span> <span class="o">*</span> <span class="p">(</span><span class="n">ensemble</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>        <span class="k">return</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">log_liks</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">)</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>    <span class="k">return</span> <span class="o">-</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">log_liks</span><span class="p">)</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="c1"># Gradient w.r.t. inflation, localization radius, obs noise</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">meta_loss</span><span class="p">)(</span><span class="n">filter_params</span><span class="p">,</span> <span class="n">dynamics</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">distances</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="pattern-d-road-enkf-reduced-order-autodiff">Pattern D: ROAD-EnKF (Reduced-Order Autodiff)<a class="headerlink" href="#pattern-d-road-enkf-reduced-order-autodiff" title="Permanent link">&para;</a></h3>
+<p>Chen et al. (2023) observe that full backprop through <span class="arithmatex">\(T\)</span> filter steps is
+expensive. ROAD-EnKF approximates the gradient by:</p>
+<ol>
+<li>Running the filter forward (no AD tape).</li>
+<li>At each step, computing a <strong>local</strong> gradient of the log-likelihood
+   w.r.t. the forecast ensemble.</li>
+<li>Propagating this local gradient backward through the dynamics model
+   only (one step), not through the full filter.</li>
+</ol>
+<p>This reduces the backward pass from <span class="arithmatex">\(O(T)\)</span> sequential steps to <span class="arithmatex">\(O(1)\)</span>
+per time step (parallelizable), at the cost of ignoring cross-time
+gradient interactions.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">road_enkf_gradient</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;ROAD-EnKF: local gradients, no full unrolling.&quot;&quot;&quot;</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">x0_ens</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">total_grad</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">,</span> <span class="n">eqx</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">dynamics</span><span class="p">,</span> <span class="n">eqx</span><span class="o">.</span><span class="n">is_array</span><span class="p">))</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_obs</span><span class="p">)):</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="c1"># Local gradient: how does the forecast at step t affect the loss?</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">local_loss</span><span class="p">(</span><span class="n">dyn</span><span class="p">):</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="n">ens_f</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">dyn</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>            <span class="k">return</span> <span class="o">-</span><span class="n">etkf_log_likelihood</span><span class="p">(</span><span class="n">ens_f</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">H</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="n">grad_t</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">filter_grad</span><span class="p">(</span><span class="n">local_loss</span><span class="p">)(</span><span class="n">dynamics</span><span class="p">)</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="n">total_grad</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">total_grad</span><span class="p">,</span> <span class="n">grad_t</span><span class="p">)</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="c1"># Forward step (no gradient tape)</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="n">ensemble</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">dynamics</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">))</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="n">ensemble</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">etkf_update</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">H</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>    <span class="k">return</span> <span class="n">total_grad</span>
+</code></pre></div>
+<p><strong>Trade-offs:</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Full backprop</th>
+<th>ROAD-EnKF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gradient accuracy</td>
+<td>Exact (up to ensemble noise)</td>
+<td>Approximate (ignores cross-time)</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span> or <span class="arithmatex">\(O(\sqrt{T})\)</span> with checkpointing</td>
+<td><span class="arithmatex">\(O(N_e \cdot N_x)\)</span></td>
+</tr>
+<tr>
+<td>Compute</td>
+<td><span class="arithmatex">\(2\text{-}3\times\)</span> forward (with checkpointing)</td>
+<td><span class="arithmatex">\(\sim 2\times\)</span> forward</td>
+</tr>
+<tr>
+<td>Parallelism</td>
+<td>Sequential (backprop through time)</td>
+<td>Each step independent</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-complexity-table">7  Complexity Table<a class="headerlink" href="#7-complexity-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Forward</th>
+<th>Backward (full)</th>
+<th>Backward (checkpointed)</th>
+<th>ROAD-EnKF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Time</strong></td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot C_f)\)</span></td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot C_f)\)</span></td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot C_f \cdot \log T)\)</span></td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot C_f)\)</span></td>
+</tr>
+<tr>
+<td><strong>Memory</strong></td>
+<td><span class="arithmatex">\(O(N_e \cdot N_x)\)</span></td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span></td>
+<td><span class="arithmatex">\(O(\sqrt{T} \cdot N_e \cdot N_x)\)</span></td>
+<td><span class="arithmatex">\(O(N_e \cdot N_x)\)</span></td>
+</tr>
+<tr>
+<td><strong>Gradient quality</strong></td>
+<td>N/A</td>
+<td>Exact</td>
+<td>Exact</td>
+<td>Approximate</td>
+</tr>
+</tbody>
+</table>
+<p>Where <span class="arithmatex">\(C_f\)</span> is the cost of one dynamics model evaluation.</p>
+<h3 id="comparison-with-adjoint-methods">Comparison with adjoint methods<a class="headerlink" href="#comparison-with-adjoint-methods" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Dev cost</th>
+<th>Memory</th>
+<th>Nonlinearity</th>
+<th>Uncertainty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Adjoint 4DVar</td>
+<td>High (hand-coded adjoint)</td>
+<td><span class="arithmatex">\(O(T \cdot N_x)\)</span></td>
+<td>Tangent-linear approx</td>
+<td><span class="arithmatex">\(B\)</span> matrix (static)</td>
+</tr>
+<tr>
+<td>Diff. EnKF (full)</td>
+<td>Zero (autodiff)</td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span></td>
+<td>Exact (ensemble)</td>
+<td>Flow-dependent</td>
+</tr>
+<tr>
+<td>Diff. EnKF (ckpt)</td>
+<td>Zero (autodiff)</td>
+<td><span class="arithmatex">\(O(\sqrt{T} \cdot N_e \cdot N_x)\)</span></td>
+<td>Exact (ensemble)</td>
+<td>Flow-dependent</td>
+</tr>
+<tr>
+<td>ROAD-EnKF</td>
+<td>Low (local grads)</td>
+<td><span class="arithmatex">\(O(N_e \cdot N_x)\)</span></td>
+<td>Exact (ensemble)</td>
+<td>Flow-dependent</td>
+</tr>
+<tr>
+<td>EnVar (hybrid)</td>
+<td>Medium</td>
+<td><span class="arithmatex">\(O(N_e \cdot N_x)\)</span></td>
+<td>Tangent-linear + ensemble</td>
+<td>Hybrid B + ensemble</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-implementation-notes">8  Implementation Notes<a class="headerlink" href="#8-implementation-notes" title="Permanent link">&para;</a></h2>
+<h3 id="81-jaxlaxscan-for-the-time-loop">8.1  <code>jax.lax.scan</code> for the time loop<a class="headerlink" href="#81-jaxlaxscan-for-the-time-loop" title="Permanent link">&para;</a></h3>
+<p>The assimilation loop is a natural <code>scan</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_filter</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">):</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="n">carry</span><span class="p">,</span> <span class="n">y_t</span><span class="p">):</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        <span class="n">ensemble</span> <span class="o">=</span> <span class="n">carry</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="n">ensemble</span> <span class="o">=</span> <span class="n">forecast</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span> <span class="o">=</span> <span class="n">analysis</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">)</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="k">return</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">final_ens</span><span class="p">,</span> <span class="n">log_liks</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">x0_ens</span><span class="p">,</span> <span class="n">y_obs</span><span class="p">)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="k">return</span> <span class="n">final_ens</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">log_liks</span><span class="p">)</span>
+</code></pre></div>
+<p><code>scan</code> is preferred over a Python for-loop because:
+- It compiles to a single XLA <code>While</code> — constant compilation time regardless of <span class="arithmatex">\(T\)</span>.
+- It supports reverse-mode AD natively.
+- It composes with <code>jax.checkpoint</code> for memory-efficient backprop.</p>
+<h3 id="82-jaxvmap-for-ensemble-parallelism">8.2  <code>jax.vmap</code> for ensemble parallelism<a class="headerlink" href="#82-jaxvmap-for-ensemble-parallelism" title="Permanent link">&para;</a></h3>
+<p>The forecast step applies the dynamics to each ensemble member independently:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Instead of a loop over ensemble members:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">ensemble_forecast</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">dynamics</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>  <span class="c1"># (Ne, Nx) -&gt; (Ne, Nx)</span>
+</code></pre></div>
+<p>This maps to parallel SIMD execution on GPU/TPU.</p>
+<h3 id="83-jaxcheckpoint-remat-placement">8.3  <code>jax.checkpoint</code> (remat) placement<a class="headerlink" href="#83-jaxcheckpoint-remat-placement" title="Permanent link">&para;</a></h3>
+<p>Wrap the <code>scan</code> body, not the entire <code>scan</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Good: checkpoint per step</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="n">init</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Bad: checkpoint the whole scan (no memory savings)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="k">lambda</span> <span class="n">init</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">xs</span><span class="p">))(</span><span class="n">init</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+</code></pre></div>
+<p>For fine-grained control, checkpoint only the expensive dynamics model:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="n">carry</span><span class="p">,</span> <span class="n">y_t</span><span class="p">):</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">carry</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="n">dynamics</span><span class="p">))(</span><span class="n">ensemble</span><span class="p">)</span>  <span class="c1"># remat dynamics only</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span> <span class="o">=</span> <span class="n">analysis</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">y_t</span><span class="p">)</span>              <span class="c1"># keep analysis in memory</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="k">return</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">log_lik</span>
+</code></pre></div>
+<h3 id="84-jit-considerations">8.4  JIT considerations<a class="headerlink" href="#84-jit-considerations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ensemble size <span class="arithmatex">\(N_e\)</span> and state dimension <span class="arithmatex">\(N_x\)</span> must be static (known at
+  trace time). These are properties of the problem, not data-dependent.</li>
+<li>Number of observations <span class="arithmatex">\(N_y\)</span> should be static per <code>jit</code> call. If it
+  varies across time steps, pad to a fixed size and use a mask.</li>
+<li>The dynamics model must be a pure function (no side effects, no global
+  state).</li>
+</ul>
+<h3 id="85-double-precision">8.5  Double precision<a class="headerlink" href="#85-double-precision" title="Permanent link">&para;</a></h3>
+<p>Kalman filter updates involve solving <span class="arithmatex">\(S_t^{-1} v_t\)</span> where <span class="arithmatex">\(S_t\)</span> can be
+ill-conditioned. Use <code>jax.config.update("jax_enable_x64", True)</code> for
+float64 arithmetic in the analysis step.</p>
+<h3 id="86-gradient-clipping">8.6  Gradient clipping<a class="headerlink" href="#86-gradient-clipping" title="Permanent link">&para;</a></h3>
+<p>Unrolled backprop through many steps can produce exploding gradients
+(same as RNNs). Apply gradient clipping:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">loss</span><span class="p">)(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">clip_by_global_norm</span><span class="p">(</span><span class="n">max_norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">opt_state</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="9-references">9  References<a class="headerlink" href="#9-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p>Chen, Y., Huang, D. Z., Huang, J., Reich, S. &amp; Stuart, A. M. (2022).
+   <em>Autodifferentiable Ensemble Kalman Filters.</em> SIAM J. Math. Data Sci.</p>
+</li>
+<li>
+<p>Chen, Y., Huang, D. Z. &amp; Stuart, A. M. (2023). <em>ROAD-EnKF:
+   Reduced-Order Autodiff Ensemble Kalman Filters.</em> arXiv:2305.xxxxx.</p>
+</li>
+<li>
+<p>Bocquet, M., Brajard, J., Carrassi, A. &amp; Bertino, L. (2019). <em>Data
+   Assimilation as a Learning Tool to Infer ODE Representations of
+   Dynamical Models.</em> Nonlin. Processes Geophys.</p>
+</li>
+<li>
+<p>Brajard, J., Carrassi, A., Bocquet, M. &amp; Bertino, L. (2021). <em>Combining
+   Data Assimilation and Machine Learning to Infer Unresolved Scale
+   Parametrization.</em> Phil. Trans. R. Soc. A.</p>
+</li>
+<li>
+<p>Evensen, G. (2003). <em>The Ensemble Kalman Filter: Theoretical
+   Formulation and Practical Implementation.</em> Ocean Dyn.</p>
+</li>
+<li>
+<p>Hunt, B. R., Kostelich, E. J. &amp; Szunyogh, I. (2007). <em>Efficient Data
+   Assimilation for Spatiotemporal Chaos: A Local Ensemble Transform Kalman
+   Filter.</em> Physica D.</p>
+</li>
+<li>
+<p>Gaspari, G. &amp; Cohn, S. E. (1999). <em>Construction of Correlation Functions
+   in Two and Three Dimensions.</em> Q. J. R. Meteorol. Soc.</p>
+</li>
+<li>
+<p>Griewank, A. &amp; Walther, A. (2008). <em>Evaluating Derivatives: Principles
+   and Techniques of Algorithmic Differentiation.</em> SIAM.</p>
+</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

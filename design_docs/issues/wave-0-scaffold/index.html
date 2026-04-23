@@ -1,0 +1,901 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>[Wave 0] Scaffold - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#wave-0-scaffold" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              [Wave 0] Scaffold
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#shared-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#canonical-package-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Canonical Package Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="wave-0-scaffold">[Wave 0] Scaffold<a class="headerlink" href="#wave-0-scaffold" title="Permanent link">&para;</a></h1>
+<h2 id="shared-context">Shared Context<a class="headerlink" href="#shared-context" title="Permanent link">&para;</a></h2>
+<p>This grouped draft is based on <code>README.md</code>, <code>vision.md</code>, <code>architecture.md</code>,
+<code>boundaries.md</code>, and <code>decisions.md</code> from the <code>filterX</code> design-doc set. The repo
+you want to build, though, is <code>filterax</code>.</p>
+<p>The current <code>filterax</code> repository is still a package template:</p>
+<ul>
+<li><code>pyproject.toml</code> still says <code>mypackage</code></li>
+<li><code>src/mypackage/</code> still exists</li>
+<li><code>README.md</code> still points at <code>pypackage_template</code></li>
+<li>there are no real runtime dependencies yet</li>
+</ul>
+<p>The design docs expect a real JAX/Equinox data-assimilation library with three
+progressive layers:</p>
+<ul>
+<li>Layer 0: pure ensemble/Kalman primitives</li>
+<li>Layer 1: protocols and configurable components</li>
+<li>Layer 2: ready-to-run models and optax wrappers</li>
+</ul>
+<p>Wave 0 exists only to make the repo identity match that future.</p>
+<h2 id="canonical-package-layout">Canonical Package Layout<a class="headerlink" href="#canonical-package-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>src/filterax/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  __init__.py
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  _src/
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    _protocols.py
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    _types.py
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    statistics.py
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    gain.py
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    likelihood.py
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    localization.py
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    inflation.py
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    perturbations.py
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    patches.py
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  filters/
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  processes/
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  smoothers/
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  optax/
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  utils/
+</code></pre></div>
+<h2 id="runtime-boundary">Runtime Boundary<a class="headerlink" href="#runtime-boundary" title="Permanent link">&para;</a></h2>
+<p>The design docs are explicit about ownership:</p>
+<ul>
+<li>required runtime: <code>jax</code>, <code>equinox</code>, <code>gaussx</code>, <code>lineax</code>, <code>optax</code></li>
+<li>expected near-core typing/utilities: <code>jaxtyping</code></li>
+<li>optional ecosystem integrations: <code>diffrax</code>, <code>somax</code>, <code>geo_toolz</code>, <code>xr_assimilate</code></li>
+</ul>
+<p>Wave 0 should preserve that dependency boundary instead of flattening
+everything into one base requirement list.</p>
+<h1 id="wave-0-scaffold-and-package-identity">[Wave 0] Scaffold and Package Identity<a class="headerlink" href="#wave-0-scaffold-and-package-identity" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-01</code></p>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
+<p>Turn the template repo into a real <code>filterax</code> package with stable metadata,
+package layout, and runtime dependency boundaries for the later waves.</p>
+<h2 id="why-this-wave-exists">Why This Wave Exists<a class="headerlink" href="#why-this-wave-exists" title="Permanent link">&para;</a></h2>
+<p>Until the template identity is gone, every later issue would mix real work with
+rename cleanup, import churn, and broken docs metadata.</p>
+<h2 id="wave-milestone">Wave / Milestone<a class="headerlink" href="#wave-milestone" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave: <code>wave:0</code></li>
+<li>Milestone: <code>v0.0-scaffold</code></li>
+</ul>
+<h2 id="canonical-epics">Canonical Epics<a class="headerlink" href="#canonical-epics" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] FLX-02 [Epic] 0.A Package Identity and Runtime Bootstrap</li>
+</ul>
+<h2 id="sequential-dependencies">Sequential Dependencies<a class="headerlink" href="#sequential-dependencies" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Single-theme wave: FLX-02 is the entire wave.</li>
+<li><code>FLX-03 -&gt; FLX-04 -&gt; FLX-05</code>.</li>
+<li>The dedicated Core wave should not start until this scaffold wave closes.</li>
+</ul>
+<h2 id="definition-of-done">Definition of Done<a class="headerlink" href="#definition-of-done" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>import filterax</code> succeeds.</li>
+<li>The source tree, docs, metadata, and repo URLs no longer say <code>mypackage</code> or
+  <code>pypackage_template</code>.</li>
+<li>The repo layout makes the Layer 0 / Layer 1 / Layer 2 architecture obvious.</li>
+</ul>
+<h2 id="relationships">Relationships<a class="headerlink" href="#relationships" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Blocks the dedicated Core wave and every later filter/process/smoother wave.</li>
+</ul>
+<hr />
+<h1 id="epic-0a-package-identity-and-runtime-bootstrap">[Epic] 0.A Package Identity and Runtime Bootstrap<a class="headerlink" href="#epic-0a-package-identity-and-runtime-bootstrap" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-02</code></p>
+<h2 id="theme">Theme<a class="headerlink" href="#theme" title="Permanent link">&para;</a></h2>
+<p>Replace the template repo identity with real <code>filterax</code> packaging, docs
+positioning, and runtime dependency boundaries.</p>
+<h2 id="parent-wave">Parent Wave<a class="headerlink" href="#parent-wave" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-01</code></li>
+<li>Wave label: <code>wave:0</code></li>
+<li>Milestone: <code>v0.0-scaffold</code></li>
+</ul>
+<h2 id="parallelism">Parallelism<a class="headerlink" href="#parallelism" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Can run in parallel with: none</li>
+<li>Blocked by (inside this wave): none</li>
+<li>Must complete before: FLX-06</li>
+</ul>
+<h2 id="definition-of-done_1">Definition of Done<a class="headerlink" href="#definition-of-done_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The repo is recognizably <code>filterax</code>.</li>
+<li>Core runtime dependencies are staged correctly.</li>
+<li>The public package namespace exists even if most internals are still stubs.</li>
+</ul>
+<h2 id="relationships_1">Relationships<a class="headerlink" href="#relationships_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent wave: FLX-01.</li>
+<li>Blocks FLX-06.</li>
+</ul>
+<hr />
+<h1 id="buildpackage-rename-mypackage-scaffold-to-filterax-and-create-the-package-layout">build(package): rename mypackage scaffold to filterax and create the package layout<a class="headerlink" href="#buildpackage-rename-mypackage-scaffold-to-filterax-and-create-the-package-layout" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-03</code></p>
+<h2 id="problem-request">Problem / Request<a class="headerlink" href="#problem-request" title="Permanent link">&para;</a></h2>
+<p>Rename the template scaffold to <code>filterax</code>, update metadata, and create the
+package layout expected by the architecture doc.</p>
+<h2 id="user-story">User Story<a class="headerlink" href="#user-story" title="Permanent link">&para;</a></h2>
+<p>As a later implementer, I want the package to already import as <code>filterax</code> with
+obvious subpackages for filters, processes, smoothers, optax, and utilities.</p>
+<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h2>
+<p>Every later issue assumes the repo already looks like a data-assimilation
+library, not a freshly cloned template.</p>
+<h2 id="references-existing-code">References &amp; Existing Code<a class="headerlink" href="#references-existing-code" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/architecture.md</code>, <code>design_docs/filterX/vision.md</code></li>
+<li>Existing code to replace: <code>filterax/src/mypackage</code>, <code>filterax/pyproject.toml</code>, <code>filterax/README.md</code></li>
+</ul>
+<h2 id="implementation-steps">Implementation Steps<a class="headerlink" href="#implementation-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Rename <code>src/mypackage</code> to <code>src/filterax</code>.</li>
+<li>[ ] Create importable namespace packages or modules for <code>_src</code>, <code>filters</code>,
+      <code>processes</code>, <code>smoothers</code>, <code>optax</code>, and <code>utils</code>.</li>
+<li>[ ] Update wheel/build/test/coverage paths to the new package name.</li>
+<li>[ ] Remove template-facing README/docs references.</li>
+</ul>
+<h2 id="definition-of-done_2">Definition of Done<a class="headerlink" href="#definition-of-done_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>import filterax</code> and the top-level namespace packages succeed.</li>
+<li>The package layout matches the design direction closely enough that later
+  issues are implementation-only.</li>
+</ul>
+<h2 id="relationships_2">Relationships<a class="headerlink" href="#relationships_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-02.</li>
+<li>Blocks FLX-04 and FLX-06.</li>
+</ul>
+<hr />
+<h1 id="builddeps-add-required-runtime-deps-and-staged-optional-integrations">build(deps): add required runtime deps and staged optional integrations<a class="headerlink" href="#builddeps-add-required-runtime-deps-and-staged-optional-integrations" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-04</code></p>
+<h2 id="problem-request_1">Problem / Request<a class="headerlink" href="#problem-request_1" title="Permanent link">&para;</a></h2>
+<p>Add the runtime dependency surface implied by the design docs without pulling in
+all ecosystem integrations as hard requirements.</p>
+<h2 id="user-story_1">User Story<a class="headerlink" href="#user-story_1" title="Permanent link">&para;</a></h2>
+<p>As an implementer, I want the repo dependencies to match the architectural
+boundary so later waves can rely on JAX/Equinox/Kalman infrastructure being
+present.</p>
+<h2 id="motivation_1">Motivation<a class="headerlink" href="#motivation_1" title="Permanent link">&para;</a></h2>
+<p>The dependency decision is part of the design: <code>gaussx</code> and <code>optax</code> are core,
+while <code>somax</code>, <code>geo_toolz</code>, and <code>xr_assimilate</code> are integrations.</p>
+<h2 id="references-existing-code_1">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/boundaries.md</code>, <code>design_docs/filterX/decisions.md</code></li>
+<li>Existing code to replace: <code>filterax/pyproject.toml</code></li>
+</ul>
+<h2 id="implementation-steps_1">Implementation Steps<a class="headerlink" href="#implementation-steps_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Add required runtime deps: <code>jax</code>, <code>equinox</code>, <code>gaussx</code>, <code>lineax</code>, <code>optax</code>,
+      <code>jaxtyping</code>.</li>
+<li>[ ] Keep integration libraries such as <code>diffrax</code>, <code>somax</code>, <code>geo_toolz</code>, and
+      <code>xr_assimilate</code> optional or docs-only.</li>
+<li>[ ] Reflect the package rename in project URLs and metadata.</li>
+<li>[ ] Preserve a clean split between runtime, docs/examples, and dev tooling.</li>
+</ul>
+<h2 id="definition-of-done_3">Definition of Done<a class="headerlink" href="#definition-of-done_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The project environment reflects the documented runtime boundary.</li>
+<li>Optional integrations are not forced into the base install.</li>
+</ul>
+<h2 id="relationships_3">Relationships<a class="headerlink" href="#relationships_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-02.</li>
+<li>Blocked by FLX-03.</li>
+<li>Blocks FLX-06 and all implementation waves.</li>
+</ul>
+<hr />
+<h1 id="docs-replace-template-readme-and-docs-landing-with-filterax-positioning">docs: replace template README and docs landing with filterax positioning<a class="headerlink" href="#docs-replace-template-readme-and-docs-landing-with-filterax-positioning" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-05</code></p>
+<h2 id="problem-request_2">Problem / Request<a class="headerlink" href="#problem-request_2" title="Permanent link">&para;</a></h2>
+<p>Replace the template docs and README with the actual <code>filterax</code> identity and
+layered architecture story.</p>
+<h2 id="user-story_2">User Story<a class="headerlink" href="#user-story_2" title="Permanent link">&para;</a></h2>
+<p>As a later reader or implementing agent, I want the repo landing docs to
+describe <code>filterax</code> as a differentiable ensemble-Kalman library instead of a
+generic Python template.</p>
+<h2 id="motivation_2">Motivation<a class="headerlink" href="#motivation_2" title="Permanent link">&para;</a></h2>
+<p>The README is part of the issue pack’s implementation context. It should state
+the package identity, layering, and ecosystem boundaries from the start.</p>
+<h2 id="references-existing-code_2">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/README.md</code>, <code>design_docs/filterX/vision.md</code></li>
+<li>Existing code to replace: <code>filterax/README.md</code>, <code>filterax/docs/index.md</code>, <code>filterax/mkdocs.yml</code></li>
+</ul>
+<h2 id="implementation-steps_2">Implementation Steps<a class="headerlink" href="#implementation-steps_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Rewrite the README around the one-liner, user stories, and three-layer
+      stack from the design docs.</li>
+<li>[ ] Update the docs landing page and nav to reflect the upcoming wave split.</li>
+<li>[ ] Remove template badges, URLs, and package names.</li>
+</ul>
+<h2 id="definition-of-done_4">Definition of Done<a class="headerlink" href="#definition-of-done_4" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The landing docs explain <code>filterax</code> clearly enough that later issue bodies do
+  not have to compensate for template confusion.</li>
+</ul>
+<h2 id="relationships_4">Relationships<a class="headerlink" href="#relationships_4" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-02.</li>
+<li>Blocked by FLX-04.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

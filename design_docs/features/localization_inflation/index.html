@@ -1,0 +1,1417 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX — Covariance Localization & Ensemble Inflation - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-covariance-localization-ensemble-inflation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX — Covariance Localization &amp; Ensemble Inflation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#part-a-covariance-localization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Part A — Covariance Localization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Part A — Covariance Localization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a1-why-localize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A.1 Why Localize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a2-localization-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A.2 Localization Framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a3-gap-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A.3 Gap Catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A.3 Gap Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gap-1-gaspari-cohn-taper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 1: Gaspari-Cohn Taper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-2-gaussian-taper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 2: Gaussian Taper
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-3-hard-cutoff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 3: Hard Cutoff
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-4-soar-second-order-auto-regressive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 4: SOAR — Second-Order Auto-Regressive
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-5-adaptive-localization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 5: Adaptive Localization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-6-domain-localization-for-letkf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 6: Domain Localization (for LETKF)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#part-b-ensemble-inflation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Part B — Ensemble Inflation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Part B — Ensemble Inflation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b1-why-inflate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B.1 Why Inflate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2-gap-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B.2 Gap Catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="B.2 Gap Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gap-7-multiplicative-inflation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 7: Multiplicative Inflation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-8-rtps-relaxation-to-prior-spread" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 8: RTPS — Relaxation to Prior Spread
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-9-rtpp-relaxation-to-prior-perturbations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 9: RTPP — Relaxation to Prior Perturbations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-10-additive-inflation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 10: Additive Inflation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-11-adaptive-inflation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 11: Adaptive Inflation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-12-ledoit-wolf-shrinkage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 12: Ledoit-Wolf Shrinkage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#section-c-shared-infrastructure-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Section C — Shared Infrastructure &amp; References
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Section C — Shared Infrastructure &amp; References">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#c1-shared-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C.1 Shared Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c2-composition-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C.2 Composition Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c3-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C.3 References
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-covariance-localization-ensemble-inflation">ekalmX — Covariance Localization &amp; Ensemble Inflation<a class="headerlink" href="#ekalmx-covariance-localization-ensemble-inflation" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Gap analysis of covariance localization methods and ensemble inflation
+strategies for the ensemble Kalman filter stack.</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="part-a-covariance-localization">Part A — Covariance Localization<a class="headerlink" href="#part-a-covariance-localization" title="Permanent link">&para;</a></h2>
+<h3 id="a1-why-localize">A.1  Why Localize<a class="headerlink" href="#a1-why-localize" title="Permanent link">&para;</a></h3>
+<p>With a finite ensemble of size <span class="arithmatex">\(N_e\)</span>, the sample covariance
+<span class="arithmatex">\(P = \frac{1}{N_e - 1} X'^T X'\)</span> has rank at most <span class="arithmatex">\(N_e - 1\)</span>, while the true
+covariance may be full rank. The deficit manifests as <strong>spurious long-range
+correlations</strong> — the sample covariance assigns non-zero correlation between
+physically distant variables purely due to sampling noise. These spurious
+correlations cause the Kalman gain to draw information from distant,
+uninformative observations, leading to filter instability and eventual
+divergence.</p>
+<p>Localization suppresses these artifacts by tapering covariance entries as a
+function of physical distance, zeroing out correlations beyond a characteristic
+radius.</p>
+<h3 id="a2-localization-framework">A.2  Localization Framework<a class="headerlink" href="#a2-localization-framework" title="Permanent link">&para;</a></h3>
+<p>Two complementary approaches exist:</p>
+<p><strong>B-localization (covariance tapering).</strong> The localized covariance is formed via
+the Schur (Hadamard / element-wise) product:</p>
+<div class="arithmatex">\[P_{\text{loc}} = \rho \circ P\]</div>
+<p>where <span class="arithmatex">\(\rho_{ij} = \rho(d_{ij} / r)\)</span> is a positive-definite taper function of
+the distance <span class="arithmatex">\(d_{ij}\)</span> between grid points <span class="arithmatex">\(i\)</span> and <span class="arithmatex">\(j\)</span>, with localization radius
+<span class="arithmatex">\(r\)</span>. The Schur product of two PSD matrices is PSD (Schur product theorem), so
+<span class="arithmatex">\(P_{\text{loc}}\)</span> remains a valid covariance. Applied to the gain:</p>
+<div class="arithmatex">\[K_{\text{loc}} = (\rho \circ C^{xH})\,(\rho \circ C^{HH} + R)^{-1}\]</div>
+<p><strong>R-localization (observation-space).</strong> Instead of tapering the covariance,
+inflate the observation noise locally:</p>
+<div class="arithmatex">\[R_{\text{loc}} = \text{diag}(1 / \rho_i) \circ R\]</div>
+<p>where <span class="arithmatex">\(\rho_i\)</span> is the taper weight for observation <span class="arithmatex">\(i\)</span> relative to the analysis
+grid point. Observations far from the analysis point receive inflated noise and
+contribute less to the update. This is the approach used by the LETKF — each
+grid point sees only local observations with distance-weighted noise inflation.</p>
+<h3 id="a3-gap-catalog">A.3  Gap Catalog<a class="headerlink" href="#a3-gap-catalog" title="Permanent link">&para;</a></h3>
+<hr />
+<h4 id="gap-1-gaspari-cohn-taper">Gap 1: Gaspari-Cohn Taper<a class="headerlink" href="#gap-1-gaspari-cohn-taper" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> Any gridded or unstructured spatial domain with a distance metric.</p>
+<p><strong>Math (Gaspari &amp; Cohn 1999):</strong> A 5th-order piecewise polynomial on
+<span class="arithmatex">\(z = d/r \in [0, 2]\)</span>:</p>
+<div class="arithmatex">\[\rho(z) = \begin{cases} -\frac{1}{4}z^5 + \frac{1}{2}z^4 + \frac{5}{8}z^3 - \frac{5}{3}z^2 + 1, &amp; 0 \leq z \leq 1 \\ \frac{1}{12}z^5 - \frac{1}{2}z^4 + \frac{5}{8}z^3 + \frac{5}{3}z^2 - 5z + 4 - \frac{2}{3z}, &amp; 1 &lt; z \leq 2 \\ 0, &amp; z &gt; 2 \end{cases}\]</div>
+<p><strong>Properties:</strong> Compactly supported (zero beyond <span class="arithmatex">\(2r\)</span>). <span class="arithmatex">\(C^2\)</span> smooth at all
+transition points (<span class="arithmatex">\(z = 0, 1, 2\)</span>). Positive definite — the localized covariance
+is guaranteed PSD. The gold standard in operational NWP and ocean DA.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">gaspari_cohn</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">distances</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">]:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gaspari-Cohn 5th-order piecewise polynomial taper.</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="sd">    Compactly supported: zero beyond 2 x radius.</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="sd">    Smooth (C2) at all transition points.</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Gaspari, G. &amp; Cohn, S. E. (1999). <em>Construction of correlation
+functions in two and three dimensions.</em> Quart. J. Roy. Meteor. Soc., 125,
+723-757.</p>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §localization</p>
+<hr />
+<h4 id="gap-2-gaussian-taper">Gap 2: Gaussian Taper<a class="headerlink" href="#gap-2-gaussian-taper" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Useful when compact support is not required.</p>
+<p><strong>Math:</strong></p>
+<div class="arithmatex">\[\rho(d) = \exp\!\left(-\frac{d^2}{2r^2}\right)\]</div>
+<p><strong>Properties:</strong> Infinitely differentiable (<span class="arithmatex">\(C^\infty\)</span>). Positive definite.
+<strong>Not</strong> compactly supported — decays exponentially but never reaches zero.
+Simpler than Gaspari-Cohn but retains weak long-range correlations.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">gaussian_taper</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">distances</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">]:</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gaussian taper: exp(-d^2 / (2 radius^2))</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="sd">    Not compactly supported — decays but never reaches zero.</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Standard. See also Gaspari &amp; Cohn (1999) for comparison.</p>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §localization</p>
+<hr />
+<h4 id="gap-3-hard-cutoff">Gap 3: Hard Cutoff<a class="headerlink" href="#gap-3-hard-cutoff" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> Testing and prototyping only.</p>
+<p><strong>Math:</strong></p>
+<div class="arithmatex">\[\rho(d) = \mathbf{1}\{d \leq r\}\]</div>
+<p><strong>Properties:</strong> Discontinuous at <span class="arithmatex">\(d = r\)</span>. <strong>Not</strong> positive definite in general
+(the resulting matrix may lose PSD-ness). Can cause filter instability due to
+the sharp boundary. Useful only as a baseline or for debugging.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">hard_cutoff</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">distances</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">]:</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Binary cutoff: 1 if d &lt;= radius, 0 otherwise.</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="sd">    Discontinuous — can cause filter instability. Testing only.</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §localization</p>
+<hr />
+<h4 id="gap-4-soar-second-order-auto-regressive">Gap 4: SOAR — Second-Order Auto-Regressive<a class="headerlink" href="#gap-4-soar-second-order-auto-regressive" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Common in meteorological background error modelling.</p>
+<p><strong>Math:</strong></p>
+<div class="arithmatex">\[\rho(d) = \left(1 + \frac{d}{r}\right) \exp\!\left(-\frac{d}{r}\right)\]</div>
+<p><strong>Properties:</strong> <span class="arithmatex">\(C^1\)</span> smooth (first derivative continuous, second is not).
+Positive definite. Approximates compact support — decays to <span class="arithmatex">\(&lt; 0.01\)</span> by
+<span class="arithmatex">\(d \approx 5r\)</span>. Often used as a correlation model in background error
+covariance (e.g., Met Office VAR). Simpler than Gaspari-Cohn but less smooth.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">soar_taper</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">distances</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">]:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Second-Order Auto-Regressive taper.</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="sd">    rho = (1 + d/r) exp(-d/r)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="sd">    C1 smooth, positive definite, approximate compact support.</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Thiebaux, H. J. &amp; Pedder, M. A. (1987). <em>Spatial Objective Analysis.</em>
+Academic Press.</p>
+<hr />
+<h4 id="gap-5-adaptive-localization">Gap 5: Adaptive Localization<a class="headerlink" href="#gap-5-adaptive-localization" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Eliminates manual tuning of the localization radius.</p>
+<p><strong>Math (Anderson 2007, 2012):</strong> The optimal localization radius for each
+state-observation pair is estimated from innovation statistics. For each
+variable <span class="arithmatex">\(x_i\)</span> and observation <span class="arithmatex">\(y_j\)</span>, the sample correlation
+<span class="arithmatex">\(r_{ij} = C^{xH}_{ij} / (\sigma_{x_i} \sigma_{y_j})\)</span> is compared to its
+sampling uncertainty:</p>
+<div class="arithmatex">\[\text{se}(r_{ij}) \approx \frac{1 - r_{ij}^2}{\sqrt{N_e - 2}}\]</div>
+<p>If <span class="arithmatex">\(|r_{ij}| &lt; \text{se}(r_{ij})\)</span>, the correlation is not statistically
+significant and is set to zero. The effective localization radius adapts
+per-variable — strongly correlated pairs retain large radii, weakly correlated
+pairs are suppressed aggressively.</p>
+<p><strong>Properties:</strong> Data-driven, no manual radius selection. Requires multiple
+cycles to estimate correlations reliably. More complex to implement (per-pair
+significance testing). Can be combined with a Gaspari-Cohn base taper.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">adaptive_localization</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">obs_particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">significance_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_y&quot;</span><span class="p">]:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Adaptive localization (Anderson 2007, 2012).</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="sd">    Estimates per-variable localization weights from the statistical</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="sd">    significance of ensemble correlations. Correlations below the</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="sd">    sampling noise floor are zeroed out.</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Anderson, J. L. (2007). <em>Exploring the need for localization in
+ensemble data assimilation using a hierarchical ensemble filter.</em> Physica D,
+230, 99-111. Anderson, J. L. (2012). <em>Localization and sampling error
+correction in ensemble Kalman filter data assimilation.</em> Mon. Wea. Rev., 140,
+2359-2371.</p>
+<hr />
+<h4 id="gap-6-domain-localization-for-letkf">Gap 6: Domain Localization (for LETKF)<a class="headerlink" href="#gap-6-domain-localization-for-letkf" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> Gridded domains with the Local Ensemble Transform Kalman Filter.</p>
+<p><strong>Math:</strong> Domain localization is not a taper function applied to the covariance.
+Instead, for each analysis grid point <span class="arithmatex">\(i\)</span>:</p>
+<ol>
+<li>Select all observations within radius <span class="arithmatex">\(r\)</span> of grid point <span class="arithmatex">\(i\)</span>:
+   <span class="arithmatex">\(\mathcal{O}_i = \{j : d(i, j) \leq r\}\)</span>.</li>
+<li>Apply distance-dependent observation-noise inflation to the selected
+   observations: <span class="arithmatex">\(R_{\text{loc},jj} = R_{jj} / \rho(d_{ij})\)</span>.</li>
+<li>Run a <strong>local</strong> ETKF analysis using only <span class="arithmatex">\(\mathcal{O}_i\)</span> — a small
+   <span class="arithmatex">\(N_e \times |\mathcal{O}_i|\)</span> problem.</li>
+</ol>
+<p>The localization is implicit in the observation selection and noise weighting.
+No global taper matrix is ever formed, making this approach memory-efficient
+for large state spaces.</p>
+<p><strong>Properties:</strong> Embarrassingly parallel over grid points. Natural fit for LETKF.
+The local analyses are independent and can run on separate cores/devices.
+Observation selection uses a spatial index (KD-tree, ball tree) for efficiency.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">select_local_obs</span><span class="p">(</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">grid_point</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">obs_coords</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y D&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Int</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_local&quot;</span><span class="p">]:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Select observation indices within localization radius.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">inflate_local_obs_noise</span><span class="p">(</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">obs_noise_local</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_local N_local&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">distances</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_local&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">taper_fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">gaspari_cohn</span><span class="p">,</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_local N_local&quot;</span><span class="p">]:</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;R-localization: inflate observation noise by 1/rho(d).</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="sd">    R_loc = diag(1 / rho(d)) @ R_local</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="sd">    Observations near the grid point keep their original noise;</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="sd">    distant observations receive inflated noise and contribute less.</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Hunt, B. R., Kostelich, E. J., &amp; Szunyogh, I. (2007). <em>Efficient
+data assimilation for spatiotemporal chaos: A local ensemble transform Kalman
+filter.</em> Physica D, 230, 112-126.</p>
+<hr />
+<h2 id="part-b-ensemble-inflation">Part B — Ensemble Inflation<a class="headerlink" href="#part-b-ensemble-inflation" title="Permanent link">&para;</a></h2>
+<h3 id="b1-why-inflate">B.1  Why Inflate<a class="headerlink" href="#b1-why-inflate" title="Permanent link">&para;</a></h3>
+<p>Ensemble Kalman filters systematically underestimate posterior uncertainty due
+to three compounding effects:</p>
+<ol>
+<li><strong>Finite ensemble size.</strong> With <span class="arithmatex">\(N_e\)</span> members, the sample covariance
+   underestimates the true variance — the ensemble cannot represent all
+   directions of uncertainty.</li>
+<li><strong>Imperfect model.</strong> Model error introduces unrepresented uncertainty that
+   the ensemble does not account for.</li>
+<li><strong>Localization side effects.</strong> Covariance tapering reduces the effective
+   rank of the covariance further, compounding the underestimation.</li>
+</ol>
+<p>Without inflation, the ensemble spread collapses over repeated assimilation
+cycles. The filter becomes overconfident, assigns excessive weight to the
+forecast, and <strong>rejects observations</strong> — a failure mode called filter
+divergence.</p>
+<h3 id="b2-gap-catalog">B.2  Gap Catalog<a class="headerlink" href="#b2-gap-catalog" title="Permanent link">&para;</a></h3>
+<hr />
+<h4 id="gap-7-multiplicative-inflation">Gap 7: Multiplicative Inflation<a class="headerlink" href="#gap-7-multiplicative-inflation" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. The simplest and most common inflation method.</p>
+<p><strong>Math:</strong></p>
+<div class="arithmatex">\[x^{(j)}_{\text{inflated}} = \bar{x} + \lambda (x^{(j)} - \bar{x}), \qquad \lambda &gt; 1\]</div>
+<p>Equivalently, <span class="arithmatex">\(X'_{\text{inflated}} = \lambda X'\)</span>. The inflated covariance is
+<span class="arithmatex">\(P_{\text{inflated}} = \lambda^2 P\)</span>.</p>
+<p><strong>Properties:</strong> One scalar parameter. Applied before the analysis step
+(prior inflation) or after (posterior inflation). Typical values:
+<span class="arithmatex">\(\lambda \in [1.01, 1.10]\)</span>. Does not account for spatially varying model error.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">inflate_multiplicative</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]:</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Multiplicative inflation: X&#39;_inflated = factor * X&#39;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="sd">    Scales anomalies around the ensemble mean.</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="sd">    factor &gt; 1 increases spread, factor = 1 is identity.</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Anderson, J. L. &amp; Anderson, S. L. (1999). <em>A Monte Carlo
+implementation of the nonlinear filtering problem to produce ensemble
+assimilations and forecasts.</em> Mon. Wea. Rev., 127, 2741-2758.</p>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §inflation</p>
+<hr />
+<h4 id="gap-8-rtps-relaxation-to-prior-spread">Gap 8: RTPS — Relaxation to Prior Spread<a class="headerlink" href="#gap-8-rtps-relaxation-to-prior-spread" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Widely used in operational NWP (e.g., NCEP GFS).</p>
+<p><strong>Math (Whitaker &amp; Hamill 2012):</strong> Relaxation to Prior Spread rescales the
+analysis anomalies so that the per-variable standard deviation interpolates
+between the analysis and forecast values:</p>
+<div class="arithmatex">\[\sigma_{\text{relaxed},i} = (1 - \alpha)\,\sigma^a_i + \alpha\,\sigma^f_i\]</div>
+<div class="arithmatex">\[x^{(j)}_{\text{relaxed}} = \bar{x}^a + \frac{\sigma_{\text{relaxed},i}}{\sigma^a_i} \cdot (x^{(j)}_a - \bar{x}^a)\]</div>
+<p>where <span class="arithmatex">\(\sigma^a_i\)</span> and <span class="arithmatex">\(\sigma^f_i\)</span> are the per-variable analysis and forecast
+ensemble standard deviations. With <span class="arithmatex">\(\alpha = 0\)</span> the analysis is unchanged; with
+<span class="arithmatex">\(\alpha = 1\)</span> the forecast spread is fully restored.</p>
+<p><strong>Properties:</strong> Per-variable inflation — spatially adaptive. Applied after the
+analysis step. Preserves the analysis mean. One scalar parameter <span class="arithmatex">\(\alpha\)</span>, but
+the effective inflation factor varies across variables.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">inflate_rtps</span><span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">analysis_particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">forecast_particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]:</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Relaxation to Prior Spread (Whitaker &amp; Hamill 2012).</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="sd">    sigma_relaxed = (1 - alpha) sigma_analysis + alpha sigma_forecast</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="sd">    ----------</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="sd">    alpha : relaxation coefficient in [0, 1].</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="sd">        0 = pure analysis, 1 = restore full forecast spread.</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Whitaker, J. S. &amp; Hamill, T. M. (2012). <em>Evaluating methods to
+account for system errors in ensemble data assimilation.</em> Mon. Wea. Rev., 140,
+3078-3089.</p>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §inflation</p>
+<hr />
+<h4 id="gap-9-rtpp-relaxation-to-prior-perturbations">Gap 9: RTPP — Relaxation to Prior Perturbations<a class="headerlink" href="#gap-9-rtpp-relaxation-to-prior-perturbations" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Commonly paired with ETKF/LETKF.</p>
+<p><strong>Math (Zhang et al. 2004):</strong> Directly interpolates the analysis perturbations
+toward the forecast perturbations:</p>
+<div class="arithmatex">\[X'_{\text{relaxed}} = (1 - \alpha)\,X'_a + \alpha\,X'_f\]</div>
+<p>Unlike RTPS which operates on per-variable spread (a scalar per variable), RTPP
+operates on the full perturbation matrix and thus preserves inter-variable
+correlation structure from the forecast.</p>
+<p><strong>Properties:</strong> One scalar parameter. Simpler than RTPS — no per-variable
+standard deviation computation. Modifies correlation structure (RTPS does not).
+Applied after the analysis step.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">inflate_rtpp</span><span class="p">(</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">analysis_particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">forecast_particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]:</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Relaxation to Prior Perturbations (Zhang et al. 2004).</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="sd">    X&#39;_relaxed = (1 - alpha) X&#39;_analysis + alpha X&#39;_forecast</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="sd">    Directly interpolates perturbations (not spread).</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Zhang, F., Snyder, C., &amp; Sun, J. (2004). <em>Impacts of initial estimate
+and observation availability on convective-scale data assimilation with an
+ensemble Kalman filter.</em> Mon. Wea. Rev., 132, 1238-1253.</p>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §inflation</p>
+<hr />
+<h4 id="gap-10-additive-inflation">Gap 10: Additive Inflation<a class="headerlink" href="#gap-10-additive-inflation" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Explicitly models model error.</p>
+<p><strong>Math:</strong></p>
+<div class="arithmatex">\[X'_{\text{inflated}} = X' + \varepsilon, \qquad \varepsilon \sim \mathcal{N}(0, Q_{\text{add}})\]</div>
+<p>Random noise drawn from a prescribed model-error covariance <span class="arithmatex">\(Q_{\text{add}}\)</span> is
+added to each ensemble member's perturbations. This directly injects additional
+spread in directions specified by <span class="arithmatex">\(Q_{\text{add}}\)</span>.</p>
+<p><strong>Properties:</strong> Requires specifying <span class="arithmatex">\(Q_{\text{add}}\)</span> — a non-trivial modelling
+choice. Can target specific variables or spatial scales. Common sources for
+<span class="arithmatex">\(Q_{\text{add}}\)</span>: climatological variability, lagged forecast differences, or
+stochastic physics tendencies.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">inflate_additive</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKey</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]:</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Additive inflation: X&#39; &lt;- X&#39; + epsilon, epsilon ~ N(0, Q_add).</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="sd">    Adds stochastic model-error perturbations to the ensemble.</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="sd">    ----------</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="sd">    noise_cov : model-error covariance Q_add.</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="sd">        Sampling delegates to gaussx.</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Hamill, T. M. &amp; Whitaker, J. S. (2005). <em>Accounting for the error due
+to unresolved scales in ensemble data assimilation: A comparison of different
+approaches.</em> Mon. Wea. Rev., 133, 3132-3147.</p>
+<hr />
+<h4 id="gap-11-adaptive-inflation">Gap 11: Adaptive Inflation<a class="headerlink" href="#gap-11-adaptive-inflation" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Eliminates manual tuning of the inflation factor.</p>
+<p><strong>Math (Anderson 2007, 2009):</strong> The optimal inflation factor is estimated from
+the consistency of innovations. The expected innovation variance is:</p>
+<div class="arithmatex">\[\text{var}(v) = C^{HH} + R\]</div>
+<p>If the observed innovation variance exceeds this (innovations are too large),
+the ensemble is under-dispersive and inflation should increase. Anderson (2009)
+frames this as a Bayesian estimation problem: the inflation factor <span class="arithmatex">\(\lambda\)</span> is
+treated as a random variable with a prior <span class="arithmatex">\(\mathcal{N}(\lambda_{\text{prior}},
+\sigma^2_\lambda)\)</span>, updated each cycle via:</p>
+<div class="arithmatex">\[\lambda_{\text{post}} = \frac{\sigma^2_\lambda \cdot \hat{\lambda}_{\text{obs}} + \sigma^2_{\text{obs}} \cdot \lambda_{\text{prior}}}{\sigma^2_\lambda + \sigma^2_{\text{obs}}}\]</div>
+<p>where <span class="arithmatex">\(\hat{\lambda}_{\text{obs}}\)</span> is the inflation implied by the observed
+innovation variance and <span class="arithmatex">\(\sigma^2_{\text{obs}}\)</span> is its uncertainty. The
+posterior becomes the prior for the next cycle.</p>
+<p><strong>Properties:</strong> Self-tuning — no manual <span class="arithmatex">\(\lambda\)</span> selection. Can be applied
+per-variable (spatially varying inflation). Requires multiple cycles to
+converge. Needs careful initialization of the prior.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">inflate_adaptive</span><span class="p">(</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">obs_op</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">prior_mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">prior_var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">min_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">max_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Adaptive multiplicative inflation (Anderson 2007, 2009).</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="sd">    Estimates optimal inflation from innovation consistency:</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="sd">    var(innovation) should equal C^{HH} + R.</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="sd">    Returns inflated particles and updated (mean, variance) of the</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="sd">    inflation factor for use as prior in the next cycle.</span>
+<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Anderson, J. L. (2007). <em>An adaptive covariance inflation error
+correction algorithm for ensemble filters.</em> Mon. Wea. Rev., 135, 1286-1299.
+Anderson, J. L. (2009). <em>Spatially and temporally varying adaptive covariance
+inflation for ensemble filters.</em> Tellus A, 61, 72-83.</p>
+<p><strong>Impl ref:</strong> <a href="../../api/primitives/">filterX/api/primitives.md</a> §inflation</p>
+<hr />
+<h4 id="gap-12-ledoit-wolf-shrinkage">Gap 12: Ledoit-Wolf Shrinkage<a class="headerlink" href="#gap-12-ledoit-wolf-shrinkage" title="Permanent link">&para;</a></h4>
+<p><strong>Domain:</strong> General. Optimal covariance regularization from random matrix theory.</p>
+<p><strong>Math (Ledoit &amp; Wolf 2004):</strong> The shrinkage estimator replaces the sample
+covariance with a convex combination toward a structured target:</p>
+<div class="arithmatex">\[P_{\text{shrunk}} = (1 - \lambda^*)\,P_{\text{sample}} + \lambda^*\,\mu I\]</div>
+<p>where <span class="arithmatex">\(\mu = \text{tr}(P_{\text{sample}}) / N_x\)</span> (the average eigenvalue) and
+<span class="arithmatex">\(\lambda^*\)</span> is the oracle-approximating shrinkage intensity:</p>
+<div class="arithmatex">\[\lambda^* = \frac{\sum_{i,j} \text{Var}(P_{ij})}{\sum_{i,j} (P_{ij} - \mu \delta_{ij})^2}\]</div>
+<p>minimizing <span class="arithmatex">\(\mathbb{E}\|P_{\text{shrunk}} - P_{\text{true}}\|_F^2\)</span>.</p>
+<p><strong>Properties:</strong> Not inflation per se, but serves a similar purpose —
+regularizes the sample covariance by pulling eigenvalues toward their mean.
+Guaranteed PSD. Analytically optimal (no tuning parameter). Particularly
+effective when <span class="arithmatex">\(N_e \ll N_x\)</span>. Can be applied as a covariance correction step
+before or instead of multiplicative inflation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">ledoit_wolf_shrinkage</span><span class="p">(</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ledoit-Wolf optimal shrinkage of the sample covariance.</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="sd">    P_shrunk = (1 - lambda*) P_sample + lambda* mu I</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="sd">    Returns the shrunk covariance and the optimal shrinkage intensity.</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Ledoit, O. &amp; Wolf, M. (2004). <em>A well-conditioned estimator for
+large-dimensional covariance matrices.</em> J. Multivariate Anal., 88, 365-411.</p>
+<hr />
+<h2 id="section-c-shared-infrastructure-references">Section C — Shared Infrastructure &amp; References<a class="headerlink" href="#section-c-shared-infrastructure-references" title="Permanent link">&para;</a></h2>
+<h3 id="c1-shared-infrastructure">C.1  Shared Infrastructure<a class="headerlink" href="#c1-shared-infrastructure" title="Permanent link">&para;</a></h3>
+<p>All localization and inflation primitives share common infrastructure and
+compose with the ensemble Kalman filter pipeline:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Distance computation</td>
+<td><code>filterx.primitives.distances</code></td>
+<td>Pairwise distances for taper evaluation</td>
+</tr>
+<tr>
+<td>Taper function dispatch</td>
+<td><code>filterx.primitives.localization</code></td>
+<td><code>gaspari_cohn</code>, <code>gaussian_taper</code>, <code>hard_cutoff</code>, <code>soar_taper</code></td>
+</tr>
+<tr>
+<td>Hadamard product</td>
+<td><code>filterx.primitives.localize</code></td>
+<td><span class="arithmatex">\(P_{\text{loc}} = \rho \circ P\)</span> — works on dense and structured operators</td>
+</tr>
+<tr>
+<td>Ensemble statistics</td>
+<td><code>filterx.primitives.ensemble_mean</code>, <code>ensemble_anomalies</code></td>
+<td>Shared by inflation methods</td>
+</tr>
+<tr>
+<td>Low-rank covariance</td>
+<td><code>gaussx.operators.LowRankUpdate</code></td>
+<td>Ensemble covariance as rank-<span class="arithmatex">\((N_e-1)\)</span> operator</td>
+</tr>
+<tr>
+<td>Structured solve</td>
+<td><code>gaussx.primitives.solve</code></td>
+<td>Woodbury solve for localized/inflated gain</td>
+</tr>
+<tr>
+<td>Observation noise</td>
+<td><code>gaussx.operators</code></td>
+<td><code>DiagonalLinearOperator</code> for R, R-localization via <code>diag(1/rho)</code></td>
+</tr>
+<tr>
+<td>Spatial indexing</td>
+<td><code>filterx.primitives.select_local_obs</code></td>
+<td>KD-tree / ball-tree for domain localization</td>
+</tr>
+<tr>
+<td>PRNG</td>
+<td><code>jax.random</code></td>
+<td>Deterministic sampling for additive inflation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="c2-composition-patterns">C.2  Composition Patterns<a class="headerlink" href="#c2-composition-patterns" title="Permanent link">&para;</a></h3>
+<p>Localization and inflation are typically composed in a specific order within
+the assimilation cycle:</p>
+<ol>
+<li><strong>Prior inflation</strong> (multiplicative or adaptive) — before the analysis step.</li>
+<li><strong>Localized gain computation</strong> (B-localization or domain localization).</li>
+<li><strong>Analysis update</strong> — apply the localized gain.</li>
+<li><strong>Posterior inflation</strong> (RTPS, RTPP, or additive) — after the analysis step.</li>
+</ol>
+<h3 id="c3-references">C.3  References<a class="headerlink" href="#c3-references" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Gaspari, G. &amp; Cohn, S. E. (1999). <em>Construction of correlation functions in two and three dimensions.</em> Quart. J. Roy. Meteor. Soc., 125, 723-757.</li>
+<li>Anderson, J. L. &amp; Anderson, S. L. (1999). <em>A Monte Carlo implementation of the nonlinear filtering problem.</em> Mon. Wea. Rev., 127, 2741-2758.</li>
+<li>Zhang, F., Snyder, C., &amp; Sun, J. (2004). <em>Impacts of initial estimate and observation availability on convective-scale data assimilation.</em> Mon. Wea. Rev., 132, 1238-1253.</li>
+<li>Hamill, T. M. &amp; Whitaker, J. S. (2005). <em>Accounting for the error due to unresolved scales in ensemble data assimilation.</em> Mon. Wea. Rev., 133, 3132-3147.</li>
+<li>Anderson, J. L. (2007). <em>An adaptive covariance inflation error correction algorithm for ensemble filters.</em> Mon. Wea. Rev., 135, 1286-1299.</li>
+<li>Hunt, B. R., Kostelich, E. J., &amp; Szunyogh, I. (2007). <em>Efficient data assimilation for spatiotemporal chaos: A local ensemble transform Kalman filter.</em> Physica D, 230, 112-126.</li>
+<li>Anderson, J. L. (2009). <em>Spatially and temporally varying adaptive covariance inflation for ensemble filters.</em> Tellus A, 61, 72-83.</li>
+<li>Whitaker, J. S. &amp; Hamill, T. M. (2012). <em>Evaluating methods to account for system errors in ensemble data assimilation.</em> Mon. Wea. Rev., 140, 3078-3089.</li>
+<li>Anderson, J. L. (2012). <em>Localization and sampling error correction in ensemble Kalman filter data assimilation.</em> Mon. Wea. Rev., 140, 2359-2371.</li>
+<li>Ledoit, O. &amp; Wolf, M. (2004). <em>A well-conditioned estimator for large-dimensional covariance matrices.</em> J. Multivariate Anal., 88, 365-411.</li>
+<li>Thiebaux, H. J. &amp; Pedder, M. A. (1987). <em>Spatial Objective Analysis.</em> Academic Press.</li>
+<li>Evensen, G. (1994). <em>Sequential data assimilation with a nonlinear quasi-geostrophic model using Monte Carlo methods to forecast error statistics.</em> J. Geophys. Res., 99, 10143-10162.</li>
+<li>Vetra-Carvalho, S., et al. (2018). <em>State-of-the-art stochastic data assimilation methods for high-dimensional non-Gaussian problems.</em> Tellus A, 70, 1445364.</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

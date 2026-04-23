@@ -1,0 +1,1586 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX x Ensemble Kalman Processes as optax GradientTransformations - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-x-ensemble-kalman-processes-as-optax-gradienttransformations" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX x Ensemble Kalman Processes as optax GradientTransformations
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-optax-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 The optax Protocol
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-eki-as-optax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 EKI as optax
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 EKI as optax">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        init
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-eks-as-optax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 EKS as optax
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4 EKS as optax">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#differences-from-eki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differences from EKI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-single-update-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The "single update" problem
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-uki-as-optax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 UKI as optax
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5 UKI as optax">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#state_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        update
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-composability-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 Composability Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6 Composability Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-eki-schedule-clipping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic: EKI + schedule + clipping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eks-for-posterior-sampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EKS for posterior sampling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uki-for-moderate-dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UKI for moderate dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hybrid-gradient-based-warm-start-then-eki-refinement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hybrid: gradient-based warm-start, then EKI refinement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-design-challenges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7 Design Challenges
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7 Design Challenges">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-forward-model-evaluation-who-calls-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Forward model evaluation: who calls it?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-ensemble-as-state-vs-params" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Ensemble as state vs. params
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-convergence-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Convergence detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-pytree-flattening" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 PyTree flattening
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-jit-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 JIT compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8 Complexity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9 API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9 API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ekalmxoptaxeki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ekalmx.optax.eki
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ekalmxoptaxeks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ekalmx.optax.eks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ekalmxoptaxuki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ekalmx.optax.uki
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10 References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-x-ensemble-kalman-processes-as-optax-gradienttransformations">ekalmX x Ensemble Kalman Processes as optax GradientTransformations<a class="headerlink" href="#ekalmx-x-ensemble-kalman-processes-as-optax-gradienttransformations" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Wrapping EKI, EKS, and UKI as <code>optax.GradientTransformation</code> objects,
+enabling composability with the optax ecosystem (schedules, clipping, logging)
+while preserving the gradient-free ensemble semantics.</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="1-motivation">1  Motivation<a class="headerlink" href="#1-motivation" title="Permanent link">&para;</a></h2>
+<p>Ensemble Kalman Processes (EKP) — EKI, EKS, UKI — are iterative update rules
+for derivative-free parameter estimation. Each method follows the same rhythm:
+initialize state, evaluate the forward model, compute an update, repeat. This is
+structurally identical to the <code>init -&gt; update -&gt; state</code> loop that optax codifies.</p>
+<p>Wrapping EKP as <code>optax.GradientTransformation</code> gives us:</p>
+<ul>
+<li><strong>Composability with <code>optax.chain</code>.</strong> Step-size schedules, gradient clipping,
+  weight decay, and logging combinators all work out of the box.</li>
+<li><strong>Parallel to <code>optax_bayes</code>.</strong> Bayesian linear regression (BLR) already fits
+  the optax pattern — EKP is the gradient-free counterpart. Users get a uniform
+  API for both gradient-based and ensemble-based updates.</li>
+<li><strong>Familiar API for JAX practitioners.</strong> Anyone who has used optax can adopt EKP
+  without learning a new loop structure.</li>
+<li><strong>Hybrid optimization.</strong> Gradient-based and gradient-free steps can coexist in
+  the same training loop, opening the door to warm-starting, ensemble refinement,
+  and multi-fidelity strategies.</li>
+</ul>
+<hr />
+<h2 id="2-the-optax-protocol">2  The optax Protocol<a class="headerlink" href="#2-the-optax-protocol" title="Permanent link">&para;</a></h2>
+<p>An <code>optax.GradientTransformation</code> is a <code>NamedTuple</code> of two functions:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GradientTransformation</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">init</span><span class="p">:</span>   <span class="n">Callable</span><span class="p">[[</span><span class="n">Params</span><span class="p">],</span> <span class="n">OptState</span><span class="p">]</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">update</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Updates</span><span class="p">,</span> <span class="n">OptState</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Params</span><span class="p">]],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Updates</span><span class="p">,</span> <span class="n">OptState</span><span class="p">]]</span>
+</code></pre></div>
+<p>The contract:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Standard meaning</th>
+<th>EKP meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>params</code></td>
+<td>Current model parameters</td>
+<td>Current parameter estimate (ensemble mean)</td>
+</tr>
+<tr>
+<td><code>grads</code> / <code>updates</code> (input)</td>
+<td>Gradient of loss w.r.t. params</td>
+<td><strong>Unused</strong> — ensemble provides search directions</td>
+</tr>
+<tr>
+<td><code>updates</code> (output)</td>
+<td>Additive change to apply to params</td>
+<td>Delta to the ensemble mean: <span class="arithmatex">\(\bar{\theta}^{(n+1)} - \bar{\theta}^{(n)}\)</span></td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>Optimizer internal state</td>
+<td>Ensemble members, algorithmic time, PRNG key, etc.</td>
+</tr>
+</tbody>
+</table>
+<p>The key insight: optax does not require <code>grads</code> to be actual gradients. Any
+<code>PyTree</code> with the same structure as <code>params</code> is valid. For EKP, we pass <code>None</code>
+(or a zero tree) and the update function ignores it entirely.</p>
+<hr />
+<h2 id="3-eki-as-optax">3  EKI as optax<a class="headerlink" href="#3-eki-as-optax" title="Permanent link">&para;</a></h2>
+<p>Ensemble Kalman Inversion (Iglesias, Law &amp; Stuart 2013) is a deterministic
+ensemble method that drives the ensemble toward the MAP estimate.</p>
+<h3 id="state">State<a class="headerlink" href="#state" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EKIOptaxState</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;J N_p&quot;</span><span class="p">]</span>       <span class="c1"># ensemble members</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">algo_time</span><span class="p">:</span> <span class="n">Scalar</span>                       <span class="c1"># accumulated algorithmic time</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span>                               <span class="c1"># iteration counter</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">forward_fn</span><span class="p">:</span> <span class="n">Callable</span>                    <span class="c1"># θ → G(θ), stored for internal eval</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]</span>               <span class="c1"># target observations</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span>       <span class="c1"># Γ (observation noise covariance)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>            <span class="c1"># adaptive Δt controller</span>
+</code></pre></div>
+<h3 id="init">init<a class="headerlink" href="#init" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EKIOptaxState</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="c1"># 1. Flatten params to a vector θ_0 ∈ R^{N_p}</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="c1"># 2. Generate J ensemble members: θ_j = θ_0 + ε_j,  ε_j ~ N(0, σ_init^2 I)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="c1"># 3. Initialize algo_time = 0.0, step = 0</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="o">...</span>
+</code></pre></div>
+<h3 id="update">update<a class="headerlink" href="#update" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">grads</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">,</span>              <span class="c1"># ignored (gradient-free)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">state</span><span class="p">:</span> <span class="n">EKIOptaxState</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PyTree</span><span class="p">],</span>   <span class="c1"># current mean estimate</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PyTree</span><span class="p">,</span> <span class="n">EKIOptaxState</span><span class="p">]:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">θ</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">particles</span>                          <span class="c1"># (J, N_p)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">Δt</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">get_dt</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="c1"># 1. Forward model evaluation</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">G</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">forward_fn</span><span class="p">)(</span><span class="n">θ</span><span class="p">)</span>            <span class="c1"># (J, N_d)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="c1"># 2. Ensemble statistics</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">θ_mean</span> <span class="o">=</span> <span class="n">ensemble_mean</span><span class="p">(</span><span class="n">θ</span><span class="p">)</span>                    <span class="c1"># (N_p,)</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">G_mean</span> <span class="o">=</span> <span class="n">ensemble_mean</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>                    <span class="c1"># (N_d,)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="n">C_θG</span> <span class="o">=</span> <span class="n">cross_covariance</span><span class="p">(</span><span class="n">θ</span><span class="p">,</span> <span class="n">G</span><span class="p">)</span>                <span class="c1"># (N_p, N_d)</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="n">C_GG</span> <span class="o">=</span> <span class="n">ensemble_covariance</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>                <span class="c1"># (N_d, N_d)</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="c1"># 3. EKI update for each member</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="c1">#    δθ_j = Δt · C^{θG} (C^{GG} + Δt^{-1} Γ)^{-1} (y - G_j)</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="n">S</span> <span class="o">=</span> <span class="n">C_GG</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">Δt</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">noise_cov</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>    <span class="n">innovation</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">obs</span> <span class="o">-</span> <span class="n">G</span>                    <span class="c1"># (J, N_d)</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="n">δθ</span> <span class="o">=</span> <span class="n">Δt</span> <span class="o">*</span> <span class="n">innovation</span> <span class="o">@</span> <span class="n">solve</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">C_θG</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>    <span class="c1"># (J, N_p)</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>    <span class="c1"># 4. Update ensemble</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>    <span class="n">θ_new</span> <span class="o">=</span> <span class="n">θ</span> <span class="o">+</span> <span class="n">δθ</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>    <span class="n">new_mean</span> <span class="o">=</span> <span class="n">ensemble_mean</span><span class="p">(</span><span class="n">θ_new</span><span class="p">)</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>    <span class="c1"># 5. Return mean update (for optax.apply_updates) and new state</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    <span class="n">mean_update</span> <span class="o">=</span> <span class="n">new_mean</span> <span class="o">-</span> <span class="n">θ_mean</span>               <span class="c1"># unflatten to params tree</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    <span class="n">new_state</span> <span class="o">=</span> <span class="n">EKIOptaxState</span><span class="p">(</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>        <span class="n">particles</span><span class="o">=</span><span class="n">θ_new</span><span class="p">,</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>        <span class="n">algo_time</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">algo_time</span> <span class="o">+</span> <span class="n">Δt</span><span class="p">,</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>        <span class="n">step</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>        <span class="o">...</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>    <span class="p">)</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>    <span class="k">return</span> <span class="n">unflatten</span><span class="p">(</span><span class="n">mean_update</span><span class="p">),</span> <span class="n">new_state</span>
+</code></pre></div>
+<p>The "updates" returned are the change to the ensemble mean. When the caller runs
+<code>params = optax.apply_updates(params, updates)</code>, the <code>params</code> tree tracks the
+mean parameter — the full ensemble lives inside <code>state</code>.</p>
+<hr />
+<h2 id="4-eks-as-optax">4  EKS as optax<a class="headerlink" href="#4-eks-as-optax" title="Permanent link">&para;</a></h2>
+<p>Ensemble Kalman Sampler (Garbuno-Inigo et al. 2020) adds a Brownian noise term
+so the ensemble samples the posterior rather than collapsing to a point.</p>
+<h3 id="differences-from-eki">Differences from EKI<a class="headerlink" href="#differences-from-eki" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>EKI</th>
+<th>EKS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Noise term</td>
+<td>None</td>
+<td><span class="arithmatex">\(\sqrt{2\Delta t}\,C^{1/2}_{\theta\theta}\,\xi_j\)</span>, <span class="arithmatex">\(\xi_j \sim \mathcal{N}(0,I)\)</span></td>
+</tr>
+<tr>
+<td>Ensemble collapse</td>
+<td>Yes (converges to MAP)</td>
+<td>No (samples the posterior)</td>
+</tr>
+<tr>
+<td>State extras</td>
+<td>—</td>
+<td>PRNG key for noise generation</td>
+</tr>
+<tr>
+<td>Convergence</td>
+<td><span class="arithmatex">\(t_{\text{algo}} \to 1\)</span></td>
+<td>Ergodic average</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state_1">State<a class="headerlink" href="#state_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EKSOptaxState</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;J N_p&quot;</span><span class="p">]</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">algo_time</span><span class="p">:</span> <span class="n">Scalar</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span>                       <span class="c1"># for Brownian noise</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">forward_fn</span><span class="p">:</span> <span class="n">Callable</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+</code></pre></div>
+<h3 id="update_1">update<a class="headerlink" href="#update_1" title="Permanent link">&para;</a></h3>
+<p>The EKS update follows the same structure as EKI but adds:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># After computing EKI-style δθ:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">C_θθ</span> <span class="o">=</span> <span class="n">ensemble_covariance</span><span class="p">(</span><span class="n">θ</span><span class="p">)</span>                     <span class="c1"># (N_p, N_p)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">key</span><span class="p">,</span> <span class="n">subkey</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">ξ</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">subkey</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">N_p</span><span class="p">))</span>     <span class="c1"># (J, N_p)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">noise</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">Δt</span><span class="p">)</span> <span class="o">*</span> <span class="n">ξ</span> <span class="o">@</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">C_θθ</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># (J, N_p)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">θ_new</span> <span class="o">=</span> <span class="n">θ</span> <span class="o">+</span> <span class="n">δθ</span> <span class="o">+</span> <span class="n">noise</span>
+</code></pre></div>
+<h3 id="the-single-update-problem">The "single update" problem<a class="headerlink" href="#the-single-update-problem" title="Permanent link">&para;</a></h3>
+<p>Because the ensemble does not collapse, there is no single best parameter
+estimate. The solution: return the change in the posterior mean as the <code>updates</code>
+output (same as EKI), but the full ensemble for sampling is available in <code>state</code>.
+The caller can either:</p>
+<ol>
+<li>Use <code>params</code> as a point estimate (the evolving mean), or</li>
+<li>Ignore <code>params</code> and extract <code>state.particles</code> for posterior samples.</li>
+</ol>
+<hr />
+<h2 id="5-uki-as-optax">5  UKI as optax<a class="headerlink" href="#5-uki-as-optax" title="Permanent link">&para;</a></h2>
+<p>Unscented Kalman Inversion (Huang, Schneider &amp; Stuart 2022) is parametric: it
+maintains a mean and covariance rather than an explicit ensemble. Sigma points
+are generated deterministically at each step.</p>
+<h3 id="state_2">State<a class="headerlink" href="#state_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UKIOptaxState</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">mean</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]</span>               <span class="c1"># current parameter mean</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">covariance</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span>       <span class="c1"># current parameter covariance</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">algo_time</span><span class="p">:</span> <span class="n">Scalar</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">forward_fn</span><span class="p">:</span> <span class="n">Callable</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+</code></pre></div>
+<h3 id="update_2">update<a class="headerlink" href="#update_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">grads</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">state</span><span class="p">:</span> <span class="n">UKIOptaxState</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PyTree</span><span class="p">],</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PyTree</span><span class="p">,</span> <span class="n">UKIOptaxState</span><span class="p">]:</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">Δt</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">get_dt</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="c1"># 1. Generate 2N_p + 1 sigma points from (mean, covariance)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">sigma_pts</span> <span class="o">=</span> <span class="n">unscented_sigma_points</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">mean</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">covariance</span><span class="p">)</span>  <span class="c1"># (2N_p+1, N_p)</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="c1"># 2. Evaluate forward model on sigma points</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">G</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">forward_fn</span><span class="p">)(</span><span class="n">sigma_pts</span><span class="p">)</span>                         <span class="c1"># (2N_p+1, N_d)</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="c1"># 3. Compute predicted statistics (unscented transform)</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="n">G_mean</span> <span class="o">=</span> <span class="n">weighted_mean</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>                                <span class="c1"># (N_d,)</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>    <span class="n">C_θG</span> <span class="o">=</span> <span class="n">weighted_cross_covariance</span><span class="p">(</span><span class="n">sigma_pts</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>           <span class="c1"># (N_p, N_d)</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="n">C_GG</span> <span class="o">=</span> <span class="n">weighted_covariance</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>                            <span class="c1"># (N_d, N_d)</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    <span class="c1"># 4. Kalman update</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>    <span class="n">S</span> <span class="o">=</span> <span class="n">C_GG</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">Δt</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">noise_cov</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>    <span class="n">K</span> <span class="o">=</span> <span class="n">C_θG</span> <span class="o">@</span> <span class="n">solve</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">eye</span><span class="p">(</span><span class="n">N_d</span><span class="p">))</span>                                    <span class="c1"># (N_p, N_d)</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>    <span class="n">new_mean</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">mean</span> <span class="o">+</span> <span class="n">Δt</span> <span class="o">*</span> <span class="n">K</span> <span class="o">@</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">obs</span> <span class="o">-</span> <span class="n">G_mean</span><span class="p">)</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>    <span class="n">new_cov</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">covariance</span> <span class="o">-</span> <span class="n">Δt</span> <span class="o">*</span> <span class="n">K</span> <span class="o">@</span> <span class="n">C_GG</span> <span class="o">@</span> <span class="n">K</span><span class="o">.</span><span class="n">T</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>    <span class="c1"># 5. Return delta_mean as update</span>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>    <span class="n">delta_mean</span> <span class="o">=</span> <span class="n">new_mean</span> <span class="o">-</span> <span class="n">state</span><span class="o">.</span><span class="n">mean</span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>    <span class="n">new_state</span> <span class="o">=</span> <span class="n">UKIOptaxState</span><span class="p">(</span>
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>        <span class="n">mean</span><span class="o">=</span><span class="n">new_mean</span><span class="p">,</span>
+<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>        <span class="n">covariance</span><span class="o">=</span><span class="n">new_cov</span><span class="p">,</span>
+<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>        <span class="n">algo_time</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">algo_time</span> <span class="o">+</span> <span class="n">Δt</span><span class="p">,</span>
+<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>        <span class="n">step</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>        <span class="o">...</span>
+<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>    <span class="p">)</span>
+<a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>    <span class="k">return</span> <span class="n">unflatten</span><span class="p">(</span><span class="n">delta_mean</span><span class="p">),</span> <span class="n">new_state</span>
+</code></pre></div>
+<p>UKI requires <span class="arithmatex">\(2N_p + 1\)</span> forward evaluations per step (vs. <span class="arithmatex">\(J\)</span> for EKI/EKS),
+making it more expensive per step but potentially faster to converge for
+moderate-dimensional problems.</p>
+<hr />
+<h2 id="6-composability-patterns">6  Composability Patterns<a class="headerlink" href="#6-composability-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="basic-eki-schedule-clipping">Basic: EKI + schedule + clipping<a class="headerlink" href="#basic-eki-schedule-clipping" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">ekalmx</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eki</span><span class="p">(</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>        <span class="n">forward_fn</span><span class="o">=</span><span class="n">simulator</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>        <span class="n">obs</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>        <span class="n">noise_cov</span><span class="o">=</span><span class="n">R</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>        <span class="n">n_ensemble</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="p">),</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">optax</span><span class="o">.</span><span class="n">clip_by_global_norm</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">)</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">state</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_steps</span><span class="p">):</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="n">updates</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="eks-for-posterior-sampling">EKS for posterior sampling<a class="headerlink" href="#eks-for-posterior-sampling" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">eks_transform</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eks</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">forward_fn</span><span class="o">=</span><span class="n">simulator</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">obs</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">noise_cov</span><span class="o">=</span><span class="n">R</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">n_ensemble</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">key</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="p">)</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">state</span> <span class="o">=</span> <span class="n">eks_transform</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">samples</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_steps</span><span class="p">):</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">updates</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">eks_transform</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="n">burnin</span><span class="p">:</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="n">samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">particles</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="uki-for-moderate-dimensions">UKI for moderate dimensions<a class="headerlink" href="#uki-for-moderate-dimensions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">optimizer</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">uki</span><span class="p">(</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">forward_fn</span><span class="o">=</span><span class="n">simulator</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">obs</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">noise_cov</span><span class="o">=</span><span class="n">R</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">init_cov</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>   <span class="c1"># scalar → σ^2 I</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="hybrid-gradient-based-warm-start-then-eki-refinement">Hybrid: gradient-based warm-start, then EKI refinement<a class="headerlink" href="#hybrid-gradient-based-warm-start-then-eki-refinement" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Phase 1: Adam for fast initial convergence (requires gradients)</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">phase1</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">)</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Phase 2: EKI for gradient-free refinement</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">phase2</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eki</span><span class="p">(</span><span class="n">forward_fn</span><span class="o">=</span><span class="n">simulator</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">obs</span><span class="p">,</span> <span class="n">noise_cov</span><span class="o">=</span><span class="n">R</span><span class="p">)</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># Run phase 1</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">state1</span> <span class="o">=</span> <span class="n">phase1</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="n">grads</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">)(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>    <span class="n">updates</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="n">phase1</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="c1"># Switch to phase 2</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">state2</span> <span class="o">=</span> <span class="n">phase2</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>    <span class="n">updates</span><span class="p">,</span> <span class="n">state2</span> <span class="o">=</span> <span class="n">phase2</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state2</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="7-design-challenges">7  Design Challenges<a class="headerlink" href="#7-design-challenges" title="Permanent link">&para;</a></h2>
+<h3 id="71-forward-model-evaluation-who-calls-it">7.1  Forward model evaluation: who calls it?<a class="headerlink" href="#71-forward-model-evaluation-who-calls-it" title="Permanent link">&para;</a></h3>
+<p>optax's <code>update</code> contract passes <code>(grads, state, params)</code>. There is no slot for
+a forward model or its evaluations. Three options:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Mechanism</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>(a) Store <code>forward_fn</code> in state</strong></td>
+<td><code>state.forward_fn</code> evaluated inside <code>update</code></td>
+<td>Clean API, self-contained</td>
+<td>Impure state, <code>forward_fn</code> must be pytree-compatible</td>
+</tr>
+<tr>
+<td><strong>(b) Caller passes via <code>extra_args</code></strong></td>
+<td><code>optax.inject_hyperparams</code> or custom wrapper</td>
+<td>Pure, explicit</td>
+<td>Breaks <code>optax.chain</code> composability</td>
+</tr>
+<tr>
+<td><strong>(c) Closure capture</strong></td>
+<td><code>forward_fn</code> captured by the <code>update</code> closure at construction time</td>
+<td>Clean, no state pollution</td>
+<td>Standard optax pattern</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation: (c).</strong> The <code>eki(forward_fn=...)</code> constructor captures
+<code>forward_fn</code> in the closure that becomes the <code>update</code> function. The function
+is never stored in state and never needs to be a pytree leaf. This is how
+<code>optax.inject_hyperparams</code> works internally.</p>
+<h3 id="72-ensemble-as-state-vs-params">7.2  Ensemble as state vs. params<a class="headerlink" href="#72-ensemble-as-state-vs-params" title="Permanent link">&para;</a></h3>
+<p>The ensemble lives in <code>OptState</code>, not in the <code>params</code> tree. This means:</p>
+<ul>
+<li><code>optax.apply_updates</code> operates on the ensemble <strong>mean</strong>, which is a
+  "representative" parameter with the same tree structure as the original params.</li>
+<li>The full ensemble is only accessible via <code>state.particles</code> (or <code>state.mean</code> /
+  <code>state.covariance</code> for UKI).</li>
+<li>Downstream optax transforms (clipping, weight decay) act on the mean update,
+  not on individual ensemble members.</li>
+</ul>
+<p>This is a deliberate choice: the ensemble is an internal implementation detail.
+The optax interface presents EKP as producing a single parameter update per step.</p>
+<h3 id="73-convergence-detection">7.3  Convergence detection<a class="headerlink" href="#73-convergence-detection" title="Permanent link">&para;</a></h3>
+<p>EKI naturally converges as the ensemble collapses (<span class="arithmatex">\(t_{\text{algo}} \to 1\)</span>).
+But optax assumes an infinite loop — there is no built-in convergence signal.</p>
+<p>Solutions:</p>
+<ul>
+<li><strong>Check <code>state.algo_time &gt;= 1.0</code></strong> in the outer loop and break.</li>
+<li><strong>Adaptive scheduler</strong> (e.g., <code>DataMisfitController</code>) shrinks <span class="arithmatex">\(\Delta t\)</span> as
+  the data misfit decreases, naturally approaching <span class="arithmatex">\(t = 1\)</span>.</li>
+<li><strong>EKS does not converge</strong> — it is a sampler, so the infinite loop is correct.</li>
+</ul>
+<h3 id="74-pytree-flattening">7.4  PyTree flattening<a class="headerlink" href="#74-pytree-flattening" title="Permanent link">&para;</a></h3>
+<p>optax operates on arbitrary PyTrees (nested dicts, NamedTuples, etc.). The
+ensemble is stored as a flat <code>(J, N_p)</code> array. The <code>init</code> function must flatten
+the params tree, and <code>update</code> must unflatten the mean update back to the
+original tree structure. Use <code>jax.flatten_util.ravel_pytree</code> for this.</p>
+<h3 id="75-jit-compatibility">7.5  JIT compatibility<a class="headerlink" href="#75-jit-compatibility" title="Permanent link">&para;</a></h3>
+<p>The <code>forward_fn</code> captured in the closure must be JIT-compatible. If it contains
+non-JAX operations (e.g., calling an external simulator), the user must wrap it
+in <code>jax.pure_callback</code> or run the loop outside JIT.</p>
+<hr />
+<h2 id="8-complexity">8  Complexity<a class="headerlink" href="#8-complexity" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Forward evals / step</th>
+<th>State size</th>
+<th>Per-step cost</th>
+<th>Converges to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EKI</td>
+<td><span class="arithmatex">\(J\)</span></td>
+<td><span class="arithmatex">\(O(J \cdot N_p)\)</span></td>
+<td><span class="arithmatex">\(O(J \cdot N_d^2 + J \cdot N_p \cdot N_d)\)</span></td>
+<td>MAP estimate</td>
+</tr>
+<tr>
+<td>EKS</td>
+<td><span class="arithmatex">\(J\)</span></td>
+<td><span class="arithmatex">\(O(J \cdot N_p)\)</span> + PRNG key</td>
+<td><span class="arithmatex">\(O(J \cdot N_d^2 + J \cdot N_p^2)\)</span></td>
+<td>Posterior samples</td>
+</tr>
+<tr>
+<td>UKI</td>
+<td><span class="arithmatex">\(2N_p + 1\)</span></td>
+<td><span class="arithmatex">\(O(N_p^2)\)</span> (mean + cov)</td>
+<td><span class="arithmatex">\(O(N_p^2 \cdot N_d + N_d^3)\)</span></td>
+<td>MAP + covariance</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Regime</th>
+<th>Recommended method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(N_p\)</span> small (<span class="arithmatex">\(&lt; 50\)</span>), cheap forward model</td>
+<td>UKI — deterministic, fast convergence</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(N_p\)</span> moderate, expensive forward model</td>
+<td>EKI — <span class="arithmatex">\(J \ll 2N_p+1\)</span> members suffice</td>
+</tr>
+<tr>
+<td>Posterior uncertainty needed</td>
+<td>EKS — ensemble samples the posterior</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(N_p\)</span> large (<span class="arithmatex">\(&gt; 10^3\)</span>)</td>
+<td>EKI with subspace projection or localization</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-api">9  API<a class="headerlink" href="#9-api" title="Permanent link">&para;</a></h2>
+<p>All three constructors live in <code>ekalmx.optax</code> and return <code>optax.GradientTransformation</code>.</p>
+<h3 id="ekalmxoptaxeki"><code>ekalmx.optax.eki</code><a class="headerlink" href="#ekalmxoptaxeki" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">eki</span><span class="p">(</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">forward_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]],</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">],</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">n_ensemble</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">init_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span> <span class="o">=</span> <span class="n">ConstantScheduler</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">optax</span><span class="o">.</span><span class="n">GradientTransformation</span><span class="p">:</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Kalman Inversion as an optax GradientTransformation.</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="sd">    Args:</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="sd">        forward_fn: Forward model mapping parameters to observables.</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="sd">            Captured in closure, not stored in state.</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="sd">        obs: Target observations.</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="sd">        noise_cov: Observation noise covariance Gamma.</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="sd">        n_ensemble: Number of ensemble members J.</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="sd">        init_spread: Standard deviation for initial ensemble perturbation.</span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="sd">        scheduler: Adaptive step-size controller.</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="sd">        key: PRNG key for initial ensemble generation.</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="sd">        optax.GradientTransformation with EKI update semantics.</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="sd">        The `grads` argument to `update` is ignored.</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>    <span class="o">...</span>
+</code></pre></div>
+<h3 id="ekalmxoptaxeks"><code>ekalmx.optax.eks</code><a class="headerlink" href="#ekalmxoptaxeks" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">eks</span><span class="p">(</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">forward_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]],</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">],</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">n_ensemble</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="n">init_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span> <span class="o">=</span> <span class="n">ConstantScheduler</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">),</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">optax</span><span class="o">.</span><span class="n">GradientTransformation</span><span class="p">:</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Kalman Sampler as an optax GradientTransformation.</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="sd">    Adds Brownian noise so the ensemble samples the posterior rather than</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="sd">    collapsing. State contains a PRNG key that advances each step.</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="sd">    Args:</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="sd">        forward_fn: Forward model mapping parameters to observables.</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="sd">        obs: Target observations.</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="sd">        noise_cov: Observation noise covariance Gamma.</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="sd">        n_ensemble: Number of ensemble members J.</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="sd">        init_spread: Standard deviation for initial ensemble perturbation.</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="sd">        scheduler: Step-size controller (smaller Δt for stability).</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="sd">        key: PRNG key for ensemble initialization and Brownian noise.</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a><span class="sd">        optax.GradientTransformation with EKS update semantics.</span>
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a><span class="sd">        Access `state.particles` for posterior samples after burn-in.</span>
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>    <span class="o">...</span>
+</code></pre></div>
+<h3 id="ekalmxoptaxuki"><code>ekalmx.optax.uki</code><a class="headerlink" href="#ekalmxoptaxuki" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">uki</span><span class="p">(</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">forward_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]],</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">],</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">init_cov</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p N_p&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span> <span class="o">=</span> <span class="n">ConstantScheduler</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">optax</span><span class="o">.</span><span class="n">GradientTransformation</span><span class="p">:</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Unscented Kalman Inversion as an optax GradientTransformation.</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="sd">    Parametric method: maintains mean + covariance instead of an ensemble.</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="sd">    Generates 2*N_p + 1 sigma points at each step.</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="sd">    Args:</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="sd">        forward_fn: Forward model mapping parameters to observables.</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="sd">        obs: Target observations.</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="sd">        noise_cov: Observation noise covariance Gamma.</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="sd">        init_cov: Initial parameter covariance. Scalar → σ^2 I.</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="sd">        scheduler: Step-size controller.</span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="sd">        alpha: Sigma point spread parameter (UKF tuning).</span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="sd">        beta: Prior distribution parameter (2.0 for Gaussian).</span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="sd">        kappa: Secondary scaling parameter.</span>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a><span class="sd">        optax.GradientTransformation with UKI update semantics.</span>
+<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a><span class="sd">        Access `state.covariance` for the posterior covariance estimate.</span>
+<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a>    <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h2 id="10-references">10  References<a class="headerlink" href="#10-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p>Iglesias, M. A., Law, K. J. H. &amp; Stuart, A. M. (2013). <em>Ensemble Kalman Methods for Inverse Problems.</em> Inverse Problems, 29(4), 045001.</p>
+</li>
+<li>
+<p>Schillings, C. &amp; Stuart, A. M. (2017). <em>Analysis of the Ensemble Kalman Filter for Inverse Problems.</em> SIAM J. Numer. Anal., 55(3), 1264--1290.</p>
+</li>
+<li>
+<p>Garbuno-Inigo, A., Hoffmann, F., Li, W. &amp; Stuart, A. M. (2020). <em>Interacting Langevin Diffusions: Gradient Structure and Ensemble Kalman Sampler.</em> SIAM J. Appl. Dyn. Syst., 19(1), 412--441.</p>
+</li>
+<li>
+<p>Huang, D. Z., Schneider, T. &amp; Stuart, A. M. (2022). <em>Unscented Kalman Inversion: Efficient Gaussian Approximation to the Posterior Distribution.</em> arXiv:2102.01580.</p>
+</li>
+<li>
+<p>Kovachki, N. B. &amp; Stuart, A. M. (2019). <em>Ensemble Kalman Inversion: A Derivative-Free Technique for Machine Learning Tasks.</em> Inverse Problems, 35(9), 095005.</p>
+</li>
+<li>
+<p>DeepMind (2020). <em>optax: Composable Gradient Transformations.</em> https://github.com/google-deepmind/optax.</p>
+</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

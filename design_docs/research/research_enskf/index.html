@@ -1,0 +1,1926 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>filterX — Ensemble Kalman Filter Research Catalogue - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#filterx-ensemble-kalman-filter-research-catalogue" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              filterX — Ensemble Kalman Filter Research Catalogue
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-existing-codebase-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Existing Codebase Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Existing Codebase Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#directory-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Directory map
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-algorithm-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Algorithm Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Algorithm Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-discrete-time-ensemble-filters-enskf_zoopy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Discrete-time ensemble filters (enskf_zoo.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-continuous-time-filters-kf_continuouspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Continuous-time filters (kf_continuous.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-patch-based-spatial-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Patch-based spatial decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-parameter-estimation-param_estimation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Parameter estimation (param_estimation/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-test-models-param_estimationmodelspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Test models (param_estimation/models.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-design-patterns-already-established" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Design Patterns Already Established
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Design Patterns Already Established">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-jax-idioms-consistent-across-codebase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 JAX idioms (consistent across codebase)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-mathematical-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Mathematical structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-covariance-handling-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Covariance handling strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-mapping-to-filterx-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Mapping to filterX Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Mapping to filterX Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-what-maps-to-filterx-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 What maps to filterX core
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-what-maps-to-filterx-protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 What maps to filterX protocols
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-what-maps-to-ekp-ens_kalman_processmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 What maps to EKP (ens_kalman_process.md)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-what-stays-outside-filterx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 What stays outside filterX
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gap-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Gap Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Gap Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-algorithms-present-but-needing-formalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Algorithms present but needing formalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-algorithms-in-ekp-design-but-not-yet-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Algorithms in EKP design but not yet implemented
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-infrastructure-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Infrastructure gaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-missing-features-for-production-da" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Missing features for production DA
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-proposed-filterx-module-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Proposed filterX Module Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Proposed filterX Module Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#relationship-to-ekp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship to EKP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. References
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. References">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implemented-algorithms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implemented algorithms
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-filling-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap-filling targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="filterx-ensemble-kalman-filter-research-catalogue">filterX — Ensemble Kalman Filter Research Catalogue<a class="headerlink" href="#filterx-ensemble-kalman-filter-research-catalogue" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Inventory of existing EnSKF implementations in <code>kalman_filter/</code> and their mapping to filterX design goals.</p>
+</blockquote>
+<hr />
+<h2 id="1-existing-codebase-summary">1. Existing Codebase Summary<a class="headerlink" href="#1-existing-codebase-summary" title="Permanent link">&para;</a></h2>
+<p>The <code>kalman_filter/</code> directory contains ~5,000 lines of working JAX/NumPy code across three areas: a continuous-time filter library, a discrete-time EnKF algorithm zoo, and patch-based spatial decomposition implementations. This is the raw material that filterX will formalize.</p>
+<h3 id="directory-map">Directory map<a class="headerlink" href="#directory-map" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>kalman_filter/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── kf_continuous.py                       # 392 lines — continuous-time filters (Equinox)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>└── ensemble_kalman_filter/
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    ├── enskf_zoo.py                       # 2,263 lines — 9 discrete EnKF variants (JAX)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    ├── enskf_patch_jax.py                 # 785 lines — patch-based EnKF (JAX)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    ├── enskf_patch_dask.py                # 594 lines — patch-based EnKF (NumPy/Dask)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    ├── enskf_patch_guide.md               # 380 lines — deployment guide
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    ├── enskf_patch_jax.md                 # 483 lines — JAX concepts tutorial
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    ├── enskf_patch_dask.md                # 379 lines — patch blending guide
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    └── param_estimation/
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        ├── filters.py                     # 181 lines — KF/EnSRF/particle filter
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        ├── models.py                      # 214 lines — L63/L96/KS/pyQG test models
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        ├── loss.py                        # 176 lines — KL, log-likelihood, var cost
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        └── torch_enskf.py                 # ~500 lines — Woodbury EnKF, power iteration
+</code></pre></div>
+<hr />
+<h2 id="2-algorithm-inventory">2. Algorithm Inventory<a class="headerlink" href="#2-algorithm-inventory" title="Permanent link">&para;</a></h2>
+<h3 id="21-discrete-time-ensemble-filters-enskf_zoopy">2.1 Discrete-time ensemble filters (<code>enskf_zoo.py</code>)<a class="headerlink" href="#21-discrete-time-ensemble-filters-enskf_zoopy" title="Permanent link">&para;</a></h3>
+<p>All implementations follow Vetra-Carvalho et al. (2018). Pure JAX with einops and jaxtyping.</p>
+<table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Function</th>
+<th>Category</th>
+<th style="text-align: center;">Localization</th>
+<th style="text-align: center;">Serial</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stochastic EnKF</strong></td>
+<td><code>analysis_step_senkf</code></td>
+<td>Stochastic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td>Perturbed observations, explicit Kalman gain</td>
+</tr>
+<tr>
+<td><strong>Stochastic EnKF (localized)</strong></td>
+<td><code>analysis_step_senkf_localized</code></td>
+<td>Stochastic</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td>Hadamard product localization on P</td>
+</tr>
+<tr>
+<td><strong>ETKF</strong></td>
+<td><code>analysis_step_etkf</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td>Ensemble transform, no perturbation needed</td>
+</tr>
+<tr>
+<td><strong>ETKF (Livings)</strong></td>
+<td><code>analysis_step_etkf_livings</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td>Livings et al. (2005) variant</td>
+</tr>
+<tr>
+<td><strong>EnSRF</strong></td>
+<td><code>analysis_step_ensrf</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td>Square-root filter, mean + perturbation split</td>
+</tr>
+<tr>
+<td><strong>EnSRF (Whitaker)</strong></td>
+<td><code>analysis_step_ensrf_whitaker</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td>Whitaker &amp; Compo (2002) formulation</td>
+</tr>
+<tr>
+<td><strong>EnSRF (Whitaker, localized)</strong></td>
+<td><code>analysis_step_ensrf_whitaker_localized</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">--</td>
+<td>Localized Whitaker variant</td>
+</tr>
+<tr>
+<td><strong>EnSRF (serial)</strong></td>
+<td><code>analysis_step_ensrf_serial</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">Yes</td>
+<td>One observation at a time</td>
+</tr>
+<tr>
+<td><strong>ESTKF</strong></td>
+<td><code>analysis_step_estkf</code></td>
+<td>Deterministic</td>
+<td style="text-align: center;">--</td>
+<td style="text-align: center;">--</td>
+<td>Hybrid square-root transform</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shared infrastructure:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State statistics</td>
+<td><code>filter_step_full</code>, <code>filter_step</code>, <code>filter_step_with_sqrt</code>, <code>filter_step_with_cov</code>, <code>filter_step_with_sqrt_inv</code></td>
+<td>5 variants of ensemble → (mean, anomalies, covariance)</td>
+</tr>
+<tr>
+<td>Perturbation</td>
+<td><code>perturbation_step_stochastic</code></td>
+<td>Perturbed observations for stochastic methods</td>
+</tr>
+<tr>
+<td>Localization</td>
+<td><code>LocalizationMatrices</code> (NamedTuple)</td>
+<td>State-obs (<code>PH_loc</code>) and obs-obs (<code>HPH_loc</code>) taper matrices</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Data structures:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnsembleState</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">Xf</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_e&quot;</span><span class="p">]</span>     <span class="c1"># Prior ensemble (state × members)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">HXf</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y N_e&quot;</span><span class="p">]</span>    <span class="c1"># Obs-space projection</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">Y</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">]</span>          <span class="c1"># Observations</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">R</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">]</span>          <span class="c1"># Obs error variance (diagonal)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">AnalysisOutput</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">Xa</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_e&quot;</span><span class="p">]</span>     <span class="c1"># Posterior ensemble</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">mX</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x&quot;</span><span class="p">]</span>         <span class="c1"># State mean</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">mY</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">]</span>         <span class="c1"># Obs mean</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">W</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_e&quot;</span><span class="p">]</span>      <span class="c1"># Transform matrix (if applicable)</span>
+</code></pre></div>
+<h3 id="22-continuous-time-filters-kf_continuouspy">2.2 Continuous-time filters (<code>kf_continuous.py</code>)<a class="headerlink" href="#22-continuous-time-filters-kf_continuouspy" title="Permanent link">&para;</a></h3>
+<p>All filters are <code>eqx.Module</code> subclasses, integrated via Diffrax (Dopri5). Uses einops throughout.</p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Dynamics</th>
+<th>Covariance</th>
+<th>Key property</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LinearKalmanBucy</strong></td>
+<td>Linear (F matrix)</td>
+<td>Full</td>
+<td>Optimal for LTI systems</td>
+</tr>
+<tr>
+<td><strong>ExtendedKalmanBucy</strong></td>
+<td>Nonlinear (f + Jacobian)</td>
+<td>Full</td>
+<td>1st-order linearization</td>
+</tr>
+<tr>
+<td><strong>UnscentedKalmanBucy</strong></td>
+<td>Nonlinear (sigma points)</td>
+<td>Full</td>
+<td>3rd-order, no Jacobians</td>
+</tr>
+<tr>
+<td><strong>CubatureKalmanBucy</strong></td>
+<td>Nonlinear (cubature pts)</td>
+<td>Full</td>
+<td>Parameter-free sigma variant</td>
+</tr>
+<tr>
+<td><strong>EnsembleKalmanBucy</strong></td>
+<td>Nonlinear (ensemble)</td>
+<td>Sample</td>
+<td>Gaspari-Cohn localization</td>
+</tr>
+<tr>
+<td><strong>DiagonalKalmanBucy</strong></td>
+<td>Linear</td>
+<td>Diagonal</td>
+<td>O(n) complexity</td>
+</tr>
+<tr>
+<td><strong>LowRankKalmanBucy</strong></td>
+<td>Linear</td>
+<td>P = SS^T, rank r</td>
+<td>O(nr) memory</td>
+</tr>
+<tr>
+<td><strong>HInfinityFilter</strong></td>
+<td>Linear</td>
+<td>Full + gamma</td>
+<td>Worst-case robust</td>
+</tr>
+<tr>
+<td><strong>ParticleFilter</strong></td>
+<td>Nonlinear (ensemble)</td>
+<td>Sample</td>
+<td>Sampling-based</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Utilities:</strong>
+- <code>generate_sigma_points()</code> — unscented transform (alpha, beta, kappa)
+- <code>generate_cubature_points()</code> — 2n cubature points via Cholesky
+- <code>gaspari_cohn_localization()</code> — scalar taper function
+- <code>solve_continuous_kalman_filter()</code> — Diffrax ODE wrapper</p>
+<h3 id="23-patch-based-spatial-decomposition">2.3 Patch-based spatial decomposition<a class="headerlink" href="#23-patch-based-spatial-decomposition" title="Permanent link">&para;</a></h3>
+<p>Two parallel implementations (JAX + NumPy/Dask) for large-domain EnKF.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>JAX (<code>enskf_patch_jax.py</code>)</th>
+<th>NumPy/Dask (<code>enskf_patch_dask.py</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patch creation</td>
+<td><code>create_overlapping_patches()</code></td>
+<td>Same API, numpy arrays</td>
+</tr>
+<tr>
+<td>Obs assignment</td>
+<td><code>assign_observations_to_patches()</code></td>
+<td>Same API, with buffer zone</td>
+</tr>
+<tr>
+<td>Analysis</td>
+<td><code>enkf_analysis_single_patch()</code></td>
+<td>Same, with Tikhonov fallback</td>
+</tr>
+<tr>
+<td>Blending</td>
+<td><code>blend_overlapping_patches_jax()</code></td>
+<td><code>blend_overlapping_patches()</code></td>
+</tr>
+<tr>
+<td>Taper</td>
+<td><code>gaspari_cohn_1d_jax()</code></td>
+<td><code>gaspari_cohn_2d_broadcast()</code></td>
+</tr>
+<tr>
+<td>Orchestration</td>
+<td>--</td>
+<td><code>global_enkf_with_dask_patches()</code> (xarray I/O)</td>
+</tr>
+<tr>
+<td>Parallelism</td>
+<td>vmap over patches</td>
+<td>dask.delayed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Metadata types:</strong> <code>PatchMetadata</code>, <code>GlobalMetadata</code> (NamedTuples for grid/coordinate tracking).</p>
+<h3 id="24-parameter-estimation-param_estimation">2.4 Parameter estimation (<code>param_estimation/</code>)<a class="headerlink" href="#24-parameter-estimation-param_estimation" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear KF step</td>
+<td><code>filters.py</code></td>
+<td><code>filter_step_linear</code>, <code>apply_filtering_fixed_linear</code></td>
+</tr>
+<tr>
+<td>Nonlinear EKF step</td>
+<td><code>filters.py</code></td>
+<td><code>filter_step_nonlinear</code>, <code>apply_filtering_fixed_nonlinear</code></td>
+</tr>
+<tr>
+<td>EnSRF step</td>
+<td><code>filters.py</code></td>
+<td><code>ensrf_step</code>, <code>ensrf_steps</code> (with Ledoit-Wolf shrinkage)</td>
+</tr>
+<tr>
+<td>Particle filter</td>
+<td><code>filters.py</code></td>
+<td><code>particle_filter</code>, <code>resample_particles</code>, <code>update_weights</code></td>
+</tr>
+<tr>
+<td>Woodbury EnKF</td>
+<td><code>torch_enskf.py</code></td>
+<td><code>woodbury_inversion_logdet</code> (O(dr^2) when N_e &lt; N_y)</td>
+</tr>
+<tr>
+<td>Power iteration</td>
+<td><code>torch_enskf.py</code></td>
+<td>Largest singular value estimation</td>
+</tr>
+<tr>
+<td>Gaspari-Cohn</td>
+<td><code>torch_enskf.py</code></td>
+<td>Full taper matrix via nested vmap</td>
+</tr>
+<tr>
+<td>KL divergence</td>
+<td><code>loss.py</code></td>
+<td><code>KL_gaussian</code>, <code>KL_sum</code></td>
+</tr>
+<tr>
+<td>Log-likelihood</td>
+<td><code>loss.py</code></td>
+<td><code>log_likelihood</code> (handles missing obs)</td>
+</tr>
+<tr>
+<td>Variational cost</td>
+<td><code>loss.py</code></td>
+<td><code>var_cost</code> (KL + expected log-likelihood)</td>
+</tr>
+<tr>
+<td>Matrix sqrt</td>
+<td><code>filters.py</code></td>
+<td><code>sqrtm</code> via eigendecomposition</td>
+</tr>
+<tr>
+<td>Covariance shrinkage</td>
+<td><code>filters.py</code></td>
+<td><code>ledoit_wolf</code> regularization</td>
+</tr>
+</tbody>
+</table>
+<h3 id="25-test-models-param_estimationmodelspy">2.5 Test models (<code>param_estimation/models.py</code>)<a class="headerlink" href="#25-test-models-param_estimationmodelspy" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>State dim</th>
+<th>Type</th>
+<th>Integration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lorenz 63</td>
+<td>3</td>
+<td>Chaotic ODE</td>
+<td>RK4</td>
+</tr>
+<tr>
+<td>Lorenz 96</td>
+<td>N (configurable)</td>
+<td>Multi-scale ODE</td>
+<td>RK4</td>
+</tr>
+<tr>
+<td>Kuramoto-Sivashinsky</td>
+<td>N (spectral)</td>
+<td>Spatiotemporal PDE</td>
+<td>Spectral ETD</td>
+</tr>
+<tr>
+<td>pyQG (2-layer QG)</td>
+<td>2 × nx × ny</td>
+<td>Ocean model</td>
+<td>Adams-Bashforth 3</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-design-patterns-already-established">3. Design Patterns Already Established<a class="headerlink" href="#3-design-patterns-already-established" title="Permanent link">&para;</a></h2>
+<h3 id="31-jax-idioms-consistent-across-codebase">3.1 JAX idioms (consistent across codebase)<a class="headerlink" href="#31-jax-idioms-consistent-across-codebase" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Usage</th>
+<th>filterX implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>eqx.Module</code></td>
+<td>Continuous-time filters</td>
+<td>Adopt for all filter types</td>
+</tr>
+<tr>
+<td><code>NamedTuple</code></td>
+<td>Discrete-time state/output</td>
+<td>Migrate to <code>eqx.Module</code> for consistency</td>
+</tr>
+<tr>
+<td><code>jaxtyping</code> annotations</td>
+<td>All JAX files</td>
+<td>Keep — first-class shape documentation</td>
+</tr>
+<tr>
+<td><code>einops.einsum</code></td>
+<td>All matrix ops</td>
+<td>Keep — prevents transpose bugs</td>
+</tr>
+<tr>
+<td><code>jax.lax.scan</code></td>
+<td>Time loops</td>
+<td>Keep — scan-compatible filter steps</td>
+</tr>
+<tr>
+<td><code>jax.random.PRNGKey</code></td>
+<td>Stochastic methods</td>
+<td>Keep — deterministic randomness</td>
+</tr>
+<tr>
+<td><code>@jit</code> / <code>@partial(jit, ...)</code></td>
+<td>All pure functions</td>
+<td>Migrate to <code>eqx.filter_jit</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-mathematical-structure">3.2 Mathematical structure<a class="headerlink" href="#32-mathematical-structure" title="Permanent link">&para;</a></h3>
+<p>The codebase consistently separates:</p>
+<ol>
+<li><strong>Forecast step</strong> — propagate ensemble forward (user-supplied dynamics)</li>
+<li><strong>Statistics step</strong> — compute mean, anomalies, covariances from ensemble</li>
+<li><strong>Analysis step</strong> — apply Kalman update (algorithm-specific)</li>
+<li><strong>Post-processing</strong> — inflation, localization, diagnostics</li>
+</ol>
+<p>This four-phase structure maps cleanly to a protocol-based design.</p>
+<h3 id="33-covariance-handling-strategies">3.3 Covariance handling strategies<a class="headerlink" href="#33-covariance-handling-strategies" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Where used</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full explicit covariance</td>
+<td><code>filter_step_with_cov</code></td>
+<td>O(N_x^2)</td>
+</tr>
+<tr>
+<td>Square-root factors</td>
+<td><code>filter_step_with_sqrt</code></td>
+<td>O(N_x × N_e)</td>
+</tr>
+<tr>
+<td>Inverse square-root</td>
+<td><code>filter_step_with_sqrt_inv</code></td>
+<td>O(N_y × N_e)</td>
+</tr>
+<tr>
+<td>Woodbury identity</td>
+<td><code>woodbury_inversion_logdet</code></td>
+<td>O(d × r^2)</td>
+</tr>
+<tr>
+<td>Diagonal</td>
+<td><code>DiagonalKalmanBucy</code></td>
+<td>O(N_x)</td>
+</tr>
+<tr>
+<td>Low-rank P = SS^T</td>
+<td><code>LowRankKalmanBucy</code></td>
+<td>O(N_x × r)</td>
+</tr>
+<tr>
+<td>Ledoit-Wolf shrinkage</td>
+<td><code>ensrf_step</code></td>
+<td>Regularization</td>
+</tr>
+<tr>
+<td>Localization (Gaspari-Cohn)</td>
+<td>Multiple</td>
+<td>Tapering</td>
+</tr>
+</tbody>
+</table>
+<p>This variety directly motivates <strong>gaussx integration</strong> — structured operators (diagonal, low-rank, Kronecker) can unify these representations behind a single <code>lineax.AbstractLinearOperator</code> interface.</p>
+<hr />
+<h2 id="4-mapping-to-filterx-architecture">4. Mapping to filterX Architecture<a class="headerlink" href="#4-mapping-to-filterx-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="41-what-maps-to-filterx-core">4.1 What maps to filterX core<a class="headerlink" href="#41-what-maps-to-filterx-core" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Existing code</th>
+<th>filterX target</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EnsembleState</code></td>
+<td><code>ekalmx.EnsembleState</code> (eqx.Module)</td>
+<td>Add ensemble_size as static field</td>
+</tr>
+<tr>
+<td><code>AnalysisOutput</code></td>
+<td><code>ekalmx.AnalysisResult</code> (eqx.Module)</td>
+<td>Add diagnostics (innovation, spread)</td>
+</tr>
+<tr>
+<td><code>filter_step_*</code> variants</td>
+<td><code>ekalmx.ensemble_statistics()</code></td>
+<td>Single function, covariance mode as config</td>
+</tr>
+<tr>
+<td><code>analysis_step_senkf</code></td>
+<td><code>ekalmx.StochasticEnKF.analysis()</code></td>
+<td>Filter protocol</td>
+</tr>
+<tr>
+<td><code>analysis_step_etkf</code></td>
+<td><code>ekalmx.ETKF.analysis()</code></td>
+<td>Filter protocol</td>
+</tr>
+<tr>
+<td><code>analysis_step_ensrf*</code></td>
+<td><code>ekalmx.EnSRF.analysis()</code></td>
+<td>Variants via config, not separate classes</td>
+</tr>
+<tr>
+<td><code>analysis_step_estkf</code></td>
+<td><code>ekalmx.ESTKF.analysis()</code></td>
+<td>Filter protocol</td>
+</tr>
+<tr>
+<td>Localization matrices</td>
+<td><code>ekalmx.Localizer</code> protocol</td>
+<td>Gaspari-Cohn as default impl</td>
+</tr>
+<tr>
+<td>Patch decomposition</td>
+<td><code>ekalmx.LocalEnKF</code> or user-level</td>
+<td>Spatial decomposition as higher-level recipe</td>
+</tr>
+<tr>
+<td><code>var_cost</code>, <code>KL_gaussian</code></td>
+<td><code>ekalmx.diagnostics</code></td>
+<td>Filter evaluation metrics</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-what-maps-to-filterx-protocols">4.2 What maps to filterX protocols<a class="headerlink" href="#42-what-maps-to-filterx-protocols" title="Permanent link">&para;</a></h3>
+<p>Based on the existing code, the following abstract protocols emerge:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractFilter</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Base protocol: analysis step.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">forecast</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_op</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractLocalizer</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Covariance localization.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">taper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">Array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Array</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractInflator</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble inflation.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">inflate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ensemble</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Array</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractObsOperator</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;H: state space → observation space.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Array</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
+<h3 id="43-what-maps-to-ekp-ens_kalman_processmd">4.3 What maps to EKP (ens_kalman_process.md)<a class="headerlink" href="#43-what-maps-to-ekp-ens_kalman_processmd" title="Permanent link">&para;</a></h3>
+<p>The existing <code>param_estimation/</code> code is the bridge between filterX (sequential DA) and the EKP design (inverse problems). Key overlaps:</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>filterX (sequential DA)</th>
+<th>EKP (inverse problems)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensemble</td>
+<td>State particles over time</td>
+<td>Parameter particles, no time</td>
+</tr>
+<tr>
+<td>Kalman gain</td>
+<td>K = C^{xH} (C^{HH} + R)^{-1}</td>
+<td>Same formula</td>
+</tr>
+<tr>
+<td>Update</td>
+<td>Sequential (per assimilation window)</td>
+<td>Iterative (until convergence)</td>
+</tr>
+<tr>
+<td>Forward model</td>
+<td>Dynamics M(x)</td>
+<td>Simulator G(theta)</td>
+</tr>
+<tr>
+<td>Observation</td>
+<td>H(x) at obs locations</td>
+<td>G(theta) output</td>
+</tr>
+<tr>
+<td>Covariance handling</td>
+<td>Localization, inflation</td>
+<td>Inflation, regularization</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shared infrastructure candidates:</strong>
+- Ensemble statistics (mean, anomalies, cross-covariance)
+- Woodbury / structured solves (gaussx)
+- Gaspari-Cohn and other taper functions
+- Kalman gain computation</p>
+<h3 id="44-what-stays-outside-filterx">4.4 What stays outside filterX<a class="headerlink" href="#44-what-stays-outside-filterx" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Disposition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>models.py</code> (L63, L96, KS, pyQG)</td>
+<td>Example/test utilities, not library</td>
+</tr>
+<tr>
+<td><code>loss.py</code> (KL, log-likelihood)</td>
+<td>Diagnostics module or examples</td>
+</tr>
+<tr>
+<td>Patch decomposition</td>
+<td>Higher-level recipe or separate module</td>
+</tr>
+<tr>
+<td>Dask implementation</td>
+<td>Deployment concern, not core library</td>
+</tr>
+<tr>
+<td>Continuous-time filters</td>
+<td>Separate module or later phase (Diffrax integration)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-gap-analysis">5. Gap Analysis<a class="headerlink" href="#5-gap-analysis" title="Permanent link">&para;</a></h2>
+<h3 id="51-algorithms-present-but-needing-formalization">5.1 Algorithms present but needing formalization<a class="headerlink" href="#51-algorithms-present-but-needing-formalization" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Status</th>
+<th>Work needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stochastic EnKF</td>
+<td>Working</td>
+<td>Protocol conformance, eqx.Module migration</td>
+</tr>
+<tr>
+<td>ETKF</td>
+<td>Working</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>ETKF (Livings)</td>
+<td>Working</td>
+<td>Evaluate if distinct enough to keep</td>
+</tr>
+<tr>
+<td>EnSRF (3 variants)</td>
+<td>Working</td>
+<td>Unify into single EnSRF with config</td>
+</tr>
+<tr>
+<td>ESTKF</td>
+<td>Working</td>
+<td>Protocol conformance</td>
+</tr>
+<tr>
+<td>Woodbury solve</td>
+<td>Working</td>
+<td>Migrate to gaussx backend</td>
+</tr>
+<tr>
+<td>Gaspari-Cohn localization</td>
+<td>Working (3 implementations)</td>
+<td>Single canonical implementation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-algorithms-in-ekp-design-but-not-yet-implemented">5.2 Algorithms in EKP design but not yet implemented<a class="headerlink" href="#52-algorithms-in-ekp-design-but-not-yet-implemented" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>EKP doc section</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EKI (Ensemble Kalman Inversion)</td>
+<td>Process Zoo — optimization</td>
+<td>Core EKP algorithm</td>
+</tr>
+<tr>
+<td>ETKI (Ensemble Transform KI)</td>
+<td>Process Zoo — optimization</td>
+<td>Output-scalable O(d)</td>
+</tr>
+<tr>
+<td>EKS / ALDI (Ensemble Kalman Sampler)</td>
+<td>Process Zoo — sampling</td>
+<td>Langevin diffusion for posterior</td>
+</tr>
+<tr>
+<td>UKI (Unscented Kalman Inversion)</td>
+<td>Process Zoo — sampling</td>
+<td>Parametric posterior (mean + cov)</td>
+</tr>
+<tr>
+<td>UTKI (Transform Unscented)</td>
+<td>Process Zoo — sampling</td>
+<td>Output-scalable UKI</td>
+</tr>
+<tr>
+<td>GNKI (Gauss-Newton KI)</td>
+<td>Process Zoo — optimization</td>
+<td>Explicit Jacobian estimation</td>
+</tr>
+<tr>
+<td>SparseInversion</td>
+<td>Process Zoo — optimization</td>
+<td>L0/L1 sparsity</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-infrastructure-gaps">5.3 Infrastructure gaps<a class="headerlink" href="#53-infrastructure-gaps" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Existing workaround</th>
+<th>filterX solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No unified state type</td>
+<td>2 NamedTuples + ad-hoc</td>
+<td><code>eqx.Module</code> hierarchy</td>
+</tr>
+<tr>
+<td>No protocol system</td>
+<td>Bare functions</td>
+<td>Abstract base classes</td>
+</tr>
+<tr>
+<td>Localization scattered</td>
+<td>3 separate implementations</td>
+<td><code>AbstractLocalizer</code> protocol</td>
+</tr>
+<tr>
+<td>No inflation protocol</td>
+<td>Inline multiplication</td>
+<td><code>AbstractInflator</code> protocol</td>
+</tr>
+<tr>
+<td>No adaptive scheduling</td>
+<td>Fixed parameters</td>
+<td><code>Scheduler</code> protocol (from EKP design)</td>
+</tr>
+<tr>
+<td>No diagnostics API</td>
+<td>Ad-hoc loss functions</td>
+<td><code>filterx.diagnostics</code> module</td>
+</tr>
+<tr>
+<td>5 filter_step variants</td>
+<td>User picks manually</td>
+<td>Single function + config enum</td>
+</tr>
+<tr>
+<td>No gaussx integration</td>
+<td>Explicit matrix ops</td>
+<td><code>lineax.AbstractLinearOperator</code> for covariances</td>
+</tr>
+</tbody>
+</table>
+<h3 id="54-missing-features-for-production-da">5.4 Missing features for production DA<a class="headerlink" href="#54-missing-features-for-production-da" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Priority</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Adaptive multiplicative inflation</td>
+<td>High</td>
+<td>Anderson (2007)</td>
+</tr>
+<tr>
+<td>Relaxation-to-prior (RTPS/RTPP)</td>
+<td>High</td>
+<td>Whitaker &amp; Hamill (2012)</td>
+</tr>
+<tr>
+<td>Observation batching / super-obbing</td>
+<td>Medium</td>
+<td>For large obs networks</td>
+</tr>
+<tr>
+<td>Asynchronous observations</td>
+<td>Medium</td>
+<td>Obs at different times within window</td>
+</tr>
+<tr>
+<td>Hybrid EnVar (ensemble + static B)</td>
+<td>Medium</td>
+<td>Combines flow-dependent + climatological</td>
+</tr>
+<tr>
+<td>LETKF (Local ETKF)</td>
+<td>High</td>
+<td>Standard for operational NWP</td>
+</tr>
+<tr>
+<td>Vertical localization</td>
+<td>Medium</td>
+<td>Separate horizontal/vertical scales</td>
+</tr>
+<tr>
+<td>Adaptive localization (GC radius tuning)</td>
+<td>Low</td>
+<td>Anderson (2012)</td>
+</tr>
+<tr>
+<td>Innovation diagnostics</td>
+<td>High</td>
+<td>Desroziers et al. (2005) consistency checks</td>
+</tr>
+<tr>
+<td>Rank histograms</td>
+<td>Medium</td>
+<td>Ensemble reliability</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-proposed-filterx-module-structure">6. Proposed filterX Module Structure<a class="headerlink" href="#6-proposed-filterx-module-structure" title="Permanent link">&para;</a></h2>
+<p>Based on the inventory above and the EKP design:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>filterx/
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── __init__.py
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├── _src/
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│   ├── _protocols.py              # AbstractFilter, AbstractLocalizer, AbstractInflator,
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│   │                              # AbstractObsOperator, AbstractScheduler
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│   ├── _types.py                  # EnsembleState, AnalysisResult, FilterConfig
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│   ├── statistics.py              # ensemble_mean, anomalies, cross_cov, sample_cov
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│   │                              # (unifies the 5 filter_step_* variants)
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   ├── gain.py                    # kalman_gain (explicit, woodbury, sqrt, gaussx-backed)
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│   ├── filters/
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│   │   ├── stochastic_enkf.py     # StochasticEnKF
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│   │   ├── etkf.py                # ETKF, ETKF_Livings
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>│   │   ├── ensrf.py               # EnSRF (Whitaker, serial variants via config)
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>│   │   ├── estkf.py               # ESTKF
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>│   │   └── letkf.py               # LETKF (new — high priority)
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>│   ├── localization/
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│   │   ├── gaspari_cohn.py        # Canonical GC taper (unifies 3 existing impls)
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>│   │   └── cutoff.py              # Hard cutoff, Gaussian taper
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>│   ├── inflation/
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>│   │   ├── multiplicative.py      # Fixed + adaptive (Anderson 2007)
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>│   │   └── rtps.py                # Relaxation to prior spread
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>│   ├── diagnostics/
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>│   │   ├── innovation.py          # Innovation statistics, Desroziers checks
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>│   │   ├── spread.py              # Ensemble spread, rank histograms
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>│   │   └── costs.py               # KL, log-likelihood (from loss.py)
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>│   └── utils/
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>│       ├── linalg.py              # sqrtm, ledoit_wolf, woodbury
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>│       └── random.py              # Perturbed obs generation
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>├── docs/
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>└── tests/
+</code></pre></div>
+<h3 id="relationship-to-ekp">Relationship to EKP<a class="headerlink" href="#relationship-to-ekp" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>filterx/                           # Sequential DA (this document)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>├── filters/                       # EnKF variants for state estimation
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>├── localization/                  # Spatial covariance tapering
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>└── diagnostics/                   # DA-specific metrics
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>filterx/                           # Inverse problems (ens_kalman_process.md)
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>├── processes/                     # EKI, EKS, UKI, GNKI, etc.
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>├── schedulers/                    # DataMisfitController, FixedScheduler
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>└── constraints/                   # Bijective transforms for bounded params
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a># Shared:
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>├── statistics.py                  # Ensemble mean, cov, cross-cov
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>├── gain.py                        # Kalman gain computation
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>└── utils/linalg.py                # Woodbury, sqrtm, shrinkage
+</code></pre></div>
+<hr />
+<h2 id="7-references">7. References<a class="headerlink" href="#7-references" title="Permanent link">&para;</a></h2>
+<h3 id="implemented-algorithms">Implemented algorithms<a class="headerlink" href="#implemented-algorithms" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Evensen, G. (1994). Sequential data assimilation with a nonlinear quasi-geostrophic model using Monte Carlo methods to forecast error statistics. <em>JGR</em>.</li>
+<li>Whitaker, J. S. &amp; Hamill, T. M. (2002). Ensemble data assimilation without perturbed observations. <em>MWR</em>.</li>
+<li>Livings, D. M. et al. (2005). Unbiased ensemble square root filters. <em>Physica D</em>.</li>
+<li>Vetra-Carvalho, S. et al. (2018). State-of-the-art stochastic data assimilation methods for high-dimensional non-Gaussian problems. <em>Tellus A</em>.</li>
+</ul>
+<h3 id="gap-filling-targets">Gap-filling targets<a class="headerlink" href="#gap-filling-targets" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Anderson, J. L. (2007). An adaptive covariance inflation error correction algorithm for ensemble filters. <em>Tellus A</em>.</li>
+<li>Desroziers, G. et al. (2005). Diagnosis of observation, background and analysis-error statistics in observation space. <em>QJRMS</em>.</li>
+<li>Hunt, B. R. et al. (2007). Efficient data assimilation for spatiotemporal chaos: A local ensemble transform Kalman filter. <em>Physica D</em>.</li>
+<li>Whitaker, J. S. &amp; Hamill, T. M. (2012). Evaluating methods to account for system errors in ensemble data assimilation. <em>MWR</em>.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

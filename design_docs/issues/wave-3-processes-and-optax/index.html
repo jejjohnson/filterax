@@ -1,0 +1,966 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>[Wave 3] Ensemble Kalman Processes and Optax - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#wave-3-ensemble-kalman-processes-and-optax" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              [Wave 3] Ensemble Kalman Processes and Optax
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#shared-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mathematical-baseline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mathematical Baseline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#canonical-api-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Canonical API Snapshot
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="wave-3-ensemble-kalman-processes-and-optax">[Wave 3] Ensemble Kalman Processes and Optax<a class="headerlink" href="#wave-3-ensemble-kalman-processes-and-optax" title="Permanent link">&para;</a></h1>
+<h2 id="shared-context">Shared Context<a class="headerlink" href="#shared-context" title="Permanent link">&para;</a></h2>
+<p>This wave uses <code>features/processes.md</code>, <code>features/optax_ekp.md</code>,
+<code>api/components.md</code>, <code>api/models.md</code>, and <code>examples/components.md</code> /
+<code>examples/integration.md</code>.</p>
+<p>The process side of <code>filterax</code> is the iterative inverse-problem counterpart to
+the sequential filter side:</p>
+<ul>
+<li>EKI for point-estimate inversion</li>
+<li>EKS for posterior sampling</li>
+<li>UKI for parametric uncertainty propagation</li>
+<li>transform/advanced variants for scalability or regularization</li>
+<li>optax wrappers as a first-class package promise</li>
+</ul>
+<h2 id="mathematical-baseline">Mathematical Baseline<a class="headerlink" href="#mathematical-baseline" title="Permanent link">&para;</a></h2>
+<p>The common EKP update is:</p>
+<div class="arithmatex">\[\theta_{n+1}^{(j)} = \theta_n^{(j)} + \Delta t_n\, C_n^{\theta G}\left(C_n^{GG} + \Delta t_n^{-1}\Gamma\right)^{-1}(y - G(\theta_n^{(j)}))\]</div>
+<p>UKI replaces an explicit ensemble with sigma-point quadrature and mean/covariance
+updates.</p>
+<p>The optax layer treats the change in the ensemble mean as the <code>updates</code> output,
+while the full ensemble or UKI state lives inside optimizer state.</p>
+<h2 id="canonical-api-snapshot">Canonical API Snapshot<a class="headerlink" href="#canonical-api-snapshot" title="Permanent link">&para;</a></h2>
+<p>High-level process loop:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">process</span> <span class="o">=</span> <span class="n">filterax</span><span class="o">.</span><span class="n">EKI</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">forward_fn</span><span class="o">=</span><span class="n">my_forward_model</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">obs</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">noise_cov</span><span class="o">=</span><span class="n">Gamma</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">scheduler</span><span class="o">=</span><span class="n">filterax</span><span class="o">.</span><span class="n">DataMisfitController</span><span class="p">(),</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">result</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">init_particles</span><span class="p">)</span>
+</code></pre></div>
+<p>Optax wrapper:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">tx</span> <span class="o">=</span> <span class="n">filterax</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eki</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">forward_fn</span><span class="o">=</span><span class="n">my_forward_model</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">obs</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">noise_cov</span><span class="o">=</span><span class="n">Gamma</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">scheduler</span><span class="o">=</span><span class="n">filterax</span><span class="o">.</span><span class="n">DataMisfitController</span><span class="p">(),</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">state</span> <span class="o">=</span> <span class="n">tx</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">updates</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">tx</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">params</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+</code></pre></div>
+<h1 id="wave-3-ensemble-kalman-processes-and-optax_1">[Wave 3] Ensemble Kalman Processes and Optax<a class="headerlink" href="#wave-3-ensemble-kalman-processes-and-optax_1" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-26</code></p>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
+<p>Ship the first process/inversion side of <code>filterax</code>, including high-level
+EKP models and optax transforms.</p>
+<h2 id="wave-milestone">Wave / Milestone<a class="headerlink" href="#wave-milestone" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave: <code>wave:3</code></li>
+<li>Milestone: <code>v0.3-processes-optax</code></li>
+</ul>
+<h2 id="canonical-epics">Canonical Epics<a class="headerlink" href="#canonical-epics" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] FLX-27 [Epic] 3.A Process Schedulers and Core Algorithms</li>
+<li>[ ] FLX-28 [Epic] 3.B Process Models and Optax Transforms</li>
+<li>[ ] FLX-29 [Epic] 3.C Process Verification and API Docs</li>
+</ul>
+<h2 id="sequential-dependencies">Sequential Dependencies<a class="headerlink" href="#sequential-dependencies" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>FLX-27 -&gt; FLX-28 -&gt; FLX-29</code>.</li>
+</ul>
+<h2 id="definition-of-done">Definition of Done<a class="headerlink" href="#definition-of-done" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>filterax</code> can run inversion/sampling workflows and expose them as optax
+  transforms.</li>
+</ul>
+<h2 id="relationships">Relationships<a class="headerlink" href="#relationships" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Blocked by FLX-06.</li>
+<li>Blocks FLX-37 and FLX-48.</li>
+</ul>
+<hr />
+<h1 id="epic-3a-process-schedulers-and-core-algorithms">[Epic] 3.A Process Schedulers and Core Algorithms<a class="headerlink" href="#epic-3a-process-schedulers-and-core-algorithms" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-27</code></p>
+<h2 id="theme">Theme<a class="headerlink" href="#theme" title="Permanent link">&para;</a></h2>
+<p>Implement the process-side schedulers and algorithm cores.</p>
+<h2 id="parent-wave">Parent Wave<a class="headerlink" href="#parent-wave" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-26</code></li>
+<li>Wave label: <code>wave:3</code></li>
+<li>Milestone: <code>v0.3-processes-optax</code></li>
+</ul>
+<h2 id="parallelism">Parallelism<a class="headerlink" href="#parallelism" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Can run in parallel with: limited prep only</li>
+<li>Must complete before: FLX-28</li>
+</ul>
+<hr />
+<h1 id="epic-3b-process-models-and-optax-transforms">[Epic] 3.B Process Models and Optax Transforms<a class="headerlink" href="#epic-3b-process-models-and-optax-transforms" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-28</code></p>
+<h2 id="theme_1">Theme<a class="headerlink" href="#theme_1" title="Permanent link">&para;</a></h2>
+<p>Wrap the process algorithms into user-facing models and optax transforms.</p>
+<h2 id="parent-wave_1">Parent Wave<a class="headerlink" href="#parent-wave_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-26</code></li>
+<li>Wave label: <code>wave:3</code></li>
+<li>Milestone: <code>v0.3-processes-optax</code></li>
+</ul>
+<h2 id="parallelism_1">Parallelism<a class="headerlink" href="#parallelism_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Blocked by (inside this wave): FLX-27</li>
+<li>Must complete before: FLX-29</li>
+</ul>
+<hr />
+<h1 id="epic-3c-process-verification-and-api-docs">[Epic] 3.C Process Verification and API Docs<a class="headerlink" href="#epic-3c-process-verification-and-api-docs" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-29</code></p>
+<h2 id="theme_2">Theme<a class="headerlink" href="#theme_2" title="Permanent link">&para;</a></h2>
+<p>Verify the process side and document the process/optax API surface without making this the main tutorial wave.</p>
+<h2 id="parent-wave_2">Parent Wave<a class="headerlink" href="#parent-wave_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-26</code></li>
+<li>Wave label: <code>wave:3</code></li>
+<li>Milestone: <code>v0.3-processes-optax</code></li>
+</ul>
+<h2 id="parallelism_2">Parallelism<a class="headerlink" href="#parallelism_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Blocked by (inside this wave): FLX-28</li>
+</ul>
+<hr />
+<h1 id="processesschedulers-implement-fixedscheduler-datamisfitcontroller-and-eksstablescheduler">processes(schedulers): implement FixedScheduler, DataMisfitController, and EKSStableScheduler<a class="headerlink" href="#processesschedulers-implement-fixedscheduler-datamisfitcontroller-and-eksstablescheduler" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-30</code></p>
+<h2 id="problem-request">Problem / Request<a class="headerlink" href="#problem-request" title="Permanent link">&para;</a></h2>
+<p>Implement the process scheduler surface used by EKI/EKS/UKI and the optax
+wrappers.</p>
+<h2 id="references-existing-code">References &amp; Existing Code<a class="headerlink" href="#references-existing-code" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/api/components.md</code>, <code>design_docs/filterX/features/optax_ekp.md</code></li>
+</ul>
+<h2 id="implementation-steps">Implementation Steps<a class="headerlink" href="#implementation-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Implement <code>FixedScheduler</code>.</li>
+<li>[ ] Implement <code>DataMisfitController</code>.</li>
+<li>[ ] Implement <code>EKSStableScheduler</code>.</li>
+</ul>
+<h2 id="relationships_1">Relationships<a class="headerlink" href="#relationships_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-27.</li>
+<li>Blocked by FLX-10 and FLX-11.</li>
+</ul>
+<hr />
+<h1 id="processescore-implement-eki-and-eks_process">processes(core): implement EKI and EKS_Process<a class="headerlink" href="#processescore-implement-eki-and-eks_process" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-31</code></p>
+<h2 id="problem-request_1">Problem / Request<a class="headerlink" href="#problem-request_1" title="Permanent link">&para;</a></h2>
+<p>Implement the core ensemble-process algorithms for inversion and posterior
+sampling.</p>
+<h2 id="mathematical-notes">Mathematical Notes<a class="headerlink" href="#mathematical-notes" title="Permanent link">&para;</a></h2>
+<p>EKI uses the standard deterministic ensemble update.</p>
+<p>EKS adds a covariance-scaled stochastic term so the ensemble does not collapse.</p>
+<h2 id="references-existing-code_1">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/features/processes.md</code></li>
+</ul>
+<h2 id="implementation-steps_1">Implementation Steps<a class="headerlink" href="#implementation-steps_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Implement <code>EKI</code>.</li>
+<li>[ ] Implement <code>EKS_Process</code>.</li>
+<li>[ ] Reuse the shared ensemble statistics and gain-side algebra from Wave 1.</li>
+</ul>
+<h2 id="relationships_2">Relationships<a class="headerlink" href="#relationships_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-27.</li>
+<li>Blocked by FLX-12, FLX-13, and FLX-30.</li>
+</ul>
+<hr />
+<h1 id="processesuki-implement-uki-and-sigma-point-utilities">processes(uki): implement UKI and sigma-point utilities<a class="headerlink" href="#processesuki-implement-uki-and-sigma-point-utilities" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-32</code></p>
+<h2 id="problem-request_2">Problem / Request<a class="headerlink" href="#problem-request_2" title="Permanent link">&para;</a></h2>
+<p>Implement Unscented Kalman Inversion and the sigma-point utilities it needs.</p>
+<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h2>
+<p>UKI is a distinct parametric branch of the process story and deserves a clean
+issue rather than being buried inside EKI logic.</p>
+<h2 id="references-existing-code_2">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/features/processes.md</code></li>
+</ul>
+<h2 id="implementation-steps_2">Implementation Steps<a class="headerlink" href="#implementation-steps_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Implement sigma-point generation and weighting helpers.</li>
+<li>[ ] Implement <code>UKI</code> and <code>UKIState</code>.</li>
+<li>[ ] Keep the mean/covariance state representation explicit.</li>
+</ul>
+<h2 id="relationships_3">Relationships<a class="headerlink" href="#relationships_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-27.</li>
+<li>Blocked by FLX-11 and FLX-30.</li>
+</ul>
+<hr />
+<h1 id="processesadvanced-implement-etki-gnki-sparseinversion-and-teki">processes(advanced): implement ETKI, GNKI, SparseInversion, and TEKI<a class="headerlink" href="#processesadvanced-implement-etki-gnki-sparseinversion-and-teki" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-33</code></p>
+<h2 id="problem-request_3">Problem / Request<a class="headerlink" href="#problem-request_3" title="Permanent link">&para;</a></h2>
+<p>Implement the higher-variant process algorithms that extend the basic EKI/EKS
+surface.</p>
+<h2 id="references-existing-code_3">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/features/processes.md</code></li>
+</ul>
+<h2 id="implementation-steps_3">Implementation Steps<a class="headerlink" href="#implementation-steps_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Implement <code>ETKI</code>.</li>
+<li>[ ] Implement <code>GNKI</code>.</li>
+<li>[ ] Implement <code>SparseInversion</code>.</li>
+<li>[ ] Implement <code>TEKI</code>.</li>
+</ul>
+<h2 id="definition-of-done_1">Definition of Done<a class="headerlink" href="#definition-of-done_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The advanced process catalog exists as real algorithm classes, not only
+  research notes.</li>
+</ul>
+<h2 id="relationships_4">Relationships<a class="headerlink" href="#relationships_4" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-27.</li>
+<li>Blocked by FLX-31 and FLX-32.</li>
+</ul>
+<hr />
+<h1 id="modelsprocesses-implement-high-level-eki-eks-and-uki-run-loops">models(processes): implement high-level EKI, EKS, and UKI run loops<a class="headerlink" href="#modelsprocesses-implement-high-level-eki-eks-and-uki-run-loops" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-34</code></p>
+<h2 id="problem-request_4">Problem / Request<a class="headerlink" href="#problem-request_4" title="Permanent link">&para;</a></h2>
+<p>Wrap the process algorithms into ready-to-run Layer 2 models with convergence
+handling and results containers.</p>
+<h2 id="references-existing-code_4">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_4" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/api/models.md</code>, <code>design_docs/filterX/examples/models.md</code></li>
+</ul>
+<h2 id="implementation-steps_4">Implementation Steps<a class="headerlink" href="#implementation-steps_4" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Implement high-level <code>EKI</code>, <code>EKS</code>, and <code>UKI</code> model classes.</li>
+<li>[ ] Implement <code>run(...)</code> and result/history handling.</li>
+<li>[ ] Return <code>ProcessResult</code> consistently across process families.</li>
+</ul>
+<h2 id="relationships_5">Relationships<a class="headerlink" href="#relationships_5" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-28.</li>
+<li>Blocked by FLX-31 and FLX-32.</li>
+</ul>
+<hr />
+<h1 id="optaxprocesses-implement-eki-eks-and-uki-as-gradienttransformations">optax(processes): implement eki, eks, and uki as GradientTransformations<a class="headerlink" href="#optaxprocesses-implement-eki-eks-and-uki-as-gradienttransformations" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-35</code></p>
+<h2 id="problem-request_5">Problem / Request<a class="headerlink" href="#problem-request_5" title="Permanent link">&para;</a></h2>
+<p>Implement the optax wrappers that expose EKP as <code>optax.GradientTransformation</code>.</p>
+<h2 id="proposed-api">Proposed API<a class="headerlink" href="#proposed-api" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">filterax</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eki</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">filterax</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eks</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">filterax</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">uki</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="motivation_1">Motivation<a class="headerlink" href="#motivation_1" title="Permanent link">&para;</a></h2>
+<p>The docs explicitly position this as core identity, parallel to <code>optax_bayes</code>.</p>
+<h2 id="references-existing-code_5">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_5" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/features/optax_ekp.md</code>, <code>design_docs/filterX/examples/integration.md</code></li>
+</ul>
+<h2 id="implementation-steps_5">Implementation Steps<a class="headerlink" href="#implementation-steps_5" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Implement the optax state types and init/update logic.</li>
+<li>[ ] Keep the ensemble or UKI state inside optimizer state.</li>
+<li>[ ] Return updates as mean-parameter deltas.</li>
+<li>[ ] Support <code>optax.chain</code> composition patterns from the examples.</li>
+</ul>
+<h2 id="relationships_6">Relationships<a class="headerlink" href="#relationships_6" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-28.</li>
+<li>Blocked by FLX-30, FLX-31, and FLX-32.</li>
+</ul>
+<hr />
+<h1 id="docstests-add-inverse-problem-verification-and-wave-3-process-examples">docs/tests: add inverse-problem verification and Wave 3 process examples<a class="headerlink" href="#docstests-add-inverse-problem-verification-and-wave-3-process-examples" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-36</code></p>
+<h2 id="problem-request_6">Problem / Request<a class="headerlink" href="#problem-request_6" title="Permanent link">&para;</a></h2>
+<p>Verify process convergence on toy inverse problems and document the process and
+optax API workflows.</p>
+<h2 id="references-existing-code_6">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_6" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/examples/components.md</code>, <code>design_docs/filterX/examples/models.md</code>, <code>design_docs/filterX/examples/integration.md</code></li>
+</ul>
+<h2 id="implementation-steps_6">Implementation Steps<a class="headerlink" href="#implementation-steps_6" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Add linear or mildly nonlinear inverse-problem checks for EKI/EKS/UKI.</li>
+<li>[ ] Add optax composition smoke tests.</li>
+<li>[ ] Document when to choose EKI vs EKS vs UKI in API-reference form.</li>
+<li>[ ] Defer longer narrative tutorials and integration-heavy notebooks to Wave 6.</li>
+</ul>
+<h2 id="relationships_7">Relationships<a class="headerlink" href="#relationships_7" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-29.</li>
+<li>Blocked by FLX-34 and FLX-35.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,825 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>[Wave 6] Examples, Tutorials, and Integration Playbooks - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#wave-6-examples-tutorials-and-integration-playbooks" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              [Wave 6] Examples, Tutorials, and Integration Playbooks
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#shared-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-inventory-to-cover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Inventory To Cover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#canonical-api-snapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Canonical API Snapshot
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="wave-6-examples-tutorials-and-integration-playbooks">[Wave 6] Examples, Tutorials, and Integration Playbooks<a class="headerlink" href="#wave-6-examples-tutorials-and-integration-playbooks" title="Permanent link">&para;</a></h1>
+<h2 id="shared-context">Shared Context<a class="headerlink" href="#shared-context" title="Permanent link">&para;</a></h2>
+<p>This final grouped draft is intentionally example-heavy. It draws on
+<code>examples/primitives.md</code>, <code>examples/components.md</code>, <code>examples/models.md</code>, and
+<code>examples/integration.md</code>, plus the surrounding ecosystem notes in
+<code>boundaries.md</code>.</p>
+<p>The earlier waves should already have landed the actual runtime surfaces. That
+lets this final wave focus on teaching, comparison, and workflow packaging
+rather than using examples to compensate for missing APIs.</p>
+<h2 id="example-inventory-to-cover">Example Inventory To Cover<a class="headerlink" href="#example-inventory-to-cover" title="Permanent link">&para;</a></h2>
+<p>The design docs suggest a fairly rich tutorial surface by the end:</p>
+<ul>
+<li>Layer 0 primitives: statistics, gain, localization, inflation, patches</li>
+<li>Layer 1 components: ETKF analysis step, EKI step, custom localizer/inflator</li>
+<li>Layer 2 models: LETKF, EKI, EKS, UKI</li>
+<li>Integrations: optax, differentiable training, somax, gaussx, geo_toolz, xr_assimilate</li>
+</ul>
+<h2 id="canonical-api-snapshot">Canonical API Snapshot<a class="headerlink" href="#canonical-api-snapshot" title="Permanent link">&para;</a></h2>
+<p>The final wave should give readers clear worked examples such as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Layer 2 filtering</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">result</span> <span class="o">=</span> <span class="n">filterax</span><span class="o">.</span><span class="n">LETKF</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">assimilate</span><span class="p">(</span><span class="n">init_ensemble</span><span class="p">,</span> <span class="n">observations</span><span class="p">,</span> <span class="n">obs_noise</span><span class="o">=</span><span class="n">R</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Layer 2 inversion</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">process</span> <span class="o">=</span> <span class="n">filterax</span><span class="o">.</span><span class="n">EKI</span><span class="p">(</span><span class="n">forward_fn</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">noise_cov</span><span class="o">=</span><span class="n">Gamma</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">posterior</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">init_particles</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># optax integration</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">tx</span> <span class="o">=</span> <span class="n">filterax</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eki</span><span class="p">(</span><span class="n">forward_fn</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">obs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">noise_cov</span><span class="o">=</span><span class="n">Gamma</span><span class="p">)</span>
+</code></pre></div>
+<h1 id="wave-6-examples-tutorials-and-integration-playbooks_1">[Wave 6] Examples, Tutorials, and Integration Playbooks<a class="headerlink" href="#wave-6-examples-tutorials-and-integration-playbooks_1" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-58</code></p>
+<h2 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h2>
+<p>Consolidate the tutorial-heavy documentation, worked examples, and ecosystem
+playbooks after the implementation waves are stable.</p>
+<h2 id="wave-milestone">Wave / Milestone<a class="headerlink" href="#wave-milestone" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave: <code>wave:6</code></li>
+<li>Milestone: <code>v0.6-examples-playbooks</code></li>
+</ul>
+<h2 id="canonical-epics">Canonical Epics<a class="headerlink" href="#canonical-epics" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] FLX-59 [Epic] 6.A Layered API Walkthroughs</li>
+<li>[ ] FLX-60 [Epic] 6.B Process, Optax, and Differentiable Training Tutorials</li>
+<li>[ ] FLX-61 [Epic] 6.C Ecosystem and Xarray Playbooks</li>
+</ul>
+<h2 id="sequential-dependencies">Sequential Dependencies<a class="headerlink" href="#sequential-dependencies" title="Permanent link">&para;</a></h2>
+<ul>
+<li>This wave should start only after the implementation surfaces from Waves 1–5 are credible.</li>
+<li>The goal is breadth and teaching value, not to backfill missing runtime functionality.</li>
+</ul>
+<h2 id="relationships">Relationships<a class="headerlink" href="#relationships" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Blocked by FLX-48.</li>
+</ul>
+<hr />
+<h1 id="epic-6a-layered-api-walkthroughs">[Epic] 6.A Layered API Walkthroughs<a class="headerlink" href="#epic-6a-layered-api-walkthroughs" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-59</code></p>
+<h2 id="theme">Theme<a class="headerlink" href="#theme" title="Permanent link">&para;</a></h2>
+<p>Turn the Layer 0 / Layer 1 / Layer 2 surfaces into coherent walkthrough docs.</p>
+<h2 id="parent-wave">Parent Wave<a class="headerlink" href="#parent-wave" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-58</code></li>
+<li>Wave label: <code>wave:6</code></li>
+<li>Milestone: <code>v0.6-examples-playbooks</code></li>
+</ul>
+<h2 id="parallelism">Parallelism<a class="headerlink" href="#parallelism" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Can run in parallel with: FLX-60 and FLX-61 once APIs are stable</li>
+</ul>
+<hr />
+<h1 id="epic-6b-process-optax-and-differentiable-training-tutorials">[Epic] 6.B Process, Optax, and Differentiable Training Tutorials<a class="headerlink" href="#epic-6b-process-optax-and-differentiable-training-tutorials" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-60</code></p>
+<h2 id="theme_1">Theme<a class="headerlink" href="#theme_1" title="Permanent link">&para;</a></h2>
+<p>Package the process, optax, and differentiable-DA stories into worked tutorials.</p>
+<h2 id="parent-wave_1">Parent Wave<a class="headerlink" href="#parent-wave_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-58</code></li>
+<li>Wave label: <code>wave:6</code></li>
+<li>Milestone: <code>v0.6-examples-playbooks</code></li>
+</ul>
+<h2 id="parallelism_1">Parallelism<a class="headerlink" href="#parallelism_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Can run in parallel with: FLX-59 and FLX-61 once APIs are stable</li>
+</ul>
+<hr />
+<h1 id="epic-6c-ecosystem-and-xarray-playbooks">[Epic] 6.C Ecosystem and Xarray Playbooks<a class="headerlink" href="#epic-6c-ecosystem-and-xarray-playbooks" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-61</code></p>
+<h2 id="theme_2">Theme<a class="headerlink" href="#theme_2" title="Permanent link">&para;</a></h2>
+<p>Collect the ecosystem composition recipes into honest playbooks.</p>
+<h2 id="parent-wave_2">Parent Wave<a class="headerlink" href="#parent-wave_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Wave epic: <code>FLX-58</code></li>
+<li>Wave label: <code>wave:6</code></li>
+<li>Milestone: <code>v0.6-examples-playbooks</code></li>
+</ul>
+<h2 id="parallelism_2">Parallelism<a class="headerlink" href="#parallelism_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Can run in parallel with: FLX-59 and FLX-60 once APIs are stable</li>
+</ul>
+<hr />
+<h1 id="exampleslayered-add-primitives-components-and-model-walkthrough-notebooksdocs">examples(layered): add primitives, components, and model walkthrough notebooks/docs<a class="headerlink" href="#exampleslayered-add-primitives-components-and-model-walkthrough-notebooksdocs" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-62</code></p>
+<h2 id="problem-request">Problem / Request<a class="headerlink" href="#problem-request" title="Permanent link">&para;</a></h2>
+<p>Create the main layered walkthroughs that teach users how to move from pure
+primitives to component-level composition to high-level models.</p>
+<h2 id="references-existing-code">References &amp; Existing Code<a class="headerlink" href="#references-existing-code" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/examples/primitives.md</code>, <code>design_docs/filterX/examples/components.md</code>, <code>design_docs/filterX/examples/models.md</code></li>
+</ul>
+<h2 id="implementation-steps">Implementation Steps<a class="headerlink" href="#implementation-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Add Layer 0 primitive walkthroughs.</li>
+<li>[ ] Add Layer 1 component walkthroughs.</li>
+<li>[ ] Add Layer 2 model walkthroughs.</li>
+<li>[ ] Keep the examples aligned with the actual shipped APIs from earlier waves.</li>
+</ul>
+<h2 id="relationships_1">Relationships<a class="headerlink" href="#relationships_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-59.</li>
+<li>Blocked by FLX-15, FLX-26, and FLX-48.</li>
+</ul>
+<hr />
+<h1 id="examplesintegrations-add-optax-somax-gaussx-geo_toolz-and-xr_assimilate-playbooks">examples(integrations): add optax, somax, gaussx, geo_toolz, and xr_assimilate playbooks<a class="headerlink" href="#examplesintegrations-add-optax-somax-gaussx-geo_toolz-and-xr_assimilate-playbooks" title="Permanent link">&para;</a></h1>
+<p>Draft ID: <code>FLX-63</code></p>
+<h2 id="problem-request_1">Problem / Request<a class="headerlink" href="#problem-request_1" title="Permanent link">&para;</a></h2>
+<p>Create the example-heavy integration playbooks that show how <code>filterax</code> composes
+with the surrounding ecosystem.</p>
+<h2 id="references-existing-code_1">References &amp; Existing Code<a class="headerlink" href="#references-existing-code_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Design doc / spec: <code>design_docs/filterX/examples/integration.md</code>, <code>design_docs/filterX/boundaries.md</code></li>
+</ul>
+<h2 id="implementation-steps_1">Implementation Steps<a class="headerlink" href="#implementation-steps_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Add <code>optax</code> and differentiable-training tutorials.</li>
+<li>[ ] Add <code>somax</code> and <code>gaussx</code> integration playbooks.</li>
+<li>[ ] Add <code>geo_toolz</code> and <code>xr_assimilate</code> orchestration examples.</li>
+<li>[ ] Keep the docs honest about what is core runtime versus external composition.</li>
+</ul>
+<h2 id="relationships_2">Relationships<a class="headerlink" href="#relationships_2" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Parent epic: FLX-61.</li>
+<li>Related to FLX-60.</li>
+<li>Blocked by FLX-35, FLX-54, FLX-55, and FLX-56.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

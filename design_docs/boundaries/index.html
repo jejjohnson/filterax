@@ -1,0 +1,1445 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX — Boundaries - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-boundaries" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX — Boundaries
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ownership-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ownership Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ecosystem-interactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ecosystem Interactions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ecosystem Interactions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-somax-models-become-dynamics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How somax models become dynamics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-ekp-becomes-an-optax-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How EKP becomes an optax transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-xr_assimilate-consumes-ekalmx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How xr_assimilate consumes ekalmX
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-differentiable-training-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How differentiable training works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dependency-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#in-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out of Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#items-deferred-from-gaussx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Items Deferred from gaussx
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Items Deferred from gaussx">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ensemble-da-primitives-originally-gaussx-phase-156-202-203" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ensemble DA primitives (originally gaussx Phase 15.6, 20.2, 20.3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enkf-analysis-step-variants-originally-gaussx-phase-193" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EnKF analysis step variants (originally gaussx Phase 19.3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#specialized-filtering-variants-originally-gaussx-phases-186188-191-192-195" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Specialized filtering variants (originally gaussx Phases 18.6–18.8, 19.1, 19.2, 19.5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future Work
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-boundaries">ekalmX — Boundaries<a class="headerlink" href="#ekalmx-boundaries" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>This document defines what ekalmX owns, what it delegates, and how it interacts with the ecosystem.</p>
+<hr />
+<h2 id="ownership-map">Ownership Map<a class="headerlink" href="#ownership-map" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Owner</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensemble Kalman filter algorithms (EnKF, ETKF, EnSRF, LETKF, ESTKF)</td>
+<td><strong>ekalmX</strong></td>
+<td>Core competency</td>
+</tr>
+<tr>
+<td>Ensemble Kalman processes (EKI, EKS, UKI, ETKI, GNKI)</td>
+<td><strong>ekalmX</strong></td>
+<td>Core competency</td>
+</tr>
+<tr>
+<td>Ensemble smoothers (EnKS, ensemble RTS, fixed-lag)</td>
+<td><strong>ekalmX</strong></td>
+<td>Core competency</td>
+</tr>
+<tr>
+<td>EKP as optax transforms</td>
+<td><strong>ekalmX</strong></td>
+<td>Thin wrapper over processes</td>
+</tr>
+<tr>
+<td>Ensemble statistics (mean, anomalies, covariance)</td>
+<td><strong>ekalmX</strong> L0</td>
+<td>Delegates to gaussx for structured ops</td>
+</tr>
+<tr>
+<td>Kalman gain computation</td>
+<td><strong>ekalmX</strong> L0</td>
+<td>Via <code>gaussx.recipes.kalman_gain</code></td>
+</tr>
+<tr>
+<td>Localization (Gaspari-Cohn, etc.)</td>
+<td><strong>ekalmX</strong> L0</td>
+<td>Owns taper functions and localization strategies</td>
+</tr>
+<tr>
+<td>Inflation (multiplicative, RTPS, RTPP, adaptive)</td>
+<td><strong>ekalmX</strong> L0</td>
+<td>Owns inflation strategies</td>
+</tr>
+<tr>
+<td>Patch-based decomposition (array-level)</td>
+<td><strong>ekalmX</strong> L0</td>
+<td>JAX array ops for spatial decomposition</td>
+</tr>
+<tr>
+<td>Patch-based decomposition (xarray-level)</td>
+<td><strong>geo_toolz</strong> / <strong>xrpatcher</strong></td>
+<td>User composes with ekalmX patches</td>
+</tr>
+<tr>
+<td>Log-likelihood computation</td>
+<td><strong>ekalmX</strong> L0</td>
+<td>For differentiable training</td>
+</tr>
+<tr>
+<td>Innovation diagnostics, rank histograms</td>
+<td><strong>ekalmX</strong> utils</td>
+<td>DA-specific evaluation metrics</td>
+</tr>
+<tr>
+<td>Structured covariance operators</td>
+<td><strong>gaussx</strong></td>
+<td>ekalmX consumes via dependency</td>
+</tr>
+<tr>
+<td>Optimization algorithms</td>
+<td><strong>optimistix</strong></td>
+<td>Pluggable backend</td>
+</tr>
+<tr>
+<td>Learning rate schedules</td>
+<td><strong>optax</strong></td>
+<td>ekalmX wraps for EKP schedulers</td>
+</tr>
+<tr>
+<td>Forward models (ocean, atmosphere, ODEs)</td>
+<td><strong>somax</strong> / <strong>diffrax</strong> / user</td>
+<td>Pluggable via <code>AbstractDynamics</code></td>
+</tr>
+<tr>
+<td>Observation operators</td>
+<td><strong>user</strong></td>
+<td>Pluggable via <code>AbstractObsOperator</code></td>
+</tr>
+<tr>
+<td>Variational DA (4DVar, 4DVarNet)</td>
+<td><strong>vardax</strong></td>
+<td>Sister library, different DA paradigm</td>
+</tr>
+<tr>
+<td>Natural-gradient optimization (BLR)</td>
+<td><strong>optax_bayes</strong></td>
+<td>Sister library</td>
+</tr>
+<tr>
+<td>xarray-level DA orchestration</td>
+<td><strong>xr_assimilate</strong></td>
+<td>Consumes ekalmX as compute backend</td>
+</tr>
+<tr>
+<td>xarray pre/post-processing</td>
+<td><strong>geo_toolz</strong></td>
+<td>Upstream (preprocess) and downstream (evaluate)</td>
+</tr>
+<tr>
+<td>Training / assimilation loops</td>
+<td><strong>user</strong></td>
+<td>Library, not framework</td>
+</tr>
+<tr>
+<td>Continuous-time filters (Kalman-Bucy, etc.)</td>
+<td><strong>ekalmX</strong> zoo/</td>
+<td>Reference only, not core API</td>
+</tr>
+<tr>
+<td>Test dynamical systems (L63, L96, KS)</td>
+<td><strong>ekalmX</strong> zoo/</td>
+<td>For demos and testing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="decision-table">Decision Table<a class="headerlink" href="#decision-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Estimate ocean state from satellite observations</td>
+<td><code>LETKF(dynamics=somax_model, obs_op=my_H, ...).assimilate(ensemble, obs)</code></td>
+</tr>
+<tr>
+<td>Calibrate simulator parameters without gradients</td>
+<td><code>EKI(forward_fn, obs, noise_cov, ...).run(init_particles)</code></td>
+</tr>
+<tr>
+<td>Learn neural ODE dynamics end-to-end through filter</td>
+<td>Build EnKF at L1, wrap in <code>jax.grad</code>, user-owned training loop</td>
+</tr>
+<tr>
+<td>Use EKI as drop-in optimizer (optax style)</td>
+<td><code>ekalmx.optax.eki(forward_fn, obs, ...)</code> composed with <code>optax.chain</code></td>
+</tr>
+<tr>
+<td>Smooth state estimates (backward pass)</td>
+<td><code>EnKS(filter_result).smooth()</code> or L0 ensemble RTS primitives</td>
+</tr>
+<tr>
+<td>Localized filtering on large spatial domain</td>
+<td>LETKF with <code>GaspariCohn(radius)</code> localizer, or patch decomposition via L0</td>
+</tr>
+<tr>
+<td>Evaluate filter performance</td>
+<td><code>ekalmx.utils.diagnostics</code> — spread, rank histogram, innovation checks</td>
+</tr>
+<tr>
+<td>xarray-level DA orchestration</td>
+<td>xr_assimilate (consumes ekalmX as compute backend)</td>
+</tr>
+<tr>
+<td>Variational DA (4DVar, adjoint methods)</td>
+<td>vardax (sister library)</td>
+</tr>
+<tr>
+<td>Work with structured covariance operators directly</td>
+<td>gaussx (dependency)</td>
+</tr>
+<tr>
+<td>Preprocess satellite data before assimilation</td>
+<td>geo_toolz (upstream)</td>
+</tr>
+<tr>
+<td>Evaluate results with RMSE, spectral scores</td>
+<td>geo_toolz (downstream)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ecosystem-interactions">Ecosystem Interactions<a class="headerlink" href="#ecosystem-interactions" title="Permanent link">&para;</a></h2>
+<h3 id="how-somax-models-become-dynamics">How somax models become dynamics<a class="headerlink" href="#how-somax-models-become-dynamics" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">somax</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">ekalmx</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># somax owns the forward model</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">swm</span> <span class="o">=</span> <span class="n">somax</span><span class="o">.</span><span class="n">ShallowWaterModel</span><span class="p">(</span><span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Wrap as ekalmX dynamics (user code or thin adapter)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">SWMDynamics</span><span class="p">(</span><span class="n">ekalmx</span><span class="o">.</span><span class="n">AbstractDynamics</span><span class="p">):</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">model</span><span class="p">:</span> <span class="n">somax</span><span class="o">.</span><span class="n">ShallowWaterModel</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">):</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t0</span><span class="o">=</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="o">=</span><span class="n">t1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span><span class="o">.</span><span class="n">ys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># Plug into filter</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">letkf</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">LETKF</span><span class="p">(</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">dynamics</span><span class="o">=</span><span class="n">SWMDynamics</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">swm</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">60.0</span><span class="p">),</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">obs_op</span><span class="o">=</span><span class="n">my_obs_op</span><span class="p">,</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">localizer</span><span class="o">=</span><span class="n">ekalmx</span><span class="o">.</span><span class="n">GaspariCohn</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">500e3</span><span class="p">),</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">config</span><span class="o">=</span><span class="n">ekalmx</span><span class="o">.</span><span class="n">FilterConfig</span><span class="p">(</span><span class="n">n_ensemble</span><span class="o">=</span><span class="mi">50</span><span class="p">),</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="p">)</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">result</span> <span class="o">=</span> <span class="n">letkf</span><span class="o">.</span><span class="n">assimilate</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="how-ekp-becomes-an-optax-transform">How EKP becomes an optax transform<a class="headerlink" href="#how-ekp-becomes-an-optax-transform" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">ekalmx</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">optax</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># EKI as optax — parallel to optax_bayes</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">optimizer</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">optax</span><span class="o">.</span><span class="n">eki</span><span class="p">(</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">forward_fn</span><span class="o">=</span><span class="n">expensive_simulator</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">obs</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">noise_cov</span><span class="o">=</span><span class="n">R</span><span class="p">,</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">scheduler</span><span class="o">=</span><span class="n">ekalmx</span><span class="o">.</span><span class="n">DataMisfitController</span><span class="p">(),</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">n_ensemble</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Compose with optax ecosystem</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">optax</span><span class="o">.</span><span class="n">clip_by_global_norm</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Standard loop</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">state</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_steps</span><span class="p">):</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">updates</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">grads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">optax</span><span class="o">.</span><span class="n">apply_updates</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">updates</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="how-xr_assimilate-consumes-ekalmx">How xr_assimilate consumes ekalmX<a class="headerlink" href="#how-xr_assimilate-consumes-ekalmx" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">xr_assimilate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xra</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">ekalmx</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># ekalmX provides the array-level compute</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">filter_backend</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">LETKF</span><span class="p">(</span><span class="n">dynamics</span><span class="o">=</span><span class="n">my_dynamics</span><span class="p">,</span> <span class="n">obs_op</span><span class="o">=</span><span class="n">my_H</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># xr_assimilate orchestrates xarray I/O, time stepping, diagnostics</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">assimilator</span> <span class="o">=</span> <span class="n">xra</span><span class="o">.</span><span class="n">Assimilator</span><span class="p">(</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">backend</span><span class="o">=</span><span class="n">filter_backend</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">observations</span><span class="o">=</span><span class="n">obs_dataset</span><span class="p">,</span>      <span class="c1"># xr.Dataset</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">background</span><span class="o">=</span><span class="n">background_dataset</span><span class="p">,</span> <span class="c1"># xr.Dataset</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">assimilator</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>  <span class="c1"># returns xr.Dataset</span>
+</code></pre></div>
+<h3 id="how-differentiable-training-works">How differentiable training works<a class="headerlink" href="#how-differentiable-training-works" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">ekalmx</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">optax</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># All ekalmX filters are differentiable by construction (pure JAX)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">loss_fn</span><span class="p">(</span><span class="n">dynamics_params</span><span class="p">,</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">observations</span><span class="p">):</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">dynamics</span> <span class="o">=</span> <span class="n">MyNeuralODE</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">dynamics_params</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="nb">filter</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">ETKF</span><span class="p">(</span><span class="n">obs_op</span><span class="o">=</span><span class="n">my_H</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="c1"># Forward pass through filter — fully differentiable</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">FilterState</span><span class="p">(</span><span class="n">particles</span><span class="o">=</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">for</span> <span class="n">obs</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">:</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">particles</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">filter_vmap</span><span class="p">(</span><span class="n">dynamics</span><span class="p">)(</span><span class="n">state</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="n">result</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">,</span> <span class="n">obs</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">obs</span><span class="o">.</span><span class="n">operator</span><span class="p">,</span> <span class="n">obs</span><span class="o">.</span><span class="n">noise</span><span class="p">)</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="n">state</span> <span class="o">=</span> <span class="n">ekalmx</span><span class="o">.</span><span class="n">FilterState</span><span class="p">(</span><span class="n">particles</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="k">return</span> <span class="o">-</span><span class="n">result</span><span class="o">.</span><span class="n">log_likelihood</span>  <span class="c1"># backprop through entire filter</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="c1"># Standard JAX training loop</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">)(</span><span class="n">dynamics_params</span><span class="p">,</span> <span class="n">ensemble</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="dependency-graph">Dependency graph<a class="headerlink" href="#dependency-graph" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>geo_toolz (preprocess)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    ↓
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>somax / diffrax / user code ──→ ekalmX ←── gaussx (covariance ops)
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    (AbstractDynamics)             ↑  ↑        ↑
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                              optax  optimistix lineax
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                              (EKP     (solver   (transitive)
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                               transforms) backends)
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    ↓
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>xr_assimilate (xarray orchestration, consumes ekalmX)
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    ↓
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>geo_toolz (evaluate)
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>Sister libraries (same level, different paradigm):
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    vardax      — variational DA
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    optax_bayes — natural-gradient Bayesian optimization
+</code></pre></div>
+<hr />
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<h3 id="in-scope">In Scope<a class="headerlink" href="#in-scope" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Discrete-time ensemble Kalman filters (EnKF, ETKF, EnSRF, ESTKF, LETKF)</li>
+<li>Ensemble Kalman processes (EKI, EKS, UKI, ETKI, GNKI, Sparse)</li>
+<li>Ensemble smoothers (EnKS, ensemble RTS, fixed-lag)</li>
+<li>EKP as optax transforms</li>
+<li>Ensemble statistics, Kalman gain, localization, inflation primitives</li>
+<li>Patch-based spatial decomposition (array-level)</li>
+<li>Log-likelihood and innovation diagnostics</li>
+<li>Reference implementations in zoo/ (continuous-time filters, toy dynamical systems)</li>
+</ul>
+<h3 id="out-of-scope">Out of Scope<a class="headerlink" href="#out-of-scope" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Variational data assimilation (4DVar, 4DVarNet) — vardax</li>
+<li>Forward models (ocean, atmosphere, ODEs) — somax, diffrax, user code</li>
+<li>Structured linear algebra (operators, solve, logdet) — gaussx</li>
+<li>Natural-gradient optimization (BLR) — optax_bayes</li>
+<li>xarray-level pre/post-processing — geo_toolz</li>
+<li>xarray-level DA orchestration — xr_assimilate</li>
+<li>Optimization algorithms (L-BFGS, Newton) — optimistix</li>
+<li>Training loops or experiment infrastructure — user-owned</li>
+<li>Gaussian process inference — pyrox_gp</li>
+</ul>
+<hr />
+<h2 id="testing-strategy">Testing Strategy<a class="headerlink" href="#testing-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="test-organization">Test organization<a class="headerlink" href="#test-organization" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What's tested</th>
+<th>Module</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primitives</td>
+<td>ensemble_mean, anomalies, covariance, cross_cov correctness; Kalman gain against analytic solutions</td>
+<td><code>test_statistics.py</code>, <code>test_gain.py</code></td>
+</tr>
+<tr>
+<td>Localization</td>
+<td>Gaspari-Cohn taper properties (compact support, smoothness, symmetry); localized vs unlocalized covariance</td>
+<td><code>test_localization.py</code></td>
+</tr>
+<tr>
+<td>Inflation</td>
+<td>Multiplicative, RTPS, RTPP preserve ensemble mean; spread increases</td>
+<td><code>test_inflation.py</code></td>
+</tr>
+<tr>
+<td>Likelihood</td>
+<td>Log-likelihood against analytic Gaussian; innovation statistics</td>
+<td><code>test_likelihood.py</code></td>
+</tr>
+<tr>
+<td>Patches</td>
+<td>Create/assign/blend roundtrip; overlap blending weights sum to 1</td>
+<td><code>test_patches.py</code></td>
+</tr>
+<tr>
+<td>Filters</td>
+<td>Each filter reduces RMSE vs prior on toy problem; analysis mean/spread plausible</td>
+<td><code>test_filters/</code></td>
+</tr>
+<tr>
+<td>Processes</td>
+<td>EKI/EKS/UKI converge on known inverse problem (e.g., linear Gaussian)</td>
+<td><code>test_processes/</code></td>
+</tr>
+<tr>
+<td>Smoothers</td>
+<td>EnKS/ensemble RTS improve on filter estimate; match analytic smoother on linear case</td>
+<td><code>test_smoothers/</code></td>
+</tr>
+<tr>
+<td>optax</td>
+<td>EKI as GradientTransformation matches standalone EKI; composable with optax.chain</td>
+<td><code>test_optax.py</code></td>
+</tr>
+<tr>
+<td>JAX transforms</td>
+<td>All components work under <code>jax.jit</code>, <code>jax.grad</code>, <code>eqx.filter_vmap</code></td>
+<td>Cross-cutting</td>
+</tr>
+<tr>
+<td>Protocol conformance</td>
+<td>Every filter/process/localizer/inflator satisfies its abstract protocol</td>
+<td>Cross-cutting</td>
+</tr>
+<tr>
+<td>Zoo</td>
+<td>Smoke tests only — L63/L96 run, continuous-time filters don't crash</td>
+<td><code>test_zoo/</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="test-priorities">Test priorities<a class="headerlink" href="#test-priorities" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>JAX transform compatibility</strong> — everything JITs, grads, vmaps</li>
+<li><strong>Protocol conformance</strong> — all implementations satisfy their abstract interface</li>
+<li><strong>Correctness on linear Gaussian</strong> — where analytic answers exist, match them</li>
+<li><strong>Convergence on toy problems</strong> — filters reduce error, processes find parameters</li>
+</ol>
+<hr />
+<h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>pyrox_gp overlap</strong> — Both ekalmX and pyrox_gp need Kalman filter/smoother primitives (ekalmX for ensemble DA, pyrox_gp for state-space GPs). Plan: push shared math to gaussx so both consume without circular dependencies. Needs further design.</p>
+</li>
+<li>
+<p><strong>Hybrid EnVar</strong> — Ensemble-variational hybrid methods combine flow-dependent ensemble covariance (ekalmX) with static background covariance (vardax). Crosses the boundary between the two libraries. Deferred to a future phase when both libraries are mature.</p>
+</li>
+<li>
+<p><strong>xr_assimilate integration depth</strong> — ekalmX is the compute backend, but the API contract between them (how xr_assimilate calls ekalmX, what state/result types cross the boundary) isn't defined yet.</p>
+</li>
+<li>
+<p><strong>coordax integration</strong> — Should ensemble states use coordax for coordinate-aware arrays? Depends on coordax maturity. Same open question as vardax.</p>
+</li>
+<li>
+<p><strong>3D / volumetric support</strong> — How much native 3D support vs treating 3D as multilayer 2D via <code>eqx.filter_vmap</code>?</p>
+</li>
+<li>
+<p><strong>Particle filters</strong> — The zoo has a continuous-time particle filter. Should ekalmX core include discrete particle filters (bootstrap PF, optimal PF), or is that a separate library?</p>
+</li>
+<li>
+<p><strong>Ensemble size adaptivity</strong> — Dynamic ensemble resizing during assimilation. Research topic, not immediate.</p>
+</li>
+<li>
+<p><strong>Package rename</strong> — Directory is currently <code>filterX</code>, library will be <code>ekalmx</code>. Rename when standalone repo is created.</p>
+</li>
+</ol>
+<hr />
+<h2 id="items-deferred-from-gaussx">Items Deferred from gaussx<a class="headerlink" href="#items-deferred-from-gaussx" title="Permanent link">&para;</a></h2>
+<p>The following items were originally scoped for gaussx but belong here per the ownership map. Full API sketches from the gaussx implementation plan are preserved below for reference.</p>
+<h3 id="ensemble-da-primitives-originally-gaussx-phase-156-202-203">Ensemble DA primitives (originally gaussx Phase 15.6, 20.2, 20.3)<a class="headerlink" href="#ensemble-da-primitives-originally-gaussx-phase-156-202-203" title="Permanent link">&para;</a></h3>
+<p>These map directly to ekalmX L0 primitives (localization + inflation):</p>
+<ul>
+<li><code>gaspari_cohn(distances, radius)</code> — 5th-order piecewise polynomial taper (C2 smooth, compact support)</li>
+<li><code>localize_covariance(cov, taper)</code> — Hadamard (element-wise) product with taper matrix</li>
+<li><code>inflate_multiplicative(particles, factor)</code> — ensemble anomaly inflation</li>
+<li><code>inflate_rtps(analysis, forecast, alpha)</code> — relaxation to prior spread</li>
+<li><code>inflate_rtpp(analysis, forecast, alpha)</code> — relaxation to prior perturbations</li>
+<li><code>ledoit_wolf_shrinkage(X_anomalies)</code> — optimal shrinkage for rank-deficient ensemble covariance (originally Phase 19.4)</li>
+</ul>
+<h3 id="enkf-analysis-step-variants-originally-gaussx-phase-193">EnKF analysis step variants (originally gaussx Phase 19.3)<a class="headerlink" href="#enkf-analysis-step-variants-originally-gaussx-phase-193" title="Permanent link">&para;</a></h3>
+<p>Core competency — four standard ensemble analysis formulations:</p>
+<ul>
+<li><code>enkf_analysis_stochastic</code> — perturbed observations</li>
+<li><code>enkf_analysis_etkf</code> — deterministic symmetric square-root (Ensemble Transform KF)</li>
+<li><code>enkf_analysis_ensrf</code> — serial square-root (Whitaker &amp; Hamill)</li>
+<li><code>enkf_analysis_estkf</code> — mean-preserving square-root transform</li>
+</ul>
+<p>Source: <code>enskf_zoo.py</code> (SEnKF, ETKF, EnSRF, ESTKF variants)</p>
+<h3 id="specialized-filtering-variants-originally-gaussx-phases-186188-191-192-195">Specialized filtering variants (originally gaussx Phases 18.6–18.8, 19.1, 19.2, 19.5)<a class="headerlink" href="#specialized-filtering-variants-originally-gaussx-phases-186188-191-192-195" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Description</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DARE / infinite horizon filter (18.6)</td>
+<td>Steady-state Kalman with constant gain via Discrete Algebraic Riccati Equation</td>
+<td>BayesNewton <code>ops.py</code></td>
+</tr>
+<tr>
+<td>Pairs filter (18.7)</td>
+<td>Kalman filter on consecutive state pairs <code>[u_{n-1}, u_n]</code> for sparse Markov models</td>
+<td>BayesNewton <code>ops.py</code></td>
+</tr>
+<tr>
+<td>Mean-field Kalman filter (18.8)</td>
+<td>Block-diagonal factorization across latent dimensions for multi-output SSGPs</td>
+<td>BayesNewton <code>ops.py</code></td>
+</tr>
+<tr>
+<td>Square-root Kalman filter (19.1)</td>
+<td>Propagates Cholesky factor directly (P = SS^T), guarantees PSD</td>
+<td>kalman_filter snippets</td>
+</tr>
+<tr>
+<td>Low-rank covariance filter (19.2)</td>
+<td>P ≈ SS^T with S ∈ R^{n×r}, SVD truncation per step</td>
+<td>kalman_filter snippets</td>
+</tr>
+<tr>
+<td>Continuous-time Lyapunov (19.5)</td>
+<td><code>lyapunov_ode</code>, <code>solve_lyapunov_steady_state</code> for Kalman-Bucy filters</td>
+<td><code>kf_continuous.py</code></td>
+</tr>
+</tbody>
+</table>
+<p>These can land in ekalmX core or zoo depending on maturity and demand.</p>
+<hr />
+<h2 id="future-work">Future Work<a class="headerlink" href="#future-work" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Focus</th>
+<th>Depends on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 1</td>
+<td>Core primitives + ETKF/EnSRF/LETKF + EKI/EKS</td>
+<td>gaussx stable</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>Smoothers (EnKS, ensemble RTS) + remaining processes (UKI, ETKI, GNKI)</td>
+<td>Phase 1</td>
+</tr>
+<tr>
+<td>Phase 3</td>
+<td>optax integration, differentiable training examples</td>
+<td>Phase 1</td>
+</tr>
+<tr>
+<td>Phase 4</td>
+<td>xr_assimilate integration, geo_toolz pipeline examples</td>
+<td>Phase 1 + xr_assimilate</td>
+</tr>
+<tr>
+<td>Phase 5</td>
+<td>Advanced: LETKF at scale, adaptive inflation/localization, particle filters</td>
+<td>Phase 1-2</td>
+</tr>
+<tr>
+<td>Future</td>
+<td>Hybrid EnVar, pyrox_gp shared primitives, coordax</td>
+<td>Ecosystem maturity</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

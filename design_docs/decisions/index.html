@@ -1,0 +1,896 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX — Design Decisions - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-design-decisions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX — Design Decisions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d1-one-library-not-two" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D1: One library, not two
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d2-name-ekalmx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D2: Name — ekalmX
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d3-two-protocol-families-sequential-filters-and-iterative-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D3: Two protocol families — sequential filters and iterative processes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d4-particles-only-state-compute-statistics-on-demand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D4: Particles-only state — compute statistics on demand
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d5-gaussx-is-a-required-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D5: gaussx is a required dependency
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d6-optax-is-required-ekp-as-gradienttransformation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D6: optax is required — EKP as GradientTransformation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d7-continuous-time-filters-live-in-zoo-not-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D7: Continuous-time filters live in zoo/, not core
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d8-smoothers-are-in-scope-core-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D8: Smoothers are in scope (core library)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d9-all-filters-are-differentiable-by-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D9: All filters are differentiable by construction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d10-ensemble-dimension-is-the-leading-axis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D10: Ensemble dimension is the leading axis
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-design-decisions">ekalmX — Design Decisions<a class="headerlink" href="#ekalmx-design-decisions" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Architecture Decision Records for ekalmX. Each records the context, options considered, decision, and consequences.</p>
+<hr />
+<h2 id="d1-one-library-not-two">D1: One library, not two<a class="headerlink" href="#d1-one-library-not-two" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> The <code>overview.md</code> listed two separate names — "FilterProX" (ensemble Kalman processes / inversion) and "EnsFilterX" (ensemble Kalman filters / sequential DA). They serve different users: EKP for calibration/inference, EnKF for state estimation.</p>
+<p><strong>Options:</strong>
+- (A) Two separate libraries with shared primitives extracted to a third package
+- (B) One library covering both, with shared L0 primitives and separate L1 filter/process families</p>
+<p><strong>Decision:</strong> Option B — one library. Filters and processes share the same Kalman machinery (ensemble statistics, Kalman gain, covariance localization, gaussx integration). Splitting would duplicate infrastructure and force users who need both modes to manage two dependencies.</p>
+<p><strong>Consequences:</strong>
+- Larger API surface in a single package
+- Two protocol families (<code>AbstractSequentialFilter</code>, <code>AbstractProcess</code>) keep the modes cleanly separated
+- Shared L0 primitives avoid duplication
+- Users who only need EKI don't have to learn about LETKF and vice versa (progressive disclosure)</p>
+<hr />
+<h2 id="d2-name-ekalmx">D2: Name — ekalmX<a class="headerlink" href="#d2-name-ekalmx" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> Needed a name covering ensemble Kalman filters, processes, and joint estimation. Candidates: filterX, ensfilterX, filterproX, enkfX, kalmX, ekalmX.</p>
+<p><strong>Decision:</strong> ekalmX — punchy, captures "ensemble Kalman" in 5 characters, follows the ecosystem <code>*X</code> convention (somax, gaussx, vardax).</p>
+<p><strong>Consequences:</strong>
+- Directory is still <code>filterX</code> in the design docs repo; rename when standalone repo is created
+- Import: <code>import ekalmx</code></p>
+<hr />
+<h2 id="d3-two-protocol-families-sequential-filters-and-iterative-processes">D3: Two protocol families — sequential filters and iterative processes<a class="headerlink" href="#d3-two-protocol-families-sequential-filters-and-iterative-processes" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> EnKF (one analysis step per assimilation window) and EKI (iterate until convergence) have different outer loops. Forcing them into a single <code>AbstractFilter</code> with <code>init/update</code> would be awkward.</p>
+<p><strong>Options:</strong>
+- (A) Unified <code>AbstractFilter</code> protocol for both
+- (B) Two protocol families: <code>AbstractSequentialFilter</code> (forecast + analysis) and <code>AbstractProcess</code> (init + update)
+- (C) No protocols — bare functions, L2 models wrap them</p>
+<p><strong>Decision:</strong> Option B. Sequential filters and iterative processes have genuinely different lifecycles. Shared infrastructure lives at L0 (ensemble statistics, Kalman gain), not in the protocol hierarchy.</p>
+<p><strong>Consequences:</strong>
+- Users learn one protocol for their use case, not a lowest-common-denominator abstraction
+- Generic code can still be written per-family (e.g., "run any sequential filter on this problem")
+- Shared L0 primitives prevent duplication despite separate protocols</p>
+<hr />
+<h2 id="d4-particles-only-state-compute-statistics-on-demand">D4: Particles-only state — compute statistics on demand<a class="headerlink" href="#d4-particles-only-state-compute-statistics-on-demand" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> <code>EnsembleState</code> could store precomputed mean, anomalies, and covariance alongside particles. This avoids recomputation but creates staleness risk (derived quantities can become inconsistent with particles).</p>
+<p><strong>Options:</strong>
+- (A) Store particles + mean + anomalies + covariance
+- (B) Store particles only, compute derived quantities via L0 primitives on demand</p>
+<p><strong>Decision:</strong> Option B. Keep state minimal — just <code>particles: Float[Array, "N_e N_x"]</code>. Compute <code>ensemble_mean</code>, <code>ensemble_anomalies</code>, <code>ensemble_covariance</code> via L0 functions when needed.</p>
+<p><strong>Consequences:</strong>
+- No staleness bugs
+- Natural for <code>eqx.filter_vmap</code> over ensemble members (leading axis is <code>N_e</code>)
+- Slight recomputation cost — acceptable since these are O(N_e × N_x) operations
+- JAX's caching/XLA fusion will often eliminate redundant computation anyway</p>
+<hr />
+<h2 id="d5-gaussx-is-a-required-dependency">D5: gaussx is a required dependency<a class="headerlink" href="#d5-gaussx-is-a-required-dependency" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> ekalmX needs ensemble covariance (as low-rank operator), Kalman gain (via Woodbury), log-likelihood (via logdet), and noise models (via lineax operators). These could be reimplemented in ekalmX or delegated to gaussx.</p>
+<p><strong>Options:</strong>
+- (A) gaussx optional — ekalmX ships basic implementations, gaussx adds structured ops
+- (B) gaussx required — ekalmX delegates all structured covariance operations</p>
+<p><strong>Decision:</strong> Option B. gaussx is the shared linear algebra layer across the ecosystem (also used by optax_bayes, pyrox_gp, vardax). Reimplementing covariance ops in ekalmX would duplicate work and diverge over time.</p>
+<p><strong>Consequences:</strong>
+- ekalmX is thin on covariance math — calls <code>gaussx.recipes.ensemble_covariance</code>, <code>gaussx.recipes.kalman_gain</code>, <code>gaussx.ops.logdet</code>
+- Users get structured operators (low-rank, diagonal, Kronecker) for free
+- ekalmX installation pulls in gaussx (and transitively lineax)
+- gaussx must be stable before ekalmX can ship</p>
+<hr />
+<h2 id="d6-optax-is-required-ekp-as-gradienttransformation">D6: optax is required — EKP as GradientTransformation<a class="headerlink" href="#d6-optax-is-required-ekp-as-gradienttransformation" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> Ensemble Kalman Processes (EKI, EKS, UKI) are iterative update rules that can be framed as optax <code>GradientTransformation</code>s. This parallels optax_bayes, where the Bayesian Learning Rule is also an optax transform. The caller provides forward evaluations instead of gradients.</p>
+<p><strong>Options:</strong>
+- (A) optax optional — EKP has standalone API only, optax wrapper in examples
+- (B) optax required — EKP ships both standalone and optax interfaces</p>
+<p><strong>Decision:</strong> Option B. The optax interface gives users composability for free (schedules, clipping, logging, <code>optax.chain</code>). optax is already ubiquitous in the JAX ecosystem. Making it required keeps the optax wrappers in the core library rather than relegating them to examples.</p>
+<p><strong>Consequences:</strong>
+- Users can use EKI as a drop-in optimizer in any optax-based training loop
+- Parallel API to optax_bayes — both are structured update rules in the optax pattern
+- optax is a lightweight dependency (already required by most JAX projects)</p>
+<hr />
+<h2 id="d7-continuous-time-filters-live-in-zoo-not-core">D7: Continuous-time filters live in zoo/, not core<a class="headerlink" href="#d7-continuous-time-filters-live-in-zoo-not-core" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> The existing <code>kf_continuous.py</code> has 9 continuous-time filter variants (Kalman-Bucy, UKF-Bucy, etc.) implemented as <code>eqx.Module</code> subclasses integrated via diffrax. These are educational and useful for comparison but serve a different audience than the discrete-time ensemble methods.</p>
+<p><strong>Options:</strong>
+- (A) Core library — continuous-time filters as L1/L2 components alongside discrete filters
+- (B) Zoo — reference implementations, not maintained to core API standard
+- (C) Separate library</p>
+<p><strong>Decision:</strong> Option B. Continuous-time filters go in <code>zoo/continuous/</code>. They're valuable as reference implementations and baselines but don't share the ensemble Kalman protocol structure. Including them in core would dilute the API surface and add diffrax as a required dependency.</p>
+<p><strong>Consequences:</strong>
+- diffrax stays optional (only needed for zoo and users with ODE-based dynamics)
+- Zoo code is tested with smoke tests only (runs without crashing), not full correctness suites
+- If demand grows, continuous-time filters could be promoted to core in a later phase</p>
+<hr />
+<h2 id="d8-smoothers-are-in-scope-core-library">D8: Smoothers are in scope (core library)<a class="headerlink" href="#d8-smoothers-are-in-scope-core-library" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> Ensemble smoothers (EnKS, ensemble RTS, fixed-lag) are the backward-pass complement to forward filtering. They share ensemble infrastructure and are essential for many DA workflows (reanalysis, parameter estimation, offline state estimation).</p>
+<p><strong>Options:</strong>
+- (A) Core — smoothers alongside filters in L1/L2
+- (B) Separate module or future phase
+- (C) Delegate to gaussx (which already has <code>rts_smoother</code> in recipes)</p>
+<p><strong>Decision:</strong> Option A. Smoothers use the same ensemble state, covariance, and gain primitives as filters. They belong in the same library. gaussx's <code>rts_smoother</code> is for parametric (mean + covariance) Kalman smoothing; ekalmX owns the ensemble variant.</p>
+<p><strong>Consequences:</strong>
+- Adds <code>_src/filters/</code> smoothing components (EnKS, ensemble RTS, fixed-lag)
+- L2 models can expose <code>filter_and_smooth()</code> convenience methods
+- Smoother tests verify improvement over filter-only estimates</p>
+<hr />
+<h2 id="d9-all-filters-are-differentiable-by-construction">D9: All filters are differentiable by construction<a class="headerlink" href="#d9-all-filters-are-differentiable-by-construction" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> torchEnKF introduces a "DifferentiableEnKF" as a distinct class because PyTorch requires explicit autograd support. In JAX, if everything is pure functions on arrays, differentiability is automatic via <code>jax.grad</code>.</p>
+<p><strong>Decision:</strong> There is no separate <code>DifferentiableEnKF</code>. Every filter in ekalmX is differentiable by construction because all operations are pure JAX. Users backpropagate through any filter by wrapping it in <code>jax.grad</code>. The <code>log_likelihood</code> primitive at L0 provides the training signal.</p>
+<p><strong>Consequences:</strong>
+- No special "differentiable" vs "non-differentiable" mode — simplifies the API
+- <code>log_likelihood</code> is an optional output (only computed when users need it for training)
+- Joint state + parameter estimation is just "use <code>jax.grad</code> on a filter" — no new concepts
+- Users coming from torchEnKF get the same capability with less API surface</p>
+<hr />
+<h2 id="d10-ensemble-dimension-is-the-leading-axis">D10: Ensemble dimension is the leading axis<a class="headerlink" href="#d10-ensemble-dimension-is-the-leading-axis" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Accepted</p>
+<p><strong>Context:</strong> Particles can be stored as <code>(N_e, N_x)</code> (ensemble leading) or <code>(N_x, N_e)</code> (state leading). The existing <code>enskf_zoo.py</code> uses <code>(N_x, N_e)</code> following the matrix convention (columns are ensemble members).</p>
+<p><strong>Options:</strong>
+- (A) <code>(N_x, N_e)</code> — matrix convention, columns are members
+- (B) <code>(N_e, N_x)</code> — batch convention, leading axis is ensemble</p>
+<p><strong>Decision:</strong> Option B. <code>(N_e, N_x)</code> is the natural layout for <code>eqx.filter_vmap</code> over ensemble members (vmap over axis 0). It aligns with JAX's batch-first convention and makes broadcasting intuitive.</p>
+<p><strong>Consequences:</strong>
+- <code>eqx.filter_vmap(dynamics)(particles, t0, t1)</code> just works (vmap over leading axis)
+- Existing <code>enskf_zoo.py</code> code needs transposition during migration
+- Matrix operations (cross-covariance, Kalman gain) transpose internally where needed
+- Consistent with torchEnKF's convention <code>(*batch, N_ensem, x_dim)</code></p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

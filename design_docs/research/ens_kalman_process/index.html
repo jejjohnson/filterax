@@ -1,0 +1,2144 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Ensemble Kalman Processes: Design Document - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ensemble-kalman-processes-design-document" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Ensemble Kalman Processes: Design Document
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-general-mathematical-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. General Mathematical Formulation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. General Mathematical Formulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-the-inverse-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 The Inverse Problem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-the-ensemble-representation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 The Ensemble Representation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-the-core-eki-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 The Core EKI Update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-the-augmented-state-prior-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 The Augmented State (Prior Enforcement)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-the-ensemble-kalman-sampler-eks-aldi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 The Ensemble Kalman Sampler (EKS / ALDI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-unscented-kalman-inversion-uki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.6 Unscented Kalman Inversion (UKI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#17-gauss-newton-kalman-inversion-gnki" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.7 Gauss-Newton Kalman Inversion (GNKI)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-numerical-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Numerical Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Numerical Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-ensemble-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Ensemble Size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-covariance-estimation-and-rank-deficiency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Covariance Estimation and Rank Deficiency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-learning-rate-timestep-scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Learning Rate (Timestep) Scheduling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-constraint-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Constraint Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-failure-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Failure Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-jax-specific-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 JAX-Specific Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-process-zoo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Process Zoo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Process Zoo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-optimisation-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Optimisation Processes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-inference-sampling-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Inference / Sampling Processes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-pseudocode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Pseudocode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-jax-api-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. JAX API Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. JAX API Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Design Principles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-core-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Core Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-process-constructors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Process Constructors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-scheduler-constructors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Scheduler Constructors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-public-api-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Public API Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-usage-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Usage Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-scan-compatible-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7 scan-Compatible Loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-example-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Example Applications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Example Applications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-parameter-estimation-black-box-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Parameter Estimation (Black-Box Calibration)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-pde-constrained-inverse-problems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 PDE-Constrained Inverse Problems
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-bayesian-inference-with-uncertainty-quantification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Bayesian Inference with Uncertainty Quantification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-satellite-retrieval-remote-sensing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Satellite Retrieval / Remote Sensing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-neural-network-hyperparameter-tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 Neural Network Hyperparameter Tuning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-geophysical-data-assimilation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 Geophysical Data Assimilation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#57-application-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.7 Application Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-connection-to-the-bayesian-learning-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Connection to the Bayesian Learning Rule
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Connection to the Bayesian Learning Rule">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-shared-mathematical-foundations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Shared Mathematical Foundations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-precise-correspondences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Precise Correspondences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-key-differences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Key Differences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-when-to-use-which" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 When to Use Which
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-gaussx-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. GaussX Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. GaussX Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-integration-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Integration Points
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ensemble-kalman-processes-design-document">Ensemble Kalman Processes: Design Document<a class="headerlink" href="#ensemble-kalman-processes-design-document" title="Permanent link">&para;</a></h1>
+<p><strong>Derivative-Free Bayesian Optimisation and Inference via Ensemble Filtering</strong></p>
+<p>Based on the CliMA EnsembleKalmanProcesses.jl library and the theoretical
+foundations of Iglesias, Law &amp; Stuart (2013), Huang, Schneider &amp; Stuart (2022),
+Garbuno-Inigo et al. (2020), and Calvello, Reich &amp; Stuart (2022).</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ol>
+<li><a href="#1-general-mathematical-formulation">General Mathematical Formulation</a></li>
+<li><a href="#2-numerical-requirements">Numerical Requirements</a></li>
+<li><a href="#3-process-zoo">Process Zoo</a></li>
+<li><a href="#4-jax-api-design">JAX API Design</a></li>
+<li><a href="#5-example-applications">Example Applications</a></li>
+<li><a href="#6-connection-to-the-bayesian-learning-rule">Connection to the Bayesian Learning Rule</a></li>
+<li><a href="#7-gaussx-integration">GaussX Integration</a></li>
+<li><a href="#8-references">References</a></li>
+</ol>
+<hr />
+<h2 id="1-general-mathematical-formulation">1. General Mathematical Formulation<a class="headerlink" href="#1-general-mathematical-formulation" title="Permanent link">&para;</a></h2>
+<h3 id="11-the-inverse-problem">1.1 The Inverse Problem<a class="headerlink" href="#11-the-inverse-problem" title="Permanent link">&para;</a></h3>
+<p>We seek parameters θ ∈ ℝᵖ given the data-model relation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>y = G(θ) + η,      η ∼ 𝒩(0, Γ_y)
+</code></pre></div>
+<p>where G: ℝᵖ → ℝᵈ is the (possibly black-box) forward map, y ∈ ℝᵈ are
+observations, and Γ_y is the observation noise covariance.</p>
+<p>The MLE (maximum likelihood) minimises the data misfit:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ℒ_MLE(θ) = ½ (y − G(θ))ᵀ Γ_y⁻¹ (y − G(θ))
+</code></pre></div>
+<p>The MAP (maximum a posteriori) adds a Gaussian prior 𝒩(m₀, C₀):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ℒ_MAP(θ) = ½ (y − G(θ))ᵀ Γ_y⁻¹ (y − G(θ)) + ½ (θ − m₀)ᵀ C₀⁻¹ (θ − m₀)
+</code></pre></div>
+<h3 id="12-the-ensemble-representation">1.2 The Ensemble Representation<a class="headerlink" href="#12-the-ensemble-representation" title="Permanent link">&para;</a></h3>
+<p>Instead of maintaining a parametric distribution q(θ|λ) (as in the BLR),
+ensemble Kalman processes maintain a particle ensemble:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Θ_n = {θ_n⁽¹⁾, θ_n⁽²⁾, …, θ_n⁽ᴶ⁾}     J particles in ℝᵖ
+</code></pre></div>
+<p>All distributional quantities are estimated empirically from the ensemble:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Ensemble mean:           θ̄_n = (1/J) Σⱼ θ_n⁽ʲ⁾
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Parameter covariance:    C^{θθ}_n = (1/J) Σⱼ (θ_n⁽ʲ⁾ − θ̄_n)(θ_n⁽ʲ⁾ − θ̄_n)ᵀ
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>Output mean:             Ḡ_n = (1/J) Σⱼ G(θ_n⁽ʲ⁾)
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>Cross-covariance:        C^{θG}_n = (1/J) Σⱼ (θ_n⁽ʲ⁾ − θ̄_n)(G(θ_n⁽ʲ⁾) − Ḡ_n)ᵀ
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>Output covariance:       C^{GG}_n = (1/J) Σⱼ (G(θ_n⁽ʲ⁾) − Ḡ_n)(G(θ_n⁽ʲ⁾) − Ḡ_n)ᵀ
+</code></pre></div>
+<p>The cross-covariance C^{θG} is the key object. In the linear case G(θ) = Hθ,
+it reduces to C^{θθ}Hᵀ, and the ensemble update becomes the exact Kalman
+update. For nonlinear G, it provides a stochastic linearisation — an implicit,
+derivative-free approximation to the Jacobian.</p>
+<h3 id="13-the-core-eki-update">1.3 The Core EKI Update<a class="headerlink" href="#13-the-core-eki-update" title="Permanent link">&para;</a></h3>
+<p>The ensemble Kalman inversion (EKI) update for particle j is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>┌───────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>│                                                                   │
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>│  θ_{n+1}⁽ʲ⁾ = θ_n⁽ʲ⁾ + Δt · K_n (y − G(θ_n⁽ʲ⁾))             │
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>│                                                                   │
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>│  where  K_n = C^{θG}_n (Γ_y + Δt · C^{GG}_n)⁻¹    Kalman gain  │
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>│         Δt = learning rate (adaptive)                             │
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>│                                                                   │
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>└───────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+<p>Each particle is shifted toward observations by an amount proportional to the
+ensemble-estimated correlation between parameters and outputs. The Δt·C^{GG}
+term in the denominator acts as regularisation — the Kalman gain is damped
+when the ensemble spread in output space is large relative to the observation
+noise.</p>
+<h3 id="14-the-augmented-state-prior-enforcement">1.4 The Augmented State (Prior Enforcement)<a class="headerlink" href="#14-the-augmented-state-prior-enforcement" title="Permanent link">&para;</a></h3>
+<p>To enforce the prior at every iteration (the "infinite-time" or Tikhonov
+variant), the forward map, data, and noise covariance are augmented:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>G̃(θ) = [G(θ), θ]ᵀ       ỹ = [y, m₀]ᵀ       Γ̃_y = diag(Γ_y, C₀)
+</code></pre></div>
+<p>This converts the MAP problem into an MLE problem in the augmented space.
+The ensemble update is identical in form, but now the cross-covariance
+C^{θG̃} includes the identity block C^{θθ}, which pulls particles back
+toward the prior.</p>
+<h3 id="15-the-ensemble-kalman-sampler-eks-aldi">1.5 The Ensemble Kalman Sampler (EKS / ALDI)<a class="headerlink" href="#15-the-ensemble-kalman-sampler-eks-aldi" title="Permanent link">&para;</a></h3>
+<p>EKS adds a Langevin diffusion to produce posterior <em>samples</em> rather than
+just a point estimate. The ALDI (Affine-invariant Langevin Dynamics) variant:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>θ*_{n+1}⁽ʲ⁾ = θ_n⁽ʲ⁾ − (Δt/J) Σ_k ⟨G(θ_n⁽ᵏ⁾)−Ḡ_n, Γ_y⁻¹(G(θ_n⁽ʲ⁾)−y)⟩ θ_n⁽ᵏ⁾
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>              + ((d+1)/J)(θ_n⁽ʲ⁾ − θ̄_n)
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>              − Δt · C^{θθ}_n Γ_θ⁻¹ θ*_{n+1}⁽ʲ⁾          ← prior pull (implicit)
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>θ_{n+1}⁽ʲ⁾ = θ*_{n+1}⁽ʲ⁾ + √(2Δt · C^{θθ}_n) ξ_n⁽ʲ⁾    ← Langevin noise
+</code></pre></div>
+<p>where ξ ∼ 𝒩(0, I). The (d+1)/J term is a finite-sample correction
+(ALDI), and the implicit prior pull stabilises the dynamics. The ensemble
+does not collapse — it samples the posterior at stationarity.</p>
+<h3 id="16-unscented-kalman-inversion-uki">1.6 Unscented Kalman Inversion (UKI)<a class="headerlink" href="#16-unscented-kalman-inversion-uki" title="Permanent link">&para;</a></h3>
+<p>UKI replaces the random ensemble with a deterministic sigma-point
+quadrature. It explicitly tracks mean m_n and covariance C_n:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Predict:
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    m̂_{n+1} = r + α(m_n − r)
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    Ĉ_{n+1} = α² C_n + Σ_ω
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>Generate sigma points (symmetric, 2p+1 points):
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    θ̂⁰ = m̂_{n+1}
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    θ̂ʲ = m̂_{n+1} ± c_j [√Ĉ_{n+1}]_j     j = 1, …, p
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>Evaluate forward model:
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    ŷʲ = G(θ̂ʲ)
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>Analysis (Kalman update):
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    C^{θy} = Σ_j W_j (θ̂ʲ − m̂)(ŷʲ − ŷ⁰)ᵀ
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    C^{yy} = Σ_j W_j (ŷʲ − ŷ⁰)(ŷʲ − ŷ⁰)ᵀ + Σ_ν
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    m_{n+1} = m̂_{n+1} + C^{θy} (C^{yy})⁻¹ (y − ŷ⁰)
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>    C_{n+1} = Ĉ_{n+1} − C^{θy} (C^{yy})⁻¹ (C^{θy})ᵀ
+</code></pre></div>
+<p>where r = prior mean, α controls mean-reversion, and Σ_ω, Σ_ν are
+tuned to ensure convergence to the posterior (see Huang et al. 2022).</p>
+<h3 id="17-gauss-newton-kalman-inversion-gnki">1.7 Gauss-Newton Kalman Inversion (GNKI)<a class="headerlink" href="#17-gauss-newton-kalman-inversion-gnki" title="Permanent link">&para;</a></h3>
+<p>GNKI estimates the Jacobian from the ensemble and performs a
+Gauss-Newton step. The ensemble approximation to the Jacobian is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>G̃_n ≈ C^{θG}_n (C^{θθ}_n)⁻¹     (statistical linearisation)
+</code></pre></div>
+<p>Then the Kalman gain becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>K_n = C^{θθ}_n G̃_nᵀ (G̃_n C^{θθ}_n G̃_nᵀ + Γ_y)⁻¹
+</code></pre></div>
+<p>The update includes both a data-fit term and a prior-pull term:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>θ_{n+1}⁽ʲ⁾ = θ_n⁽ʲ⁾ + α { K_n(y − G(θ_n⁽ʲ⁾)) + (I − K_n G̃_n)(m₀ − θ_n⁽ʲ⁾) }
+</code></pre></div>
+<p>In the linear-Gaussian case, GNKI recovers the exact posterior mean
+and covariance. It provides uncertainty through ensemble spread.</p>
+<hr />
+<h2 id="2-numerical-requirements">2. Numerical Requirements<a class="headerlink" href="#2-numerical-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="21-ensemble-size">2.1 Ensemble Size<a class="headerlink" href="#21-ensemble-size" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>┌─────────────────────┬──────────────┬───────────────────────────────────┐
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>│ Process             │ Ensemble J   │ Notes                             │
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>├─────────────────────┼──────────────┼───────────────────────────────────┤
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>│ EKI / ETKI          │ J ≥ p+1      │ Ideally J ≈ 2p−10p for p ≤ 100. │
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>│                     │ (minimum)    │ Localization helps when J ≪ p.   │
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>│                     │              │                                   │
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>│ UKI (symmetric)     │ J = 2p+1     │ Fixed. Deterministic quadrature. │
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>│ UKI (simplex)       │ J = p+2      │ Fixed. More efficient.           │
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>│                     │              │                                   │
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>│ EKS / ALDI          │ J ≥ p+1      │ Larger J = better posterior       │
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>│                     │              │ approximation (no collapse).      │
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>│                     │              │                                   │
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>│ GNKI                │ J ≥ p+1      │ Needs invertible C^{θθ}, so J&gt;p. │
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>└─────────────────────┴──────────────┴───────────────────────────────────┘
+</code></pre></div>
+<p>Rule of thumb from EKP.jl: for p ≤ 100, use J ≈ max(p+1, 10p). For p &gt; 100,
+localization or ETKI is necessary.</p>
+<h3 id="22-covariance-estimation-and-rank-deficiency">2.2 Covariance Estimation and Rank Deficiency<a class="headerlink" href="#22-covariance-estimation-and-rank-deficiency" title="Permanent link">&para;</a></h3>
+<p>The empirical covariance C^{θθ} has rank at most J−1. When J ≪ p (the
+typical regime for expensive simulators), this is severely rank-deficient.</p>
+<p><strong>Safeguards:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Inflation:       C^{θθ} ← (1+δ) C^{θθ}             δ ≈ 0.01−0.1
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>Additive:        C^{θθ} ← C^{θθ} + εI               ε ≈ 1e-6
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>Localization:    C^{θθ} ← L ⊙ C^{θθ}               L = tapering matrix
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>SEC:             Sampling error correction (Raanes et al., 2019)
+</code></pre></div>
+<p>Localization tapers long-range spurious correlations. It is available for
+EKI and EKS but not ETKI or UKI.</p>
+<h3 id="23-learning-rate-timestep-scheduling">2.3 Learning Rate (Timestep) Scheduling<a class="headerlink" href="#23-learning-rate-timestep-scheduling" title="Permanent link">&para;</a></h3>
+<p>The learning rate Δt controls convergence speed and stability:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>┌──────────────────────────┬──────────────────────────────────────────────┐
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>│ Scheduler                │ Behaviour                                    │
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>├──────────────────────────┼──────────────────────────────────────────────┤
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>│ DefaultScheduler(Δt)     │ Fixed step. Simple but may diverge.          │
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>│                          │                                              │
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>│ DataMisfitController     │ Adaptive: Δt chosen so that the data misfit │
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>│   (terminate_at=T)       │ decreases by a controlled factor each step. │
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>│                          │ For finite-time: Σ Δt_n → T=1 triggers      │
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>│                          │ termination (MAP at T=1).                    │
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>│                          │                                              │
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>│ EKSStableScheduler       │ Adaptive: Δt ∝ 1/‖C^{GG}‖, ensuring the   │
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>│                          │ EKS particle system remains stable.          │
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>│                          │                                              │
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>│ MutableScheduler(inner)  │ Wraps another scheduler, allows runtime      │
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>│                          │ modification of Δt.                          │
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>└──────────────────────────┴──────────────────────────────────────────────┘
+</code></pre></div>
+<p><strong>The T=1 principle (finite-time EKI):</strong> The algorithm time Σ Δt_n = T acts
+as an inverse temperature. At T=1, the ensemble mean approximates the MAP.
+At T → ∞, the ensemble collapses to the MLE (prior information is lost).
+The DataMisfitController adaptively selects Δt_n to reach T=1 efficiently.</p>
+<h3 id="24-constraint-handling">2.4 Constraint Handling<a class="headerlink" href="#24-constraint-handling" title="Permanent link">&para;</a></h3>
+<p>EKP operates in an unconstrained space via bijective transforms T: ϕ → θ.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>θ = T(ϕ)    ← unconstrained parameters (EKP works here)
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>ϕ = T⁻¹(θ)  ← constrained physical parameters (model works here)
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>Common transforms:
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>  Bounded (a,b):    T = logit-type, ϕ ∈ (a,b) ↔ θ ∈ ℝ
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>  Positive:         T = log, ϕ &gt; 0 ↔ θ ∈ ℝ
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>  Unbounded:        T = identity
+</code></pre></div>
+<p>The forward map seen by EKP is G̃ = H ∘ Ψ ∘ T⁻¹, where Ψ is the physical
+simulator and H is the observation operator.</p>
+<h3 id="25-failure-handling">2.5 Failure Handling<a class="headerlink" href="#25-failure-handling" title="Permanent link">&para;</a></h3>
+<p>For expensive simulators, some ensemble members may fail (e.g., a climate
+model crashes for certain parameter values). EKP supports:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>FailedParticles:     Flag failed ensemble members per iteration.
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>                     Failed particles are excluded from covariance
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>                     estimates and replaced by the ensemble mean update.
+</code></pre></div>
+<h3 id="26-jax-specific-considerations">2.6 JAX-Specific Considerations<a class="headerlink" href="#26-jax-specific-considerations" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Requirement               Implementation Note
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>─────────────────────────────────────────────────────────────────
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>vmap over ensemble         jax.vmap(forward_model)(ensemble) is the
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>                           natural way to evaluate G on all J particles.
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>                           Requires the model to be JAX-traceable.
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>jit-compatible state       All state is arrays/NamedTuples. No Python
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>                           mutation — use functional updates.
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>scan for iteration loop    The update loop is scan-compatible if the
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>                           forward model is pure.
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>Parallelism for expensive  For non-JAX simulators (e.g., Fortran climate
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>models                     codes), use multiprocessing/MPI to evaluate
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>                           G in parallel, then feed results back to JAX.
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a>float64                    Covariance estimation benefits from float64,
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a>                           especially when J is small relative to p.
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a>
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a>Random keys                EKI perturbed observations and EKS diffusion
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>                           require PRNG keys threaded through state.
+</code></pre></div>
+<hr />
+<h2 id="3-process-zoo">3. Process Zoo<a class="headerlink" href="#3-process-zoo" title="Permanent link">&para;</a></h2>
+<h3 id="31-optimisation-processes">3.1 Optimisation Processes<a class="headerlink" href="#31-optimisation-processes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>┌───────────────────────┬───────────┬──────────┬────────────┬─────────────────┐
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>│ Process               │ J (min)   │ Scalable │ Prior      │ Solution        │
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>│                       │           │ in d_obs │ enforced   │                 │
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>├───────────────────────┼───────────┼──────────┼────────────┼─────────────────┤
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>│ EKI (finite-time)     │ ~10p      │ No       │ Init only  │ MAP at T=1      │
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>│ Inversion()           │           │          │            │ MLE at T→∞     │
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>│                       │           │          │            │                 │
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>│ EKI (infinite-time)   │ ~10p      │ No       │ Every step │ MAP at T→∞    │
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>│ Inversion(prior)      │           │          │ (augmented)│                 │
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>│                       │           │          │            │                 │
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>│ ETKI (finite-time)    │ ~p        │ Yes      │ Init only  │ MAP at T=1      │
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>│ TransformInversion()  │           │ O(d)     │            │                 │
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>│                       │           │          │            │                 │
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>│ ETKI (infinite-time)  │ ~p        │ Yes      │ Every step │ MAP at T→∞    │
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>│ TransformInversion    │           │ O(d)     │            │                 │
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>│   (prior)             │           │          │            │                 │
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>│                       │           │          │            │                 │
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>│ Sparse EKI            │ ~10p      │ No       │ Every step │ MAP + sparsity  │
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>│ SparseInversion       │           │          │ + L0/L1    │                 │
+<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a>│   (prior)             │           │          │            │                 │
+<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>└───────────────────────┴───────────┴──────────┴────────────┴─────────────────┘
+</code></pre></div>
+<h3 id="32-inference-sampling-processes">3.2 Inference / Sampling Processes<a class="headerlink" href="#32-inference-sampling-processes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>┌───────────────────────┬───────────┬──────────┬────────────┬─────────────────┐
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>│ Process               │ J (min)   │ Unc.     │ Mechanism  │ Output          │
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>│                       │           │ Quant.   │            │                 │
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>├───────────────────────┼───────────┼──────────┼────────────┼─────────────────┤
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>│ EKS / ALDI            │ ~10p      │ Yes      │ Langevin   │ Posterior       │
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>│ Sampler(prior)        │           │          │ diffusion  │ samples         │
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>│                       │           │          │            │ (Gaussian-like) │
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>│                       │           │          │            │                 │
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>│ UKI                   │ 2p+1      │ Yes      │ Sigma-pt   │ Posterior       │
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>│ Unscented(prior)      │ (fixed)   │          │ quadrature │ (m_n, C_n)      │
+<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>│                       │           │          │            │                 │
+<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>│ UTKI                  │ 2p+1      │ Yes      │ Sigma-pt   │ Posterior       │
+<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>│ TransformUnscented    │ (fixed)   │ (output  │ + sqrt     │ (m_n, C_n)      │
+<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>│   (prior)             │           │ scalable)│ filter     │                 │
+<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>│                       │           │          │            │                 │
+<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>│ GNKI                  │ ~p+1      │ Yes      │ Gauss-     │ Posterior       │
+<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>│ GaussNewtonInversion  │           │          │ Newton +   │ (ensemble       │
+<a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>│   (prior)             │           │          │ stat.lin.  │  spread)        │
+<a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>└───────────────────────┴───────────┴──────────┴────────────┴─────────────────┘
+</code></pre></div>
+<h3 id="33-pseudocode">3.3 Pseudocode<a class="headerlink" href="#33-pseudocode" title="Permanent link">&para;</a></h3>
+<p><strong>Algorithm: EKI (Ensemble Kalman Inversion)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>Input:  G(·), y, Γ_y, prior 𝒩(m₀, C₀), J, N_iter, scheduler
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>Init:   Draw θ⁽ʲ⁾₀ ~ 𝒩(m₀, C₀)  for j = 1, …, J
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>for n = 0, …, N_iter−1:
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    Evaluate:  g⁽ʲ⁾ = G(θ_n⁽ʲ⁾)       for all j     (parallel)
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>    Compute:   θ̄, Ḡ, C^{θG}, C^{GG}   from ensemble
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>    Schedule:  Δt_n = scheduler(n, C^{GG}, Γ_y, …)
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>    Update:    θ_{n+1}⁽ʲ⁾ = θ_n⁽ʲ⁾ + Δt_n · C^{θG}(Γ_y + Δt_n · C^{GG})⁻¹ (y − g⁽ʲ⁾)
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>return θ̄_{N_iter}, C^{θθ}_{N_iter}
+</code></pre></div>
+<p><strong>Algorithm: EKS / ALDI (Ensemble Kalman Sampler)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Input:  G(·), y, Γ_y, prior 𝒩(m₀, C₀), J, N_iter
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Init:   Draw θ⁽ʲ⁾₀ ~ 𝒩(m₀, C₀)  for j = 1, …, J
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>for n = 0, …, N_iter−1:
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    Evaluate:  g⁽ʲ⁾ = G(θ_n⁽ʲ⁾)
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    Compute:   C^{θθ}_n from ensemble
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    Schedule:  Δt_n (adaptive, e.g., EKSStableScheduler)
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    for j = 1, …, J:
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>        drift  = −(Δt_n/J) Σ_k ⟨g⁽ᵏ⁾−Ḡ, Γ_y⁻¹(g⁽ʲ⁾−y)⟩ θ⁽ᵏ⁾
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>                 + ((d+1)/J)(θ⁽ʲ⁾ − θ̄)
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>        prior  = Δt_n · C^{θθ} Γ_θ⁻¹                        (implicit)
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>        noise  = √(2Δt_n · C^{θθ}) ξ⁽ʲ⁾,     ξ ~ 𝒩(0, I)
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>        θ*     = solve((I + prior), θ⁽ʲ⁾ + drift)
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>        θ_{n+1}⁽ʲ⁾ = θ* + noise
+<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a>
+<a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>return ensemble {θ_{N_iter}⁽ʲ⁾}     (samples from approximate posterior)
+</code></pre></div>
+<p><strong>Algorithm: UKI (Unscented Kalman Inversion)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Input:  G(·), y, Γ_y, prior 𝒩(m₀, C₀), α, Σ_ω, Σ_ν, N_iter
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>Init:   m₀ = prior mean, C₀ = prior covariance
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>for n = 0, …, N_iter−1:
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>    Predict:   m̂ = r + α(m_n − r),   Ĉ = α² C_n + Σ_ω
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>    Sigma pts: θ̂ʲ = m̂ ± c [√Ĉ]_j       j = 1, …, p
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>    Evaluate:  ŷʲ = G(θ̂ʲ)               (2p+1 evaluations)
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>    Analysis:  C^{θy}, C^{yy} from sigma-point statistics
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>               m_{n+1} = m̂ + C^{θy} (C^{yy})⁻¹ (y − ŷ⁰)
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>               C_{n+1} = Ĉ − C^{θy} (C^{yy})⁻¹ (C^{θy})ᵀ
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>return m_{N_iter}, C_{N_iter}    (posterior mean and covariance)
+</code></pre></div>
+<hr />
+<h2 id="4-jax-api-design">4. JAX API Design<a class="headerlink" href="#4-jax-api-design" title="Permanent link">&para;</a></h2>
+<h3 id="41-design-principles">4.1 Design Principles<a class="headerlink" href="#41-design-principles" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Not Optax.</strong> The update protocol is fundamentally different: the caller
+   provides forward-model evaluations G(Θ), not gradients. The API is honest
+   about this rather than shoehorning into <code>update(grads, state)</code>.</p>
+</li>
+<li>
+<p><strong>Functional and immutable.</strong> All state is a frozen NamedTuple of arrays.
+   <code>update</code> returns a new state, never mutates.</p>
+</li>
+<li>
+<p><strong>vmap-native.</strong> Forward model evaluation is expressed as
+   <code>jax.vmap(forward_fn)(ensemble)</code>, leveraging JAX's natural batching.</p>
+</li>
+<li>
+<p><strong>Process-polymorphic.</strong> The <code>Process</code> object (EKI, EKS, UKI, GNKI, ...)
+   configures the update rule. The outer loop is process-agnostic.</p>
+</li>
+<li>
+<p><strong>Scheduler-composable.</strong> Learning rate schedulers are separate objects
+   that can be swapped independently of the process.</p>
+</li>
+<li>
+<p><strong>scan-compatible.</strong> The full iteration loop can be expressed as
+   <code>jax.lax.scan</code> when the forward model is JAX-traceable.</p>
+</li>
+</ol>
+<h3 id="42-core-types">4.2 Core Types<a class="headerlink" href="#42-core-types" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># ── State ──────────────────────────────────────────────────────</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">EKPState</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Immutable state for all ensemble Kalman processes.&quot;&quot;&quot;</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>    <span class="n">ensemble</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>       <span class="c1"># (J, p) — particle positions</span>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    <span class="n">g_ensemble</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>     <span class="c1"># (J, d) — last forward-model evaluations</span>
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>    <span class="n">observations</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>   <span class="c1"># (d,) or (d_aug,)</span>
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>    <span class="n">obs_noise_cov</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>  <span class="c1"># (d, d) or (d_aug, d_aug)</span>
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>    <span class="n">step</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>           <span class="c1"># scalar, iteration counter</span>
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>    <span class="n">algo_time</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>      <span class="c1"># scalar, cumulative Σ Δt</span>
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>            <span class="c1"># PRNG key (for EKS noise, EKI perturbations)</span>
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>
+<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a><span class="k">class</span><span class="w"> </span><span class="nc">UKIState</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;State for Unscented Kalman Inversion (parametric, not ensemble).&quot;&quot;&quot;</span>
+<a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>    <span class="n">mean</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>           <span class="c1"># (p,)</span>
+<a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>    <span class="n">covariance</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>     <span class="c1"># (p, p)</span>
+<a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>    <span class="n">observations</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>
+<a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a>    <span class="n">obs_noise_cov</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>
+<a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a>    <span class="n">step</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>
+<a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span>
+<a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a>
+<a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a><span class="c1"># ── Process protocol ──────────────────────────────────────────</span>
+<a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a>
+<a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a><span class="k">class</span><span class="w"> </span><span class="nc">Process</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-23-28" name="__codelineno-23-28" href="#__codelineno-23-28"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span>
+<a id="__codelineno-23-29" name="__codelineno-23-29" href="#__codelineno-23-29"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-23-30" name="__codelineno-23-30" href="#__codelineno-23-30"></a>        <span class="n">key</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-31" name="__codelineno-23-31" href="#__codelineno-23-31"></a>        <span class="n">prior_mean</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-32" name="__codelineno-23-32" href="#__codelineno-23-32"></a>        <span class="n">prior_cov</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-33" name="__codelineno-23-33" href="#__codelineno-23-33"></a>        <span class="n">observations</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-34" name="__codelineno-23-34" href="#__codelineno-23-34"></a>        <span class="n">obs_noise_cov</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-35" name="__codelineno-23-35" href="#__codelineno-23-35"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">:</span>
+<a id="__codelineno-23-36" name="__codelineno-23-36" href="#__codelineno-23-36"></a>        <span class="o">...</span>
+<a id="__codelineno-23-37" name="__codelineno-23-37" href="#__codelineno-23-37"></a>
+<a id="__codelineno-23-38" name="__codelineno-23-38" href="#__codelineno-23-38"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-23-39" name="__codelineno-23-39" href="#__codelineno-23-39"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-23-40" name="__codelineno-23-40" href="#__codelineno-23-40"></a>        <span class="n">state</span><span class="p">:</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">,</span>
+<a id="__codelineno-23-41" name="__codelineno-23-41" href="#__codelineno-23-41"></a>        <span class="n">g_ensemble</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-42" name="__codelineno-23-42" href="#__codelineno-23-42"></a>        <span class="n">scheduler</span><span class="p">:</span> <span class="n">Scheduler</span><span class="p">,</span>
+<a id="__codelineno-23-43" name="__codelineno-23-43" href="#__codelineno-23-43"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">:</span>
+<a id="__codelineno-23-44" name="__codelineno-23-44" href="#__codelineno-23-44"></a>        <span class="o">...</span>
+<a id="__codelineno-23-45" name="__codelineno-23-45" href="#__codelineno-23-45"></a>
+<a id="__codelineno-23-46" name="__codelineno-23-46" href="#__codelineno-23-46"></a><span class="c1"># ── Scheduler protocol ────────────────────────────────────────</span>
+<a id="__codelineno-23-47" name="__codelineno-23-47" href="#__codelineno-23-47"></a>
+<a id="__codelineno-23-48" name="__codelineno-23-48" href="#__codelineno-23-48"></a><span class="k">class</span><span class="w"> </span><span class="nc">Scheduler</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-23-49" name="__codelineno-23-49" href="#__codelineno-23-49"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_dt</span><span class="p">(</span>
+<a id="__codelineno-23-50" name="__codelineno-23-50" href="#__codelineno-23-50"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-23-51" name="__codelineno-23-51" href="#__codelineno-23-51"></a>        <span class="n">state</span><span class="p">:</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">,</span>
+<a id="__codelineno-23-52" name="__codelineno-23-52" href="#__codelineno-23-52"></a>        <span class="n">g_ensemble</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-23-53" name="__codelineno-23-53" href="#__codelineno-23-53"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-23-54" name="__codelineno-23-54" href="#__codelineno-23-54"></a>        <span class="o">...</span>
+</code></pre></div>
+<h3 id="43-process-constructors">4.3 Process Constructors<a class="headerlink" href="#43-process-constructors" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># ── Optimisation processes ─────────────────────────────────────</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">Inversion</span><span class="p">:</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Kalman Inversion (EKI).</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="sd">    Args:</span>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="sd">        J:              ensemble size</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="sd">        prior:          if provided, infinite-time (augmented state)</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="sd">        localization:   optional tapering matrix or Localizer</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">localization</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="k">class</span><span class="w"> </span><span class="nc">TransformInversion</span><span class="p">:</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Transform Kalman Inversion (ETKI).</span>
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a>
+<a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="sd">    Output-scalable (O(d) not O(d³)). No localization support.</span>
+<a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-24-19" name="__codelineno-24-19" href="#__codelineno-24-19"></a>
+<a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="k">class</span><span class="w"> </span><span class="nc">SparseInversion</span><span class="p">:</span>
+<a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sparsity-inducing EKI.  Adds L0/L1 penalisation.&quot;&quot;&quot;</span>
+<a id="__codelineno-24-22" name="__codelineno-24-22" href="#__codelineno-24-22"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">penalty</span><span class="o">=</span><span class="s2">&quot;L1&quot;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-24-23" name="__codelineno-24-23" href="#__codelineno-24-23"></a>
+<a id="__codelineno-24-24" name="__codelineno-24-24" href="#__codelineno-24-24"></a><span class="c1"># ── Inference / sampling processes ─────────────────────────────</span>
+<a id="__codelineno-24-25" name="__codelineno-24-25" href="#__codelineno-24-25"></a>
+<a id="__codelineno-24-26" name="__codelineno-24-26" href="#__codelineno-24-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">Sampler</span><span class="p">:</span>
+<a id="__codelineno-24-27" name="__codelineno-24-27" href="#__codelineno-24-27"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Kalman Sampler (EKS / ALDI).</span>
+<a id="__codelineno-24-28" name="__codelineno-24-28" href="#__codelineno-24-28"></a>
+<a id="__codelineno-24-29" name="__codelineno-24-29" href="#__codelineno-24-29"></a><span class="sd">    Args:</span>
+<a id="__codelineno-24-30" name="__codelineno-24-30" href="#__codelineno-24-30"></a><span class="sd">        J:              ensemble size</span>
+<a id="__codelineno-24-31" name="__codelineno-24-31" href="#__codelineno-24-31"></a><span class="sd">        prior:          required (Gaussian prior for regularisation)</span>
+<a id="__codelineno-24-32" name="__codelineno-24-32" href="#__codelineno-24-32"></a><span class="sd">        variant:        &quot;aldi&quot; (default, finite-sample corrected) | &quot;eks&quot;</span>
+<a id="__codelineno-24-33" name="__codelineno-24-33" href="#__codelineno-24-33"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-24-34" name="__codelineno-24-34" href="#__codelineno-24-34"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=...</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;aldi&quot;</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-24-35" name="__codelineno-24-35" href="#__codelineno-24-35"></a>
+<a id="__codelineno-24-36" name="__codelineno-24-36" href="#__codelineno-24-36"></a><span class="k">class</span><span class="w"> </span><span class="nc">Unscented</span><span class="p">:</span>
+<a id="__codelineno-24-37" name="__codelineno-24-37" href="#__codelineno-24-37"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Unscented Kalman Inversion (UKI).</span>
+<a id="__codelineno-24-38" name="__codelineno-24-38" href="#__codelineno-24-38"></a>
+<a id="__codelineno-24-39" name="__codelineno-24-39" href="#__codelineno-24-39"></a><span class="sd">    Args:</span>
+<a id="__codelineno-24-40" name="__codelineno-24-40" href="#__codelineno-24-40"></a><span class="sd">        prior:          required</span>
+<a id="__codelineno-24-41" name="__codelineno-24-41" href="#__codelineno-24-41"></a><span class="sd">        quadrature:     &quot;symmetric&quot; (2p+1 points) | &quot;simplex&quot; (p+2)</span>
+<a id="__codelineno-24-42" name="__codelineno-24-42" href="#__codelineno-24-42"></a><span class="sd">        alpha:          mean-reversion parameter (default from theory)</span>
+<a id="__codelineno-24-43" name="__codelineno-24-43" href="#__codelineno-24-43"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-24-44" name="__codelineno-24-44" href="#__codelineno-24-44"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prior</span><span class="o">=...</span><span class="p">,</span> <span class="n">quadrature</span><span class="o">=</span><span class="s2">&quot;symmetric&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-24-45" name="__codelineno-24-45" href="#__codelineno-24-45"></a>
+<a id="__codelineno-24-46" name="__codelineno-24-46" href="#__codelineno-24-46"></a><span class="k">class</span><span class="w"> </span><span class="nc">TransformUnscented</span><span class="p">:</span>
+<a id="__codelineno-24-47" name="__codelineno-24-47" href="#__codelineno-24-47"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Output-scalable UKI via square-root filter.&quot;&quot;&quot;</span>
+<a id="__codelineno-24-48" name="__codelineno-24-48" href="#__codelineno-24-48"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prior</span><span class="o">=...</span><span class="p">,</span> <span class="n">quadrature</span><span class="o">=</span><span class="s2">&quot;symmetric&quot;</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-24-49" name="__codelineno-24-49" href="#__codelineno-24-49"></a>
+<a id="__codelineno-24-50" name="__codelineno-24-50" href="#__codelineno-24-50"></a><span class="k">class</span><span class="w"> </span><span class="nc">GaussNewtonInversion</span><span class="p">:</span>
+<a id="__codelineno-24-51" name="__codelineno-24-51" href="#__codelineno-24-51"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gauss-Newton Kalman Inversion (GNKI).&quot;&quot;&quot;</span>
+<a id="__codelineno-24-52" name="__codelineno-24-52" href="#__codelineno-24-52"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=...</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span> <span class="o">...</span>
+</code></pre></div>
+<h3 id="44-scheduler-constructors">4.4 Scheduler Constructors<a class="headerlink" href="#44-scheduler-constructors" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">FixedScheduler</span><span class="p">:</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constant Δt.&quot;&quot;&quot;</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">DataMisfitController</span><span class="p">:</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Adaptive Δt controlling data-misfit decrease.</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="sd">    For finite-time algorithms: terminates when algo_time ≥ terminate_at.</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terminate_at</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">on_terminate</span><span class="o">=</span><span class="s2">&quot;stop&quot;</span><span class="p">):</span> <span class="o">...</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">EKSStableScheduler</span><span class="p">:</span>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Adaptive Δt ∝ 1/‖C^{GG}‖ for EKS stability.&quot;&quot;&quot;</span>
+<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="o">...</span>
+</code></pre></div>
+<h3 id="45-public-api-functions">4.5 Public API Functions<a class="headerlink" href="#45-public-api-functions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># ── Core loop functions ────────────────────────────────────────</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>    <span class="n">process</span><span class="p">:</span> <span class="n">Process</span><span class="p">,</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>    <span class="n">prior_mean</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>      <span class="c1"># (p,)</span>
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>    <span class="n">prior_cov</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>       <span class="c1"># (p, p)</span>
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>    <span class="n">observations</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>    <span class="c1"># (d,)</span>
+<a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>    <span class="n">obs_noise_cov</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>   <span class="c1"># (d, d)</span>
+<a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">:</span>
+<a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialise the process state.&quot;&quot;&quot;</span>
+<a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>
+<a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a>    <span class="n">process</span><span class="p">:</span> <span class="n">Process</span><span class="p">,</span>
+<a id="__codelineno-26-15" name="__codelineno-26-15" href="#__codelineno-26-15"></a>    <span class="n">state</span><span class="p">:</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">,</span>
+<a id="__codelineno-26-16" name="__codelineno-26-16" href="#__codelineno-26-16"></a>    <span class="n">g_ensemble</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>       <span class="c1"># (J, d) forward-model evaluations</span>
+<a id="__codelineno-26-17" name="__codelineno-26-17" href="#__codelineno-26-17"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">Scheduler</span> <span class="o">=</span> <span class="n">FixedScheduler</span><span class="p">(</span><span class="mf">0.1</span><span class="p">),</span>
+<a id="__codelineno-26-18" name="__codelineno-26-18" href="#__codelineno-26-18"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EKPState</span> <span class="o">|</span> <span class="n">UKIState</span><span class="p">:</span>
+<a id="__codelineno-26-19" name="__codelineno-26-19" href="#__codelineno-26-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform one update step given forward-model evaluations.&quot;&quot;&quot;</span>
+<a id="__codelineno-26-20" name="__codelineno-26-20" href="#__codelineno-26-20"></a>
+<a id="__codelineno-26-21" name="__codelineno-26-21" href="#__codelineno-26-21"></a><span class="c1"># ── Extraction functions ───────────────────────────────────────</span>
+<a id="__codelineno-26-22" name="__codelineno-26-22" href="#__codelineno-26-22"></a>
+<a id="__codelineno-26-23" name="__codelineno-26-23" href="#__codelineno-26-23"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>            <span class="c1"># (J, p)</span>
+<a id="__codelineno-26-24" name="__codelineno-26-24" href="#__codelineno-26-24"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_mean</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>                <span class="c1"># (p,)</span>
+<a id="__codelineno-26-25" name="__codelineno-26-25" href="#__codelineno-26-25"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_covariance</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>           <span class="c1"># (p, p)</span>
+<a id="__codelineno-26-26" name="__codelineno-26-26" href="#__codelineno-26-26"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_g_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>           <span class="c1"># (J, d)</span>
+<a id="__codelineno-26-27" name="__codelineno-26-27" href="#__codelineno-26-27"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_algo_time</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>            <span class="c1"># scalar</span>
+<a id="__codelineno-26-28" name="__codelineno-26-28" href="#__codelineno-26-28"></a><span class="k">def</span><span class="w"> </span><span class="nf">is_terminated</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>         <span class="c1"># early stopping check</span>
+<a id="__codelineno-26-29" name="__codelineno-26-29" href="#__codelineno-26-29"></a>
+<a id="__codelineno-26-30" name="__codelineno-26-30" href="#__codelineno-26-30"></a><span class="c1"># ── Constraint transforms ─────────────────────────────────────</span>
+<a id="__codelineno-26-31" name="__codelineno-26-31" href="#__codelineno-26-31"></a>
+<a id="__codelineno-26-32" name="__codelineno-26-32" href="#__codelineno-26-32"></a><span class="k">def</span><span class="w"> </span><span class="nf">transform_constrained_to_unconstrained</span><span class="p">(</span><span class="n">ϕ</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">θ</span><span class="p">:</span>
+<a id="__codelineno-26-33" name="__codelineno-26-33" href="#__codelineno-26-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">transform_unconstrained_to_constrained</span><span class="p">(</span><span class="n">θ</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ϕ</span><span class="p">:</span>
+</code></pre></div>
+<h3 id="46-usage-example">4.6 Usage Example<a class="headerlink" href="#46-usage-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.random</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jr</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">ekp</span>   <span class="c1"># our library</span>
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="c1"># ── Problem setup ──────────────────────────────────────────────</span>
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="n">key</span> <span class="o">=</span> <span class="n">jr</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a><span class="n">prior_mean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a><span class="n">prior_cov</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a><span class="n">observations</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span>
+<a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a><span class="n">obs_noise_cov</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a>
+<a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a><span class="k">def</span><span class="w"> </span><span class="nf">forward_model</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+<a id="__codelineno-27-15" name="__codelineno-27-15" href="#__codelineno-27-15"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Some expensive black-box simulator.&quot;&quot;&quot;</span>
+<a id="__codelineno-27-16" name="__codelineno-27-16" href="#__codelineno-27-16"></a>    <span class="k">return</span> <span class="n">theta</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">theta</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>  <span class="c1"># toy example</span>
+<a id="__codelineno-27-17" name="__codelineno-27-17" href="#__codelineno-27-17"></a>
+<a id="__codelineno-27-18" name="__codelineno-27-18" href="#__codelineno-27-18"></a><span class="c1"># ── EKI (optimisation) ────────────────────────────────────────</span>
+<a id="__codelineno-27-19" name="__codelineno-27-19" href="#__codelineno-27-19"></a><span class="n">process</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">Inversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<a id="__codelineno-27-20" name="__codelineno-27-20" href="#__codelineno-27-20"></a><span class="n">scheduler</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">DataMisfitController</span><span class="p">(</span><span class="n">terminate_at</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a><span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">prior_mean</span><span class="p">,</span> <span class="n">prior_cov</span><span class="p">,</span>
+<a id="__codelineno-27-22" name="__codelineno-27-22" href="#__codelineno-27-22"></a>                 <span class="n">observations</span><span class="p">,</span> <span class="n">obs_noise_cov</span><span class="p">)</span>
+<a id="__codelineno-27-23" name="__codelineno-27-23" href="#__codelineno-27-23"></a>
+<a id="__codelineno-27-24" name="__codelineno-27-24" href="#__codelineno-27-24"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
+<a id="__codelineno-27-25" name="__codelineno-27-25" href="#__codelineno-27-25"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>                  <span class="c1"># (50, 5)</span>
+<a id="__codelineno-27-26" name="__codelineno-27-26" href="#__codelineno-27-26"></a>    <span class="n">g_ens</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">forward_model</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>            <span class="c1"># (50, 3)</span>
+<a id="__codelineno-27-27" name="__codelineno-27-27" href="#__codelineno-27-27"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">g_ens</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+<a id="__codelineno-27-28" name="__codelineno-27-28" href="#__codelineno-27-28"></a>    <span class="k">if</span> <span class="n">ekp</span><span class="o">.</span><span class="n">is_terminated</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">):</span>
+<a id="__codelineno-27-29" name="__codelineno-27-29" href="#__codelineno-27-29"></a>        <span class="k">break</span>
+<a id="__codelineno-27-30" name="__codelineno-27-30" href="#__codelineno-27-30"></a>
+<a id="__codelineno-27-31" name="__codelineno-27-31" href="#__codelineno-27-31"></a><span class="n">theta_map</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_mean</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-27-32" name="__codelineno-27-32" href="#__codelineno-27-32"></a>
+<a id="__codelineno-27-33" name="__codelineno-27-33" href="#__codelineno-27-33"></a><span class="c1"># ── EKS (posterior sampling) ──────────────────────────────────</span>
+<a id="__codelineno-27-34" name="__codelineno-27-34" href="#__codelineno-27-34"></a><span class="n">sampler</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">Sampler</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">prior_mean</span><span class="p">,</span> <span class="n">prior_cov</span><span class="p">))</span>
+<a id="__codelineno-27-35" name="__codelineno-27-35" href="#__codelineno-27-35"></a><span class="n">scheduler_eks</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">EKSStableScheduler</span><span class="p">()</span>
+<a id="__codelineno-27-36" name="__codelineno-27-36" href="#__codelineno-27-36"></a><span class="n">state_eks</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">prior_mean</span><span class="p">,</span> <span class="n">prior_cov</span><span class="p">,</span>
+<a id="__codelineno-27-37" name="__codelineno-27-37" href="#__codelineno-27-37"></a>                     <span class="n">observations</span><span class="p">,</span> <span class="n">obs_noise_cov</span><span class="p">)</span>
+<a id="__codelineno-27-38" name="__codelineno-27-38" href="#__codelineno-27-38"></a>
+<a id="__codelineno-27-39" name="__codelineno-27-39" href="#__codelineno-27-39"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">):</span>
+<a id="__codelineno-27-40" name="__codelineno-27-40" href="#__codelineno-27-40"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state_eks</span><span class="p">)</span>
+<a id="__codelineno-27-41" name="__codelineno-27-41" href="#__codelineno-27-41"></a>    <span class="n">g_ens</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">forward_model</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-27-42" name="__codelineno-27-42" href="#__codelineno-27-42"></a>    <span class="n">state_eks</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">state_eks</span><span class="p">,</span> <span class="n">g_ens</span><span class="p">,</span> <span class="n">scheduler_eks</span><span class="p">)</span>
+<a id="__codelineno-27-43" name="__codelineno-27-43" href="#__codelineno-27-43"></a>
+<a id="__codelineno-27-44" name="__codelineno-27-44" href="#__codelineno-27-44"></a><span class="n">posterior_mean</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_mean</span><span class="p">(</span><span class="n">state_eks</span><span class="p">)</span>
+<a id="__codelineno-27-45" name="__codelineno-27-45" href="#__codelineno-27-45"></a><span class="n">posterior_cov</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_covariance</span><span class="p">(</span><span class="n">state_eks</span><span class="p">)</span>
+<a id="__codelineno-27-46" name="__codelineno-27-46" href="#__codelineno-27-46"></a>
+<a id="__codelineno-27-47" name="__codelineno-27-47" href="#__codelineno-27-47"></a><span class="c1"># ── UKI (parametric posterior) ────────────────────────────────</span>
+<a id="__codelineno-27-48" name="__codelineno-27-48" href="#__codelineno-27-48"></a><span class="n">uki</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">Unscented</span><span class="p">(</span><span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">prior_mean</span><span class="p">,</span> <span class="n">prior_cov</span><span class="p">))</span>
+<a id="__codelineno-27-49" name="__codelineno-27-49" href="#__codelineno-27-49"></a><span class="n">state_uki</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">uki</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">prior_mean</span><span class="p">,</span> <span class="n">prior_cov</span><span class="p">,</span>
+<a id="__codelineno-27-50" name="__codelineno-27-50" href="#__codelineno-27-50"></a>                     <span class="n">observations</span><span class="p">,</span> <span class="n">obs_noise_cov</span><span class="p">)</span>
+<a id="__codelineno-27-51" name="__codelineno-27-51" href="#__codelineno-27-51"></a>
+<a id="__codelineno-27-52" name="__codelineno-27-52" href="#__codelineno-27-52"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+<a id="__codelineno-27-53" name="__codelineno-27-53" href="#__codelineno-27-53"></a>    <span class="c1"># UKI generates its own sigma points internally</span>
+<a id="__codelineno-27-54" name="__codelineno-27-54" href="#__codelineno-27-54"></a>    <span class="n">sigma_pts</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state_uki</span><span class="p">)</span>              <span class="c1"># (2p+1, p)</span>
+<a id="__codelineno-27-55" name="__codelineno-27-55" href="#__codelineno-27-55"></a>    <span class="n">g_sigma</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">forward_model</span><span class="p">)(</span><span class="n">sigma_pts</span><span class="p">)</span>          <span class="c1"># (2p+1, d)</span>
+<a id="__codelineno-27-56" name="__codelineno-27-56" href="#__codelineno-27-56"></a>    <span class="n">state_uki</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">uki</span><span class="p">,</span> <span class="n">state_uki</span><span class="p">,</span> <span class="n">g_sigma</span><span class="p">)</span>
+<a id="__codelineno-27-57" name="__codelineno-27-57" href="#__codelineno-27-57"></a>
+<a id="__codelineno-27-58" name="__codelineno-27-58" href="#__codelineno-27-58"></a><span class="n">m_post</span><span class="p">,</span> <span class="n">C_post</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_mean</span><span class="p">(</span><span class="n">state_uki</span><span class="p">),</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_covariance</span><span class="p">(</span><span class="n">state_uki</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="47-scan-compatible-loop">4.7 scan-Compatible Loop<a class="headerlink" href="#47-scan-compatible-loop" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">ekp_scan_step</span><span class="p">(</span><span class="n">carry</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>    <span class="n">state</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">carry</span>
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    <span class="n">key</span><span class="p">,</span> <span class="n">subkey</span> <span class="o">=</span> <span class="n">jr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>    <span class="n">g_ens</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">forward_model</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">g_ens</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>    <span class="k">return</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_mean</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>
+<a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a><span class="p">(</span><span class="n">final_state</span><span class="p">,</span> <span class="n">_</span><span class="p">),</span> <span class="n">trajectory</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span>
+<a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>    <span class="n">ekp_scan_step</span><span class="p">,</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">30</span>
+<a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="5-example-applications">5. Example Applications<a class="headerlink" href="#5-example-applications" title="Permanent link">&para;</a></h2>
+<h3 id="51-parameter-estimation-black-box-calibration">5.1 Parameter Estimation (Black-Box Calibration)<a class="headerlink" href="#51-parameter-estimation-black-box-calibration" title="Permanent link">&para;</a></h3>
+<p><strong>Setting:</strong> Calibrate parameters ϕ of a climate model Ψ(ϕ) against
+observational data y, where Ψ is a Fortran/C code with no adjoint.</p>
+<p><strong>EKP framing:</strong> EKI is the natural tool. The forward map G = H ∘ Ψ ∘ T⁻¹
+maps unconstrained parameters θ to observables. The ensemble is evaluated
+in parallel (one MPI rank per particle), and the Kalman update is a cheap
+matrix operation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># G(θ) runs the climate model — NOT a JAX function</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="c1"># Evaluated externally, results collected as numpy arrays</span>
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="n">process</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">Inversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">m0</span><span class="p">,</span> <span class="n">C0</span><span class="p">))</span>
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a><span class="n">scheduler</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">DataMisfitController</span><span class="p">(</span><span class="n">terminate_at</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>
+<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>  <span class="c1"># to numpy for MPI</span>
+<a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>    <span class="n">g_ens</span> <span class="o">=</span> <span class="n">run_climate_model_parallel</span><span class="p">(</span><span class="n">ensemble</span><span class="p">)</span>    <span class="c1"># MPI scatter/gather</span>
+<a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">g_ens</span><span class="p">),</span> <span class="n">scheduler</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>What you gain:</strong> 20 iterations × 50 ensemble members = 1000 model
+evaluations total, compared to O(10⁵) for finite-difference gradients
+or MCMC. No adjoint needed.</p>
+<h3 id="52-pde-constrained-inverse-problems">5.2 PDE-Constrained Inverse Problems<a class="headerlink" href="#52-pde-constrained-inverse-problems" title="Permanent link">&para;</a></h3>
+<p><strong>Setting:</strong> Estimate spatially-varying coefficients κ(x) in a PDE
+(e.g., Darcy flow: −∇·(κ∇u) = f) from sparse observations of u.</p>
+<p><strong>EKP framing:</strong> The parameter is κ discretised on a grid (p ~ 10²−10⁴).
+G(κ) solves the PDE and extracts observations. UKI or ETKI is appropriate
+for moderate p; EKI with localization for large p.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Forward model: solve Darcy PDE, extract pressure at sensor locations</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">forward_model</span><span class="p">(</span><span class="n">kappa_unconstrained</span><span class="p">):</span>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>    <span class="n">kappa</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">kappa_unconstrained</span><span class="p">)</span>  <span class="c1"># positivity constraint</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>    <span class="n">u</span> <span class="o">=</span> <span class="n">solve_darcy</span><span class="p">(</span><span class="n">kappa</span><span class="p">,</span> <span class="n">mesh</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">)</span>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>    <span class="k">return</span> <span class="n">u</span><span class="p">[</span><span class="n">sensor_indices</span><span class="p">]</span>
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="n">process</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">TransformInversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">m0</span><span class="p">,</span> <span class="n">C0</span><span class="p">))</span>
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a><span class="c1"># ETKI scales linearly in observation dimension d</span>
+</code></pre></div>
+<p><strong>What you gain over BLR:</strong> No need to differentiate through the PDE solver.
+Works with legacy PDE codes.</p>
+<h3 id="53-bayesian-inference-with-uncertainty-quantification">5.3 Bayesian Inference with Uncertainty Quantification<a class="headerlink" href="#53-bayesian-inference-with-uncertainty-quantification" title="Permanent link">&para;</a></h3>
+<p><strong>Setting:</strong> Quantify posterior uncertainty on parameters of a nonlinear
+model, not just a point estimate.</p>
+<p><strong>EKP framing:</strong> Use EKS/ALDI for posterior samples, or UKI for a
+parametric (m, C) posterior.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="n">sampler</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">Sampler</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">m0</span><span class="p">,</span> <span class="n">C0</span><span class="p">),</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;aldi&quot;</span><span class="p">)</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">500</span><span class="p">):</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>    <span class="n">g_ens</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">forward_model</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">g_ens</span><span class="p">,</span> <span class="n">ekp</span><span class="o">.</span><span class="n">EKSStableScheduler</span><span class="p">())</span>
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a><span class="c1"># Posterior samples (Gaussian-like, non-collapsing)</span>
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a><span class="n">posterior_samples</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>       <span class="c1"># (200, p)</span>
+<a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a><span class="n">posterior_mean</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_mean</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a><span class="n">posterior_cov</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_covariance</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a>
+<a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="c1"># 95% credible intervals</span>
+<a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a><span class="n">stds</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">posterior_cov</span><span class="p">))</span>
+<a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a><span class="n">ci_lower</span> <span class="o">=</span> <span class="n">posterior_mean</span> <span class="o">-</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">stds</span>
+<a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a><span class="n">ci_upper</span> <span class="o">=</span> <span class="n">posterior_mean</span> <span class="o">+</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">stds</span>
+</code></pre></div>
+<h3 id="54-satellite-retrieval-remote-sensing">5.4 Satellite Retrieval / Remote Sensing<a class="headerlink" href="#54-satellite-retrieval-remote-sensing" title="Permanent link">&para;</a></h3>
+<p><strong>Setting:</strong> Retrieve atmospheric state (temperature profile, gas
+concentrations) from satellite radiance measurements using a radiative
+transfer model (RTM) as the forward model.</p>
+<p><strong>EKP framing:</strong> The RTM is often a Fortran code with no adjoint. The
+observation vector y is the measured spectrum (d ~ 10²−10⁴ channels),
+and the state vector θ is the atmospheric profile (p ~ 10¹−10²).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c1"># RTM: atmospheric_state → simulated_radiances</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">process</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">TransformInversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">climatology_mean</span><span class="p">,</span> <span class="n">climatology_cov</span><span class="p">))</span>
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="n">scheduler</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">DataMisfitController</span><span class="p">(</span><span class="n">terminate_at</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="c1"># Observation noise: instrument noise + forward model error</span>
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="n">obs_noise_cov</span> <span class="o">=</span> <span class="n">instrument_noise</span> <span class="o">+</span> <span class="n">representativity_error</span>
+</code></pre></div>
+<p><strong>What you gain:</strong> EKP naturally handles the high-dimensional observation
+space (ETKI scales as O(d)), and the prior encodes climatological knowledge.</p>
+<h3 id="55-neural-network-hyperparameter-tuning">5.5 Neural Network Hyperparameter Tuning<a class="headerlink" href="#55-neural-network-hyperparameter-tuning" title="Permanent link">&para;</a></h3>
+<p><strong>Setting:</strong> Tune hyperparameters (learning rate, weight decay, dropout
+rate, etc.) of a neural network where each evaluation = one full training
+run.</p>
+<p><strong>EKP framing:</strong> Each "forward model evaluation" trains the network and
+returns validation metrics. EKI with J ~ 20−50 and ~10 iterations =
+200−500 training runs, competitive with Bayesian optimisation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">train_and_evaluate</span><span class="p">(</span><span class="n">hyperparams</span><span class="p">):</span>
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>    <span class="n">lr</span><span class="p">,</span> <span class="n">wd</span><span class="p">,</span> <span class="n">dropout</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">hyperparams</span><span class="p">)</span>
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    <span class="n">model</span> <span class="o">=</span> <span class="n">train_network</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">wd</span><span class="o">=</span><span class="n">wd</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">val_loss</span><span class="p">(</span><span class="n">model</span><span class="p">),</span> <span class="n">val_accuracy</span><span class="p">(</span><span class="n">model</span><span class="p">)])</span>
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="n">process</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">Inversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">prior</span><span class="o">=</span><span class="p">(</span><span class="n">hp_mean</span><span class="p">,</span> <span class="n">hp_cov</span><span class="p">))</span>
+</code></pre></div>
+<h3 id="56-geophysical-data-assimilation">5.6 Geophysical Data Assimilation<a class="headerlink" href="#56-geophysical-data-assimilation" title="Permanent link">&para;</a></h3>
+<p><strong>Setting:</strong> Sequential state estimation for weather/ocean models. At each
+timestep, assimilate new observations into the model state.</p>
+<p><strong>EKP framing:</strong> This is the classical Ensemble Kalman Filter (EnKF) use
+case. EKP's <code>Inversion()</code> with Δt=1 and one update per observation window
+recovers the EnKF. The ensemble propagates through the dynamical model
+between updates.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># Sequential assimilation loop</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">ekp</span><span class="o">.</span><span class="n">Inversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">100</span><span class="p">),</span> <span class="n">key</span><span class="p">,</span> <span class="n">x0_mean</span><span class="p">,</span> <span class="n">x0_cov</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">y_t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">observations_over_time</span><span class="p">):</span>
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>    <span class="c1"># Propagate ensemble through dynamics</span>
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>    <span class="n">ensemble</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">get_ensemble</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>    <span class="n">ensemble_propagated</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">dynamics_model</span><span class="p">)(</span><span class="n">ensemble</span><span class="p">)</span>
+<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>
+<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>    <span class="c1"># Re-initialize with propagated ensemble and new observations</span>
+<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span>
+<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>        <span class="n">ensemble</span><span class="o">=</span><span class="n">ensemble_propagated</span><span class="p">,</span>
+<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>        <span class="n">observations</span><span class="o">=</span><span class="n">y_t</span><span class="p">,</span>
+<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>    <span class="p">)</span>
+<a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>
+<a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a>    <span class="c1"># Assimilate</span>
+<a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a>    <span class="n">g_ens</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">observation_operator</span><span class="p">)(</span><span class="n">ensemble_propagated</span><span class="p">)</span>
+<a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">ekp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">ekp</span><span class="o">.</span><span class="n">Inversion</span><span class="p">(</span><span class="n">J</span><span class="o">=</span><span class="mi">100</span><span class="p">),</span> <span class="n">state</span><span class="p">,</span> <span class="n">g_ens</span><span class="p">,</span>
+<a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a>                       <span class="n">ekp</span><span class="o">.</span><span class="n">FixedScheduler</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">1.0</span><span class="p">))</span>
+</code></pre></div>
+<h3 id="57-application-summary">5.7 Application Summary<a class="headerlink" href="#57-application-summary" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>┌──────────────────────────┬──────────────┬───────────────┬──────────────────┐
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>│ Application              │ Best Process │ Key Advantage │ Typical J × iter │
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>├──────────────────────────┼──────────────┼───────────────┼──────────────────┤
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>│ Black-box calibration    │ EKI / ETKI   │ No adjoint    │ 50 × 20 = 1000  │
+<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>│ PDE inverse problems     │ ETKI / UKI   │ Output scale  │ 100 × 15        │
+<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>│ Posterior UQ             │ EKS / UKI    │ Uncertainty   │ 200 × 500       │
+<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>│ Satellite retrieval      │ ETKI         │ High d_obs    │ 50 × 10         │
+<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>│ Hyperparameter tuning    │ EKI          │ Black-box     │ 30 × 10         │
+<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>│ Data assimilation        │ EKI (Δt=1)   │ Sequential    │ 100 × 1/window  │
+<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a>│ Methane source inversion │ ETKI / EKS   │ Spatial prior │ 50 × 20         │
+<a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>│ Extreme value parameters │ UKI          │ Parametric UQ │ (2p+1) × 20    │
+<a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>└──────────────────────────┴──────────────┴───────────────┴──────────────────┘
+</code></pre></div>
+<hr />
+<h2 id="6-connection-to-the-bayesian-learning-rule">6. Connection to the Bayesian Learning Rule<a class="headerlink" href="#6-connection-to-the-bayesian-learning-rule" title="Permanent link">&para;</a></h2>
+<h3 id="61-shared-mathematical-foundations">6.1 Shared Mathematical Foundations<a class="headerlink" href="#61-shared-mathematical-foundations" title="Permanent link">&para;</a></h3>
+<p>Both EKP and BLR target the same posterior: p(θ|y) ∝ p(y|θ)p(θ). Both
+maintain a Gaussian-ish approximation that evolves iteratively. And both
+can be understood as natural-gradient descent on a variational objective
+in different disguises.</p>
+<h3 id="62-precise-correspondences">6.2 Precise Correspondences<a class="headerlink" href="#62-precise-correspondences" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>┌──────────────────────────┬──────────────────────────────────────────────┐
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>│ BLR Concept              │ EKP Equivalent                               │
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>├──────────────────────────┼──────────────────────────────────────────────┤
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>│ Variational family       │ Implicit ensemble distribution               │
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>│ q(θ) = 𝒩(m, Σ)         │ {θ⁽¹⁾, …, θ⁽ᴶ⁾} with empirical (θ̄, C^{θθ})│
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>│                          │                                              │
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>│ Natural params (η, Λ)   │ No explicit parametric state (except UKI)    │
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>│                          │                                              │
+<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>│ Learning rate ρ          │ Timestep Δt                                  │
+<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a>│                          │                                              │
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>│ Prior λ₀                │ Augmented state (infinite-time) or init      │
+<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a>│                          │                                              │
+<a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a>│ Gradient g = ∇_θ ℓ      │ Implicit via cross-covariance C^{θG}        │
+<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a>│                          │ (derivative-free)                            │
+<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a>│                          │                                              │
+<a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a>│ Hessian H = ∇²_θ ℓ     │ Implicit via output covariance C^{GG}       │
+<a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a>│                          │ (derivative-free)                            │
+<a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a>│                          │                                              │
+<a id="__codelineno-36-19" name="__codelineno-36-19" href="#__codelineno-36-19"></a>│ Precision update         │ Ensemble collapse / spread                   │
+<a id="__codelineno-36-20" name="__codelineno-36-20" href="#__codelineno-36-20"></a>│ s ← (1−ρ)s + ρ(s₀−H)  │ (implicit through Kalman update)             │
+<a id="__codelineno-36-21" name="__codelineno-36-21" href="#__codelineno-36-21"></a>│                          │                                              │
+<a id="__codelineno-36-22" name="__codelineno-36-22" href="#__codelineno-36-22"></a>│ Mean update              │ θ̄ ← θ̄ + K(y − Ḡ)                          │
+<a id="__codelineno-36-23" name="__codelineno-36-23" href="#__codelineno-36-23"></a>│ m ← η/s                 │                                              │
+<a id="__codelineno-36-24" name="__codelineno-36-24" href="#__codelineno-36-24"></a>│                          │                                              │
+<a id="__codelineno-36-25" name="__codelineno-36-25" href="#__codelineno-36-25"></a>│ Posterior extraction     │ get_mean(state), get_covariance(state)       │
+<a id="__codelineno-36-26" name="__codelineno-36-26" href="#__codelineno-36-26"></a>│ get_posterior(state)     │                                              │
+<a id="__codelineno-36-27" name="__codelineno-36-27" href="#__codelineno-36-27"></a>│                          │                                              │
+<a id="__codelineno-36-28" name="__codelineno-36-28" href="#__codelineno-36-28"></a>│ BLR-FullRank with ρ=1   │ Kalman filter (one observation)              │
+<a id="__codelineno-36-29" name="__codelineno-36-29" href="#__codelineno-36-29"></a>│ and exact Hessian        │                                              │
+<a id="__codelineno-36-30" name="__codelineno-36-30" href="#__codelineno-36-30"></a>│                          │                                              │
+<a id="__codelineno-36-31" name="__codelineno-36-31" href="#__codelineno-36-31"></a>│ BLR-Diagonal GGN         │ ≈ EKI with diagonal localization            │
+<a id="__codelineno-36-32" name="__codelineno-36-32" href="#__codelineno-36-32"></a>│ (Adam-like)              │                                              │
+<a id="__codelineno-36-33" name="__codelineno-36-33" href="#__codelineno-36-33"></a>└──────────────────────────┴──────────────────────────────────────────────┘
+</code></pre></div>
+<h3 id="63-key-differences">6.3 Key Differences<a class="headerlink" href="#63-key-differences" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>┌─────────────────────┬─────────────────────────┬──────────────────────────┐
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>│ Dimension           │ BLR                     │ EKP                      │
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>├─────────────────────┼─────────────────────────┼──────────────────────────┤
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>│ Gradients required  │ Yes (∇ℓ, optionally ∇²ℓ)│ No (derivative-free)    │
+<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>│ Forward model evals │ 1 per step              │ J per step               │
+<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>│ Scaling in p        │ O(p) diagonal, O(p²)    │ O(Jp) + O(J²d) solve    │
+<a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>│                     │ full-rank               │                          │
+<a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>│ Scaling in d_obs    │ N/A (operates on loss)  │ O(d³) EKI, O(d) ETKI    │
+<a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a>│ Uncertainty repr.   │ Parametric (s or Λ)     │ Nonparametric (ensemble) │
+<a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a>│ Rank of covariance  │ Full (or diagonal)      │ rank-(J−1)              │
+<a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a>│ Best regime         │ Cheap differentiable    │ Expensive black-box      │
+<a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a>│                     │ models (neural nets)    │ simulators               │
+<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a>│ Multimodality       │ Cannot capture          │ EKS can partially explore│
+<a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a>│ jit/scan friendly   │ Fully                   │ If forward model is JAX  │
+<a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a>└─────────────────────┴─────────────────────────┴──────────────────────────┘
+</code></pre></div>
+<h3 id="64-when-to-use-which">6.4 When to Use Which<a class="headerlink" href="#64-when-to-use-which" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>Can you differentiate through G(θ)?
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>├── YES
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>│   ├── p &gt; 10⁵ (large neural net)?
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>│   │   └── BLR-Diagonal (= Adam with uncertainty)
+<a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>│   ├── p &lt; 10³ and want exact posterior covariance?
+<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>│   │   └── BLR-FullRank
+<a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a>│   └── p moderate, want to compare?
+<a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a>│       └── Both. BLR for speed, EKI/UKI for validation.
+<a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a>│
+<a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a>└── NO (black-box simulator)
+<a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a>    ├── p &lt; 10² and want uncertainty?
+<a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a>    │   └── UKI (deterministic, parametric posterior)
+<a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a>    ├── p &lt; 10² and want posterior samples?
+<a id="__codelineno-38-14" name="__codelineno-38-14" href="#__codelineno-38-14"></a>    │   └── EKS / ALDI
+<a id="__codelineno-38-15" name="__codelineno-38-15" href="#__codelineno-38-15"></a>    ├── p ~ 10²−10³, just want MAP?
+<a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a>    │   └── ETKI (output-scalable)
+<a id="__codelineno-38-17" name="__codelineno-38-17" href="#__codelineno-38-17"></a>    └── p &gt; 10³?
+<a id="__codelineno-38-18" name="__codelineno-38-18" href="#__codelineno-38-18"></a>        └── EKI with localization, or rethink parameterisation
+</code></pre></div>
+<hr />
+<h2 id="7-gaussx-integration">7. GaussX Integration<a class="headerlink" href="#7-gaussx-integration" title="Permanent link">&para;</a></h2>
+<h3 id="71-overview">7.1 Overview<a class="headerlink" href="#71-overview" title="Permanent link">&para;</a></h3>
+<p><a href="../gaussx/README.md">GaussX</a> provides structured linear operators, operations, and recipes that filterX can use for ensemble covariance computation, Kalman gain, and matrix square roots. This replaces hand-rolled linear algebra with structure-exploiting dispatch.</p>
+<h3 id="72-dependencies">7.2 Dependencies<a class="headerlink" href="#72-dependencies" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gaussx</code> (&gt;=0.1)</td>
+<td>Structured operators, <code>solve</code>, <code>logdet</code>, <code>cholesky</code>, <code>sqrt</code>; ensemble recipes</td>
+</tr>
+<tr>
+<td><code>lineax</code> (&gt;=0.1)</td>
+<td>Base operator abstraction (transitive via gaussx)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-integration-points">7.3 Integration Points<a class="headerlink" href="#73-integration-points" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>filterX Concept</th>
+<th>GaussX Backend</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C^{θθ} (ensemble parameter covariance)</td>
+<td><code>gaussx.recipes.ensemble_covariance(ensemble)</code></td>
+<td>Low-rank: rank ≤ J−1</td>
+</tr>
+<tr>
+<td>C^{θG} (cross-covariance)</td>
+<td><code>gaussx.recipes.ensemble_cross_covariance(ensemble, g_ensemble)</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Kalman gain K = C^{θG}(Γ_y + Δt·C^{GG})⁻¹</td>
+<td><code>gaussx.recipes.kalman_gain(C_theta_g, obs_cov_op)</code></td>
+<td>Exploits LowRankUpdate structure</td>
+</tr>
+<tr>
+<td>UKI covariance C_n (§3.3)</td>
+<td><code>gaussx.operators.LowRankUpdate</code> or dense operator</td>
+<td>Depending on dimension</td>
+</tr>
+<tr>
+<td>UKI sigma points via sqrt(C)</td>
+<td><code>gaussx.ops.sqrt(cov_op)</code> or <code>gaussx.ops.cholesky(cov_op)</code></td>
+<td>Structure-exploiting</td>
+</tr>
+<tr>
+<td>(Γ_y + Δt·C^{GG})⁻¹ solve</td>
+<td><code>gaussx.ops.solve(obs_cov_op, rhs)</code></td>
+<td>Low-rank + diagonal structure</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-architecture">7.4 Architecture<a class="headerlink" href="#74-architecture" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>┌───────────────────────────────────────────┐
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>│  filterX — Ensemble Kalman Processes       │
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>│  Process protocol, schedulers, loops       │
+<a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>├───────────────────────────────────────────┤
+<a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>│  gaussx.recipes — Kalman filter/smoother   │
+<a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a>│  ensemble_covariance, kalman_gain          │
+<a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a>├───────────────────────────────────────────┤
+<a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a>│  gaussx.ops — solve, logdet, sqrt, chol   │
+<a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a>│  gaussx.operators — LowRankUpdate, etc.    │
+<a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a>├───────────────────────────────────────────┤
+<a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a>│  lineax — solvers    │  matfree — SLQ     │
+<a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a>└───────────────────────────────────────────┘
+</code></pre></div>
+<h3 id="75-examples">7.5 Examples<a class="headerlink" href="#75-examples" title="Permanent link">&para;</a></h3>
+<p><strong>EKI update with GaussX operators:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">gaussx.ops</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gops</span>
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gaussx.operators</span><span class="w"> </span><span class="kn">import</span> <span class="n">low_rank_plus_diag</span>
+<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gaussx.recipes</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensemble_covariance</span><span class="p">,</span> <span class="n">ensemble_cross_covariance</span><span class="p">,</span> <span class="n">kalman_gain</span>
+<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>
+<a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">eki_update</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">g_ensemble</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">obs_noise_cov</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+<a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a>    <span class="n">J</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-40-7" name="__codelineno-40-7" href="#__codelineno-40-7"></a>
+<a id="__codelineno-40-8" name="__codelineno-40-8" href="#__codelineno-40-8"></a>    <span class="c1"># Ensemble covariances — low-rank (rank J-1) by construction</span>
+<a id="__codelineno-40-9" name="__codelineno-40-9" href="#__codelineno-40-9"></a>    <span class="n">C_theta_g</span> <span class="o">=</span> <span class="n">ensemble_cross_covariance</span><span class="p">(</span><span class="n">ensemble</span><span class="p">,</span> <span class="n">g_ensemble</span><span class="p">)</span>
+<a id="__codelineno-40-10" name="__codelineno-40-10" href="#__codelineno-40-10"></a>    <span class="n">C_gg</span> <span class="o">=</span> <span class="n">ensemble_covariance</span><span class="p">(</span><span class="n">g_ensemble</span><span class="p">)</span>
+<a id="__codelineno-40-11" name="__codelineno-40-11" href="#__codelineno-40-11"></a>
+<a id="__codelineno-40-12" name="__codelineno-40-12" href="#__codelineno-40-12"></a>    <span class="c1"># Observation covariance: Γ_y + Δt · C^{GG} as structured operator</span>
+<a id="__codelineno-40-13" name="__codelineno-40-13" href="#__codelineno-40-13"></a>    <span class="c1"># (diagonal noise + low-rank ensemble contribution)</span>
+<a id="__codelineno-40-14" name="__codelineno-40-14" href="#__codelineno-40-14"></a>    <span class="n">obs_cov_op</span> <span class="o">=</span> <span class="n">low_rank_plus_diag</span><span class="p">(</span>
+<a id="__codelineno-40-15" name="__codelineno-40-15" href="#__codelineno-40-15"></a>        <span class="n">W</span><span class="o">=</span><span class="n">C_gg</span><span class="o">.</span><span class="n">factors</span><span class="p">,</span>            <span class="c1"># low-rank part</span>
+<a id="__codelineno-40-16" name="__codelineno-40-16" href="#__codelineno-40-16"></a>        <span class="n">d</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">obs_noise_cov</span><span class="p">)</span>  <span class="c1"># diagonal noise</span>
+<a id="__codelineno-40-17" name="__codelineno-40-17" href="#__codelineno-40-17"></a>    <span class="p">)</span>
+<a id="__codelineno-40-18" name="__codelineno-40-18" href="#__codelineno-40-18"></a>
+<a id="__codelineno-40-19" name="__codelineno-40-19" href="#__codelineno-40-19"></a>    <span class="c1"># Kalman gain via Woodbury solve — O(d r²) instead of O(d³)</span>
+<a id="__codelineno-40-20" name="__codelineno-40-20" href="#__codelineno-40-20"></a>    <span class="n">K</span> <span class="o">=</span> <span class="n">kalman_gain</span><span class="p">(</span><span class="n">C_theta_g</span><span class="p">,</span> <span class="n">obs_cov_op</span><span class="p">)</span>
+<a id="__codelineno-40-21" name="__codelineno-40-21" href="#__codelineno-40-21"></a>
+<a id="__codelineno-40-22" name="__codelineno-40-22" href="#__codelineno-40-22"></a>    <span class="c1"># Update: θ_new = θ + K (y - G(θ))</span>
+<a id="__codelineno-40-23" name="__codelineno-40-23" href="#__codelineno-40-23"></a>    <span class="n">innovation</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">g_ensemble</span>  <span class="c1"># (J, d)</span>
+<a id="__codelineno-40-24" name="__codelineno-40-24" href="#__codelineno-40-24"></a>    <span class="n">ensemble_new</span> <span class="o">=</span> <span class="n">ensemble</span> <span class="o">+</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">innov</span><span class="p">:</span> <span class="n">K</span> <span class="o">@</span> <span class="n">innov</span><span class="p">)(</span><span class="n">innovation</span><span class="p">)</span>
+<a id="__codelineno-40-25" name="__codelineno-40-25" href="#__codelineno-40-25"></a>    <span class="k">return</span> <span class="n">ensemble_new</span>
+</code></pre></div>
+<p><strong>UKI sigma points with GaussX:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">gaussx.ops</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gops</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">lineax</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lx</span>
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>
+<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">uki_sigma_points</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">covariance</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>    <span class="n">p</span> <span class="o">=</span> <span class="n">mean</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a>    <span class="n">cov_op</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">MatrixLinearOperator</span><span class="p">(</span><span class="n">covariance</span><span class="p">)</span>
+<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a>
+<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>    <span class="c1"># Cholesky via GaussX — dispatches to structure-optimal algorithm</span>
+<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a>    <span class="n">L</span> <span class="o">=</span> <span class="n">gops</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">cov_op</span><span class="p">)</span>
+<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a>    <span class="n">L_dense</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
+<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a>
+<a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a>    <span class="c1"># 2p+1 sigma points</span>
+<a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a>    <span class="n">sigma_pts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span>
+<a id="__codelineno-41-14" name="__codelineno-41-14" href="#__codelineno-41-14"></a>    <span class="n">sigma_pts</span> <span class="o">=</span> <span class="n">sigma_pts</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span>
+<a id="__codelineno-41-15" name="__codelineno-41-15" href="#__codelineno-41-15"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+<a id="__codelineno-41-16" name="__codelineno-41-16" href="#__codelineno-41-16"></a>        <span class="n">sigma_pts</span> <span class="o">=</span> <span class="n">sigma_pts</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">mean</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">L_dense</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+<a id="__codelineno-41-17" name="__codelineno-41-17" href="#__codelineno-41-17"></a>        <span class="n">sigma_pts</span> <span class="o">=</span> <span class="n">sigma_pts</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">p</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">mean</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">L_dense</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+<a id="__codelineno-41-18" name="__codelineno-41-18" href="#__codelineno-41-18"></a>    <span class="k">return</span> <span class="n">sigma_pts</span>
+</code></pre></div>
+<hr />
+<h2 id="8-references">8. References<a class="headerlink" href="#8-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Iglesias, M., Law, K. &amp; Stuart, A. (2013). "Ensemble Kalman methods for inverse problems." <em>Inverse Problems</em> 29(4).</li>
+<li>Huang, D., Schneider, T. &amp; Stuart, A. (2022). "Unscented Kalman Inversion." <em>J. Comput. Phys.</em> 464.</li>
+<li>Garbuno-Inigo, A. et al. (2020). "Interacting Langevin Diffusions: Gradient Structure and Ensemble Kalman Sampler." <em>SIAM J. Appl. Dyn. Syst.</em> 19(1).</li>
+<li>Garbuno-Inigo, A. et al. (2020). "Affine Invariant Interacting Langevin Dynamics for Bayesian Inference." <em>SIAM J. Appl. Math.</em> 80(6).</li>
+<li>Calvello, E., Reich, S. &amp; Stuart, A. (2022). "Ensemble Kalman Methods: A Mean Field Perspective." arXiv:2209.11371.</li>
+<li>Chada, N., Stuart, A. &amp; Tong, X. (2020). "Tikhonov Regularization within Ensemble Kalman Inversion." <em>SIAM J. Numer. Anal.</em></li>
+<li>Huang, B. et al. (2022). "Ensemble Transform Kalman Inversion." <em>Inverse Problems</em> 38(10).</li>
+<li>Chada, N. et al. (2021). "Iterative Ensemble Kalman Methods: A Unified Perspective with Some New Variants." <em>Found. Data Sci.</em></li>
+<li>Bishop, C., Etherton, B. &amp; Majumdar, S. (2001). "Adaptive Sampling with the Ensemble Transform Kalman Filter." <em>Mon. Wea. Rev.</em> 129.</li>
+<li>Schneider, T., Stuart, A. &amp; Wu, J.-L. (2020). "Learning Stochastic Closures Using Ensemble Kalman Inversion." <em>Trans. Math. Appl.</em></li>
+<li>Iglesias, M. &amp; Yang, Y. (2021). "Adaptive Regularisation for Ensemble Kalman Inversion." <em>Inverse Problems</em> 37(2).</li>
+<li>Khan, M.E. &amp; Rue, H. (2023). "The Bayesian Learning Rule." <em>JMLR</em> 24(281).</li>
+<li>CliMA, "EnsembleKalmanProcesses.jl." https://github.com/CliMA/EnsembleKalmanProcesses.jl</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

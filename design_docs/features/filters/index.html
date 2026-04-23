@@ -1,0 +1,1382 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>filterX — Sequential Ensemble Kalman Filters - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#filterx-sequential-ensemble-kalman-filters" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              filterX — Sequential Ensemble Kalman Filters
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-common-mathematical-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 Common Mathematical Framework
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gap-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 Gap Catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 Gap Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gap-1-stochasticenkf-stochastic-ensemble-kalman-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 1: StochasticEnKF — Stochastic Ensemble Kalman Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-2-etkf-ensemble-transform-kalman-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 2: ETKF — Ensemble Transform Kalman Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-3-etkf_livings-etkf-with-mean-preserving-random-rotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 3: ETKF_Livings — ETKF with Mean-Preserving Random Rotation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-4-ensrf-ensemble-square-root-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 4: EnSRF — Ensemble Square Root Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-5-ensrf_serial-serial-ensemble-square-root-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 5: EnSRF_Serial — Serial Ensemble Square Root Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-6-estkf-error-subspace-transform-kalman-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 6: ESTKF — Error Subspace Transform Kalman Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-7-letkf-local-ensemble-transform-kalman-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 7: LETKF — Local Ensemble Transform Kalman Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-8-squarerootkf-parametric-square-root-kalman-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 8: SquareRootKF — Parametric Square-Root Kalman Filter
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-shared-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 Shared Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-comparison-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="filterx-sequential-ensemble-kalman-filters">filterX — Sequential Ensemble Kalman Filters<a class="headerlink" href="#filterx-sequential-ensemble-kalman-filters" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Sequential ensemble Kalman filter algorithms for state estimation —
+stochastic and deterministic square-root variants.</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="1-scope">1  Scope<a class="headerlink" href="#1-scope" title="Permanent link">&para;</a></h2>
+<p>Sequential ensemble filters for state estimation. All implement
+<code>AbstractSequentialFilter</code> (see <a href="../../api/components/">components.md</a>).</p>
+<p>Each filter provides a single <code>analysis</code> step that assimilates observations into
+a forecast ensemble. The forecast-analysis-inflate loop is handled by a higher
+layer. Filters differ only in <strong>how the ensemble is updated</strong> given forecast
+particles, observations, an observation operator, and observation noise.</p>
+<p><strong>In scope:</strong> Stochastic EnKF, ETKF, ETKF-Livings, EnSRF, EnSRF-Serial, ESTKF,
+LETKF, parametric square-root Kalman filter.</p>
+<p><strong>Out of scope:</strong> Iterative processes (EKI, EKS — see processes.md), smoothers
+(EnKS, RTS — see smoothers.md), particle filters.</p>
+<hr />
+<h2 id="2-common-mathematical-framework">2  Common Mathematical Framework<a class="headerlink" href="#2-common-mathematical-framework" title="Permanent link">&para;</a></h2>
+<p>Every sequential ensemble Kalman filter follows the same four-step analysis
+pattern. Given a forecast ensemble <span class="arithmatex">\(\{x_f^{(j)}\}_{j=1}^{N_e}\)</span>, observations
+<span class="arithmatex">\(y \in \mathbb{R}^{N_y}\)</span>, observation operator <span class="arithmatex">\(H\)</span>, and observation noise
+covariance <span class="arithmatex">\(R\)</span>:</p>
+<p><strong>Step 1 — Forecast:</strong> Propagate ensemble through dynamics (external).</p>
+<div class="arithmatex">\[x_f^{(j)} = \mathcal{M}(x_a^{(j)}), \quad j = 1, \ldots, N_e\]</div>
+<p><strong>Step 2 — Ensemble statistics:</strong></p>
+<div class="arithmatex">\[\bar{x}_f = \frac{1}{N_e} \sum_j x_f^{(j)}, \qquad X' = \frac{1}{\sqrt{N_e - 1}} \bigl[x_f^{(1)} - \bar{x}_f \;\big|\; \cdots \;\big|\; x_f^{(N_e)} - \bar{x}_f\bigr]\]</div>
+<div class="arithmatex">\[Y' = \frac{1}{\sqrt{N_e - 1}} \bigl[H(x_f^{(1)}) - \overline{H(x_f)} \;\big|\; \cdots \;\big|\; H(x_f^{(N_e)}) - \overline{H(x_f)}\bigr]\]</div>
+<p><strong>Step 3 — Kalman gain:</strong></p>
+<div class="arithmatex">\[C^{xH} = X' Y'^{\!\top}, \qquad C^{HH} = Y' Y'^{\!\top}\]</div>
+<div class="arithmatex">\[K = C^{xH} \bigl(C^{HH} + R\bigr)^{-1}\]</div>
+<p><strong>Step 4 — Update ensemble:</strong> This is where the filters diverge.</p>
+<p>Two families:</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Update strategy</th>
+<th>Noise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stochastic</strong></td>
+<td>Perturbed observations</td>
+<td>Adds sampling noise to each member</td>
+</tr>
+<tr>
+<td><strong>Deterministic</strong></td>
+<td>Square-root transform</td>
+<td>Transform anomaly matrix directly</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-gap-catalog">3  Gap Catalog<a class="headerlink" href="#3-gap-catalog" title="Permanent link">&para;</a></h2>
+<h3 id="gap-1-stochasticenkf-stochastic-ensemble-kalman-filter">Gap 1: StochasticEnKF — Stochastic Ensemble Kalman Filter<a class="headerlink" href="#gap-1-stochasticenkf-stochastic-ensemble-kalman-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Stochastic (perturbed observations).</p>
+<p><strong>Math:</strong> Each ensemble member receives an independent observation perturbation:</p>
+<div class="arithmatex">\[\varepsilon^{(j)} \sim \mathcal{N}(0, R), \qquad j = 1, \ldots, N_e\]</div>
+<div class="arithmatex">\[x_a^{(j)} = x_f^{(j)} + K \bigl(y + \varepsilon^{(j)} - H x_f^{(j)}\bigr)\]</div>
+<p>The perturbed observations ensure the analysis covariance is correct in
+expectation:</p>
+<div class="arithmatex">\[P_a = (I - KH)\,P_f \quad \text{(in expectation over } \varepsilon \text{)}\]</div>
+<p>Simple to implement but the perturbations introduce sampling noise that inflates
+the analysis error, especially for small ensembles.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span> per analysis step. Dominated by the
+ensemble cross-covariance computation and the <span class="arithmatex">\(N_y \times N_y\)</span> system solve.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">StochasticEnKF</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Stochastic Ensemble Kalman Filter (Evensen 1994).&quot;&quot;&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">static</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKey</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="c1"># 1. Compute ensemble stats: x_bar, X_prime, Y_prime</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="c1"># 2. Kalman gain: K = C_xH @ solve(C_HH + R, ...)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="c1"># 3. Sample perturbations: eps ~ N(0, R)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="c1"># 4. Update: x_a[j] = x_f[j] + K @ (y + eps[j] - H x_f[j])</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Evensen, G. (1994). <em>Sequential data assimilation with a nonlinear
+quasi-geostrophic model using Monte Carlo methods to forecast error statistics.</em>
+J. Geophys. Res., 99(C5), 10143--10162.</p>
+<hr />
+<h3 id="gap-2-etkf-ensemble-transform-kalman-filter">Gap 2: ETKF — Ensemble Transform Kalman Filter<a class="headerlink" href="#gap-2-etkf-ensemble-transform-kalman-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Deterministic (square-root transform).</p>
+<p><strong>Math:</strong> Work in the <span class="arithmatex">\(N_e\)</span>-dimensional ensemble subspace. Define the transform
+matrix via the observation-space precision:</p>
+<div class="arithmatex">\[\tilde{C} = (N_e - 1)\,I + Y'^{\!\top} R^{-1} Y' \in \mathbb{R}^{N_e \times N_e}\]</div>
+<div class="arithmatex">\[T = \tilde{C}^{-1}\]</div>
+<p>The analysis weights and transform are:</p>
+<div class="arithmatex">\[\bar{w}_a = T \, Y'^{\!\top} R^{-1} (y - \bar{y}_f)\]</div>
+<div class="arithmatex">\[W_a = \sqrt{(N_e - 1)\,T}\]</div>
+<p>The analysis ensemble is:</p>
+<div class="arithmatex">\[X_a = \bar{x}_f \mathbf{1}^{\!\top} + X'_f \bigl(\bar{w}_a \mathbf{1}^{\!\top} + W_a\bigr)\]</div>
+<p>The symmetric square root <span class="arithmatex">\(\sqrt{T}\)</span> is computed via eigendecomposition of
+<span class="arithmatex">\(\tilde{C}\)</span>: if <span class="arithmatex">\(\tilde{C} = U \Lambda U^{\!\top}\)</span>, then
+<span class="arithmatex">\(\sqrt{T} = U \Lambda^{-1/2} U^{\!\top}\)</span>.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span>. The <span class="arithmatex">\(N_e \times N_e\)</span> eigendecomposition
+is <span class="arithmatex">\(O(N_e^3)\)</span>; forming <span class="arithmatex">\(Y'^{\!\top} R^{-1} Y'\)</span> is <span class="arithmatex">\(O(N_e^2 N_y)\)</span>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ETKF</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Transform Kalman Filter (Bishop et al. 2001).&quot;&quot;&quot;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="c1"># 1. Ensemble anomalies X&#39;, Y&#39;</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="c1"># 2. C_tilde = (N_e - 1) I + Y&#39;^T R^{-1} Y&#39;</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="c1"># 3. Eigendecompose C_tilde = U Lambda U^T</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="c1"># 4. T = U Lambda^{-1} U^T</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="c1"># 5. w_bar = T @ Y&#39;^T @ R^{-1} @ (y - y_bar)</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="c1"># 6. W_a = U @ diag(sqrt((N_e-1) / lambda)) @ U^T</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="c1"># 7. X_a = x_bar 1^T + X&#39;_f @ (w_bar 1^T + W_a)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Bishop, C. H., Etherton, B. J., &amp; Majumdar, S. J. (2001). <em>Adaptive
+sampling with the ensemble transform Kalman filter. Part I: Theoretical aspects.</em>
+Mon. Wea. Rev., 129, 420--436.</p>
+<hr />
+<h3 id="gap-3-etkf_livings-etkf-with-mean-preserving-random-rotation">Gap 3: ETKF_Livings — ETKF with Mean-Preserving Random Rotation<a class="headerlink" href="#gap-3-etkf_livings-etkf-with-mean-preserving-random-rotation" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Deterministic (square-root transform with stochastic rotation).</p>
+<p><strong>Math:</strong> The symmetric square root in ETKF produces a unique but non-random
+transform <span class="arithmatex">\(W_a\)</span>. This can cause the ensemble to develop preferred directions
+and lose rank over time.</p>
+<p>Livings et al. replace <span class="arithmatex">\(W_a\)</span> with:</p>
+<div class="arithmatex">\[W_a^{\text{rot}} = W_a \, \Theta\]</div>
+<p>where <span class="arithmatex">\(\Theta \in O(N_e)\)</span> is a random orthogonal matrix satisfying
+<span class="arithmatex">\(\Theta \mathbf{1} = \mathbf{1}\)</span> (mean-preserving). This breaks the symmetry
+while preserving the correct analysis covariance:</p>
+<div class="arithmatex">\[(W_a \Theta)(W_a \Theta)^{\!\top} = W_a W_a^{\!\top}\]</div>
+<p>The random rotation is drawn once per analysis step. The constraint
+<span class="arithmatex">\(\Theta \mathbf{1} = \mathbf{1}\)</span> is enforced by constructing <span class="arithmatex">\(\Theta\)</span> in the
+<span class="arithmatex">\((N_e - 1)\)</span>-dimensional complement of <span class="arithmatex">\(\mathbf{1}\)</span>.</p>
+<p><strong>Complexity:</strong> Same as ETKF: <span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span>, plus <span class="arithmatex">\(O(N_e^2)\)</span> for the
+random rotation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ETKF_Livings</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;ETKF with mean-preserving random rotation (Livings et al. 2008).&quot;&quot;&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKey</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="c1"># 1-6. Same as ETKF</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="c1"># 7. Draw random orthogonal Theta with Theta @ 1 = 1</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="c1"># 8. W_a_rot = W_a @ Theta</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="c1"># 9. X_a = x_bar 1^T + X&#39;_f @ (w_bar 1^T + W_a_rot)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Livings, D. M., Dance, S. L., &amp; Nichols, N. K. (2008). <em>Unbiased
+ensemble square root filters.</em> Physica D, 237(8), 1021--1028.</p>
+<hr />
+<h3 id="gap-4-ensrf-ensemble-square-root-filter">Gap 4: EnSRF — Ensemble Square Root Filter<a class="headerlink" href="#gap-4-ensrf-ensemble-square-root-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Deterministic (separate mean and perturbation updates).</p>
+<p><strong>Math:</strong> The mean and perturbations are updated independently:</p>
+<p><strong>Mean update:</strong></p>
+<div class="arithmatex">\[\bar{x}_a = \bar{x}_f + K (y - H\bar{x}_f)\]</div>
+<p>where <span class="arithmatex">\(K = C^{xH}(C^{HH} + R)^{-1}\)</span> is the standard Kalman gain.</p>
+<p><strong>Perturbation update:</strong></p>
+<div class="arithmatex">\[X'_a = X'_f - \tilde{K}\,H\,X'_f\]</div>
+<p>where <span class="arithmatex">\(\tilde{K}\)</span> is the "reduced" or "serial" Kalman gain. For the matrix
+square root formulation:</p>
+<div class="arithmatex">\[\tilde{K} = P_f H^{\!\top} \bigl[(H P_f H^{\!\top} + R)^{1/2} \bigl((H P_f H^{\!\top} + R)^{1/2} + R^{1/2}\bigr)\bigr]^{-1}\]</div>
+<p>This ensures <span class="arithmatex">\(P_a = (I - KH)P_f\)</span> exactly (no sampling noise).</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_e^2 N_y + N_y^3)\)</span>. The square root of <span class="arithmatex">\(C^{HH} + R\)</span> is
+<span class="arithmatex">\(O(N_y^3)\)</span> unless done serially.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnSRF</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Square Root Filter (Whitaker &amp; Hamill 2002).&quot;&quot;&quot;</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="c1"># 1. Ensemble stats: x_bar, X&#39;, Y&#39;</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="c1"># 2. Standard Kalman gain K for mean update</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="c1"># 3. Mean: x_bar_a = x_bar_f + K @ (y - H x_bar_f)</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="c1"># 4. Reduced gain K_tilde for perturbation update</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        <span class="c1"># 5. Perturbations: X&#39;_a = X&#39;_f - K_tilde @ H @ X&#39;_f</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="c1"># 6. Reassemble: X_a = x_bar_a + X&#39;_a</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Whitaker, J. S. &amp; Hamill, T. M. (2002). <em>Ensemble data assimilation
+without perturbed observations.</em> Mon. Wea. Rev., 130, 1913--1924.</p>
+<hr />
+<h3 id="gap-5-ensrf_serial-serial-ensemble-square-root-filter">Gap 5: EnSRF_Serial — Serial Ensemble Square Root Filter<a class="headerlink" href="#gap-5-ensrf_serial-serial-ensemble-square-root-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Deterministic (serial observation processing).</p>
+<p><strong>Math:</strong> Process observations one at a time. For the <span class="arithmatex">\(k\)</span>-th scalar observation
+<span class="arithmatex">\(y_k\)</span> with variance <span class="arithmatex">\(R_{kk}\)</span>:</p>
+<div class="arithmatex">\[K_k = \frac{C^{x H_k}}{C^{H_k H_k} + R_{kk}}\]</div>
+<p>where <span class="arithmatex">\(C^{x H_k} \in \mathbb{R}^{N_x}\)</span> is the cross-covariance with the <span class="arithmatex">\(k\)</span>-th
+observation, and <span class="arithmatex">\(C^{H_k H_k} \in \mathbb{R}\)</span> is scalar. No matrix inversion is
+needed.</p>
+<p><strong>Mean update</strong> (serial):</p>
+<div class="arithmatex">\[\bar{x}_a^{(k)} = \bar{x}_a^{(k-1)} + K_k \bigl(y_k - H_k \bar{x}_a^{(k-1)}\bigr)\]</div>
+<p><strong>Perturbation update</strong> (serial, reduced gain):</p>
+<div class="arithmatex">\[\alpha_k = \frac{1}{1 + \sqrt{R_{kk} / (C^{H_k H_k} + R_{kk})}}\]</div>
+<div class="arithmatex">\[X'^{(k)}_a = X'^{(k-1)}_a - \alpha_k K_k H_k X'^{(k-1)}_a\]</div>
+<p>Each observation is assimilated sequentially; after processing all <span class="arithmatex">\(N_y\)</span>
+observations, the ensemble is fully updated.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_e N_x N_y)\)</span> total. Each of the <span class="arithmatex">\(N_y\)</span> scalar updates costs
+<span class="arithmatex">\(O(N_e N_x)\)</span>. Avoids all matrix inversions. Requires <span class="arithmatex">\(R\)</span> diagonal (uncorrelated
+observation errors) or a decorrelation pre-transform.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnSRF_Serial</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Serial Ensemble Square Root Filter (Whitaker &amp; Hamill 2002).&quot;&quot;&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="c1"># For k = 1, ..., N_y:</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="c1">#   1. Scalar obs variance: R_kk</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="c1">#   2. Cross-cov: C_xHk = X&#39; @ (H_k X&#39;)^T / (N_e - 1)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="c1">#   3. Obs variance: C_HkHk = var(H_k X&#39;)</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="c1">#   4. Gain: K_k = C_xHk / (C_HkHk + R_kk)</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="c1">#   5. Mean update: x_bar += K_k * (y_k - H_k x_bar)</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        <span class="c1">#   6. Alpha: alpha_k = 1 / (1 + sqrt(R_kk / (C_HkHk + R_kk)))</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="c1">#   7. Pert update: X&#39; -= alpha_k * K_k * H_k X&#39;</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Whitaker, J. S. &amp; Hamill, T. M. (2002). <em>Ensemble data assimilation
+without perturbed observations.</em> Mon. Wea. Rev., 130, 1913--1924.</p>
+<hr />
+<h3 id="gap-6-estkf-error-subspace-transform-kalman-filter">Gap 6: ESTKF — Error Subspace Transform Kalman Filter<a class="headerlink" href="#gap-6-estkf-error-subspace-transform-kalman-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Deterministic (error-subspace eigendecomposition).</p>
+<p><strong>Math:</strong> Hybrid of ETKF and EnSRF. Project into the <span class="arithmatex">\((N_e - 1)\)</span>-dimensional
+error subspace using a mean-preserving projection <span class="arithmatex">\(L \in \mathbb{R}^{N_e \times (N_e - 1)}\)</span>
+satisfying <span class="arithmatex">\(L^{\!\top} L = I\)</span> and <span class="arithmatex">\(L^{\!\top} \mathbf{1} = 0\)</span>.</p>
+<p>Define the reduced anomalies:</p>
+<div class="arithmatex">\[\tilde{Y} = Y' L \in \mathbb{R}^{N_y \times (N_e - 1)}\]</div>
+<p>Eigendecompose the innovation precision in the reduced subspace:</p>
+<div class="arithmatex">\[A = (N_e - 1)\,I + \tilde{Y}^{\!\top} R^{-1} \tilde{Y} \in \mathbb{R}^{(N_e-1) \times (N_e-1)}\]</div>
+<div class="arithmatex">\[A = U_A \Lambda_A U_A^{\!\top}\]</div>
+<p>The analysis weights and transform are:</p>
+<div class="arithmatex">\[\bar{w} = U_A \Lambda_A^{-1} U_A^{\!\top} \tilde{Y}^{\!\top} R^{-1} (y - \bar{y}_f)\]</div>
+<div class="arithmatex">\[W = U_A \Lambda_A^{-1/2} U_A^{\!\top} \sqrt{N_e - 1}\]</div>
+<div class="arithmatex">\[X_a = \bar{x}_f \mathbf{1}^{\!\top} + X'_f L \bigl(\bar{w} \mathbf{1}^{\!\top} + W\bigr)\]</div>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span>. Same order as ETKF but operates in the
+<span class="arithmatex">\((N_e-1)\)</span>-dimensional subspace, giving a modest constant factor improvement.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ESTKF</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Error Subspace Transform Kalman Filter (Nerger et al. 2012).&quot;&quot;&quot;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="c1"># 1. Construct mean-preserving projection L</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="c1"># 2. Reduced anomalies: Y_tilde = Y&#39; @ L</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        <span class="c1"># 3. A = (N_e - 1) I + Y_tilde^T R^{-1} Y_tilde</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="c1"># 4. Eigendecompose A = U_A Lambda_A U_A^T</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="c1"># 5. w_bar = U_A Lambda_A^{-1} U_A^T Y_tilde^T R^{-1} (y - y_bar)</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="c1"># 6. W = U_A diag(sqrt((N_e-1)/lambda)) U_A^T</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="c1"># 7. X_a = x_bar 1^T + X&#39;_f L (w_bar 1^T + W)</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Nerger, L., Janjic, T., Schroter, J., &amp; Hiller, W. (2012). <em>A unification
+of ensemble square root Kalman filters.</em> Mon. Wea. Rev., 140, 2335--2345.</p>
+<hr />
+<h3 id="gap-7-letkf-local-ensemble-transform-kalman-filter">Gap 7: LETKF — Local Ensemble Transform Kalman Filter<a class="headerlink" href="#gap-7-letkf-local-ensemble-transform-kalman-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Deterministic (localized ETKF).</p>
+<p><strong>Math:</strong> For each grid point <span class="arithmatex">\(i\)</span> (or local analysis domain):</p>
+<ol>
+<li>
+<p><strong>Select local observations:</strong> Find indices <span class="arithmatex">\(\mathcal{I}_i = \{k : d(x_i, y_k) \leq r\}\)</span> where <span class="arithmatex">\(r\)</span> is the localization radius.</p>
+</li>
+<li>
+<p><strong>Apply distance-dependent tapering</strong> to scale observation weights:</p>
+</li>
+</ol>
+<div class="arithmatex">\[\rho_k = \rho_{\text{GC}}\!\bigl(d(x_i, y_k) / r\bigr)\]</div>
+<p>where <span class="arithmatex">\(\rho_{\text{GC}}\)</span> is the Gaspari-Cohn function. Form the localized observation error covariance:</p>
+<div class="arithmatex">\[R_i^{\text{loc}} = \text{diag}\bigl(R_{kk} / \rho_k\bigr)_{k \in \mathcal{I}_i}\]</div>
+<ol>
+<li><strong>Run ETKF locally</strong> with the selected observations and <span class="arithmatex">\(R_i^{\text{loc}}\)</span>:</li>
+</ol>
+<div class="arithmatex">\[\tilde{C}_i = (N_e - 1)\,I + Y'_{\mathcal{I}_i}^{\!\top} (R_i^{\text{loc}})^{-1} Y'_{\mathcal{I}_i}\]</div>
+<div class="arithmatex">\[T_i = \tilde{C}_i^{-1}, \qquad \bar{w}_i = T_i Y'_{\mathcal{I}_i}^{\!\top} (R_i^{\text{loc}})^{-1} d_i\]</div>
+<div class="arithmatex">\[W_i = \sqrt{(N_e - 1) T_i}\]</div>
+<ol>
+<li><strong>Update grid point <span class="arithmatex">\(i\)</span>:</strong></li>
+</ol>
+<div class="arithmatex">\[x_{a,i}^{(j)} = \bar{x}_{f,i} + X'_{f,i} (\bar{w}_i + W_i)_j\]</div>
+<ol>
+<li><strong>Reassemble</strong> all grid points into the global analysis ensemble.</li>
+</ol>
+<p>The local analyses are <strong>embarrassingly parallel</strong> — each grid point is
+independent. This is the standard algorithm for operational numerical weather
+prediction (NWP).</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_{\text{grid}} \times (N_e^2 N_{y,\text{local}} + N_e^3))\)</span>.
+Each local analysis is cheap because <span class="arithmatex">\(N_{y,\text{local}} \ll N_y\)</span>. Total cost
+scales linearly with grid size.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">LETKF</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Local Ensemble Transform Kalman Filter (Hunt et al. 2007).&quot;&quot;&quot;</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">localizer</span><span class="p">:</span> <span class="n">AbstractLocalizer</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span><span class="p">,</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="n">state_coords</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x D&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="n">obs_coords</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y D&quot;</span><span class="p">],</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="c1"># 1. Compute Y&#39; = H(X_f) anomalies (once, global)</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="c1"># 2. For each grid point i (vmap):</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="c1">#    a. Select local obs indices within radius</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        <span class="c1">#    b. Extract local Y&#39;_local, R_local (with tapering)</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="c1">#    c. Run ETKF on local subset</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="c1">#    d. Update x_a[i] for all ensemble members</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        <span class="c1"># 3. Stack local updates into global analysis</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Hunt, B. R., Kostelich, E. J., &amp; Szunyogh, I. (2007). <em>Efficient data
+assimilation for spatiotemporal chaos: A local ensemble transform Kalman filter.</em>
+Physica D, 230, 112--126.</p>
+<hr />
+<h3 id="gap-8-squarerootkf-parametric-square-root-kalman-filter">Gap 8: SquareRootKF — Parametric Square-Root Kalman Filter<a class="headerlink" href="#gap-8-squarerootkf-parametric-square-root-kalman-filter" title="Permanent link">&para;</a></h3>
+<p><strong>Method family:</strong> Parametric (not ensemble-based). Included for reference.</p>
+<p><strong>Math:</strong> Propagates the Cholesky factor <span class="arithmatex">\(S\)</span> where <span class="arithmatex">\(P = S S^{\!\top}\)</span>, guaranteeing
+positive semi-definiteness by construction. The standard Kalman filter updates
+<span class="arithmatex">\(P\)</span> directly, which can lose PSD structure due to floating-point errors.</p>
+<p><strong>Forecast:</strong></p>
+<div class="arithmatex">\[S_f = \text{chol}\!\bigl(\Phi S_a S_a^{\!\top} \Phi^{\!\top} + Q\bigr)\]</div>
+<p>or via the square-root form using QR factorization:</p>
+<div class="arithmatex">\[\begin{bmatrix} S_a \Phi^{\!\top} \\ \sqrt{Q} \end{bmatrix} = Q_{\text{QR}} R_{\text{QR}}, \qquad S_f = R_{\text{QR}}^{\!\top}\]</div>
+<p><strong>Analysis (Potter form):</strong></p>
+<p>Process observations serially. For scalar observation <span class="arithmatex">\(y_k\)</span> with variance <span class="arithmatex">\(R_{kk}\)</span>:</p>
+<div class="arithmatex">\[v_k = S_f^{\!\top} H_k^{\!\top}\]</div>
+<div class="arithmatex">\[\sigma_k^2 = v_k^{\!\top} v_k + R_{kk}\]</div>
+<div class="arithmatex">\[K_k = S_f v_k / \sigma_k^2\]</div>
+<div class="arithmatex">\[\bar{x}_a = \bar{x}_f + K_k (y_k - H_k \bar{x}_f)\]</div>
+<div class="arithmatex">\[S_a = S_f - \frac{K_k v_k^{\!\top}}{1 + \sqrt{R_{kk}/\sigma_k^2}}\]</div>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(N_x^2 N_y)\)</span> for serial processing, <span class="arithmatex">\(O(N_x^3)\)</span> for the QR
+forecast step. Scales with state dimension, not ensemble size.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SquareRootKF</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Parametric Square-Root Kalman Filter.</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="sd">    Propagates Cholesky factor S (P = S S^T) for guaranteed PSD.</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="sd">    Not ensemble-based — included as a reference implementation.</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="n">mean</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="n">chol</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="n">dynamics_jacobian</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="n">process_noise</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x&quot;</span><span class="p">],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">]]:</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>        <span class="c1"># QR-based Cholesky propagation</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>        <span class="o">...</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>        <span class="n">mean</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>        <span class="n">chol</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>        <span class="n">obs_matrix</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_y N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x&quot;</span><span class="p">],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_x N_x&quot;</span><span class="p">]]:</span>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>        <span class="c1"># Potter serial update on Cholesky factor</span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>        <span class="o">...</span>
+</code></pre></div>
+<p><strong>Ref:</strong> Maybeck, P. S. (1979). <em>Stochastic Models, Estimation, and Control.</em>
+Vol. 1, Academic Press. Chapter 7.</p>
+<hr />
+<h2 id="4-shared-infrastructure">4  Shared Infrastructure<a class="headerlink" href="#4-shared-infrastructure" title="Permanent link">&para;</a></h2>
+<p>All ensemble filters share building blocks from <code>gaussx</code> and the filter framework:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ensemble_mean</code></td>
+<td><code>filterx._primitives</code></td>
+<td><span class="arithmatex">\(\bar{x} = \frac{1}{N_e}\sum_j x^{(j)}\)</span></td>
+</tr>
+<tr>
+<td><code>ensemble_anomalies</code></td>
+<td><code>filterx._primitives</code></td>
+<td><span class="arithmatex">\(X' = (X - \bar{x}\mathbf{1}^{\!\top}) / \sqrt{N_e - 1}\)</span></td>
+</tr>
+<tr>
+<td><code>ensemble_covariance</code></td>
+<td><code>filterx._primitives</code></td>
+<td><span class="arithmatex">\(C = X' X'^{\!\top}\)</span> (via anomalies)</td>
+</tr>
+<tr>
+<td><code>ensemble_cross_covariance</code></td>
+<td><code>filterx._primitives</code></td>
+<td><span class="arithmatex">\(C^{xH} = X' Y'^{\!\top}\)</span></td>
+</tr>
+<tr>
+<td><code>kalman_gain</code></td>
+<td><code>filterx._primitives</code></td>
+<td><span class="arithmatex">\(K = C^{xH}(C^{HH} + R)^{-1}\)</span> via <code>gaussx.solve</code></td>
+</tr>
+<tr>
+<td><code>gaussx.solve</code></td>
+<td><code>gaussx._primitives</code></td>
+<td>Structured linear solve (Woodbury, diagonal, dense)</td>
+</tr>
+<tr>
+<td><code>gaussx.logdet</code></td>
+<td><code>gaussx._primitives</code></td>
+<td>Log-determinant for likelihood computation</td>
+</tr>
+<tr>
+<td><code>gaussx.cholesky</code></td>
+<td><code>gaussx._primitives</code></td>
+<td>Cholesky factorization for square-root methods</td>
+</tr>
+<tr>
+<td><code>gaussx.Woodbury</code></td>
+<td><code>gaussx._operators</code></td>
+<td>Low-rank + diagonal solve for <span class="arithmatex">\((C^{HH} + R)^{-1}\)</span></td>
+</tr>
+<tr>
+<td><code>AbstractLocalizer</code></td>
+<td><code>filterx._components</code></td>
+<td>Gaspari-Cohn, Gaussian, cutoff tapering</td>
+</tr>
+<tr>
+<td><code>AbstractInflator</code></td>
+<td><code>filterx._components</code></td>
+<td>Multiplicative, RTPS, RTPP inflation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-comparison-table">5  Comparison Table<a class="headerlink" href="#5-comparison-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Family</th>
+<th style="text-align: center;">Perturbed obs?</th>
+<th style="text-align: center;">Localization</th>
+<th style="text-align: center;">Serial obs?</th>
+<th>Complexity (per step)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>StochasticEnKF</strong></td>
+<td>Stochastic</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Covariance loc.</td>
+<td style="text-align: center;">No</td>
+<td><span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span></td>
+<td>Simplest; sampling noise</td>
+</tr>
+<tr>
+<td><strong>ETKF</strong></td>
+<td>Deterministic</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">No (global)</td>
+<td style="text-align: center;">No</td>
+<td><span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span></td>
+<td>Symmetric sqrt</td>
+</tr>
+<tr>
+<td><strong>ETKF_Livings</strong></td>
+<td>Deterministic</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">No (global)</td>
+<td style="text-align: center;">No</td>
+<td><span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span></td>
+<td>Random rotation breaks degeneracy</td>
+</tr>
+<tr>
+<td><strong>EnSRF</strong></td>
+<td>Deterministic</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">Covariance loc.</td>
+<td style="text-align: center;">No</td>
+<td><span class="arithmatex">\(O(N_e^2 N_y + N_y^3)\)</span></td>
+<td>Separate mean/pert updates</td>
+</tr>
+<tr>
+<td><strong>EnSRF_Serial</strong></td>
+<td>Deterministic</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">Covariance loc.</td>
+<td style="text-align: center;">Yes</td>
+<td><span class="arithmatex">\(O(N_e N_x N_y)\)</span></td>
+<td>No matrix inversion; requires diag <span class="arithmatex">\(R\)</span></td>
+</tr>
+<tr>
+<td><strong>ESTKF</strong></td>
+<td>Deterministic</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">No (global)</td>
+<td style="text-align: center;">No</td>
+<td><span class="arithmatex">\(O(N_e^2 N_y + N_e^3)\)</span></td>
+<td>Error-subspace projection</td>
+</tr>
+<tr>
+<td><strong>LETKF</strong></td>
+<td>Deterministic</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">Domain loc.</td>
+<td style="text-align: center;">No</td>
+<td><span class="arithmatex">\(O(N_{\text{grid}} N_e^2 N_{y,\text{loc}})\)</span></td>
+<td>Operational NWP standard; parallel</td>
+</tr>
+<tr>
+<td><strong>SquareRootKF</strong></td>
+<td>Parametric</td>
+<td style="text-align: center;">No</td>
+<td style="text-align: center;">N/A</td>
+<td style="text-align: center;">Yes</td>
+<td><span class="arithmatex">\(O(N_x^2 N_y + N_x^3)\)</span></td>
+<td>Not ensemble; Cholesky propagation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key distinctions:</strong></p>
+<ul>
+<li><strong>Stochastic vs. deterministic:</strong> StochasticEnKF is the only filter that
+  perturbs observations. All others produce the exact Kalman analysis covariance
+  (up to the low-rank ensemble approximation).</li>
+<li><strong>Localization strategy:</strong> LETKF uses <em>domain localization</em> (local analysis
+  domains). StochasticEnKF, EnSRF, and EnSRF_Serial support <em>covariance
+  localization</em> (Schur product with a taper matrix). ETKF/ESTKF do not naturally
+  support localization without modification.</li>
+<li><strong>Serial observation processing:</strong> EnSRF_Serial and SquareRootKF process
+  observations one at a time, avoiding matrix inversions but requiring diagonal
+  (or pre-decorrelated) <span class="arithmatex">\(R\)</span>.</li>
+</ul>
+<hr />
+<h2 id="6-references">6  References<a class="headerlink" href="#6-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Evensen, G. (1994). <em>Sequential data assimilation with a nonlinear quasi-geostrophic model using Monte Carlo methods to forecast error statistics.</em> J. Geophys. Res., 99(C5), 10143--10162.</li>
+<li>Bishop, C. H., Etherton, B. J., &amp; Majumdar, S. J. (2001). <em>Adaptive sampling with the ensemble transform Kalman filter. Part I: Theoretical aspects.</em> Mon. Wea. Rev., 129, 420--436.</li>
+<li>Livings, D. M., Dance, S. L., &amp; Nichols, N. K. (2008). <em>Unbiased ensemble square root filters.</em> Physica D, 237(8), 1021--1028.</li>
+<li>Whitaker, J. S. &amp; Hamill, T. M. (2002). <em>Ensemble data assimilation without perturbed observations.</em> Mon. Wea. Rev., 130, 1913--1924.</li>
+<li>Nerger, L., Janjic, T., Schroter, J., &amp; Hiller, W. (2012). <em>A unification of ensemble square root Kalman filters.</em> Mon. Wea. Rev., 140, 2335--2345.</li>
+<li>Hunt, B. R., Kostelich, E. J., &amp; Szunyogh, I. (2007). <em>Efficient data assimilation for spatiotemporal chaos: A local ensemble transform Kalman filter.</em> Physica D, 230, 112--126.</li>
+<li>Maybeck, P. S. (1979). <em>Stochastic Models, Estimation, and Control.</em> Vol. 1, Academic Press.</li>
+<li>Anderson, J. L. (2001). <em>An ensemble adjustment Kalman filter for data assimilation.</em> Mon. Wea. Rev., 129, 2884--2903.</li>
+<li>Tippett, M. K., Anderson, J. L., Bishop, C. H., Hamill, T. M., &amp; Whitaker, J. S. (2003). <em>Ensemble square root filters.</em> Mon. Wea. Rev., 131, 1485--1490.</li>
+<li>Gaspari, G. &amp; Cohn, S. E. (1999). <em>Construction of correlation functions in two and three dimensions.</em> Q. J. R. Meteorol. Soc., 125, 723--757.</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

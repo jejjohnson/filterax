@@ -1,0 +1,1129 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Differentiable ensemble Kalman filters, smoothers, and processes for JAX.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>ekalmX — Ensemble Smoothers - filterax</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ekalmx-ensemble-smoothers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="filterax" class="md-header__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ekalmX — Ensemble Smoothers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/reference/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../CHANGELOG.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="filterax" class="md-nav__button md-logo" aria-label="filterax" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives (Layer 0)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1 Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-common-mathematical-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2 Common Mathematical Framework
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-gap-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3 Gap Catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3 Gap Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gap-1-enks-ensemble-kalman-smoother" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 1: EnKS — Ensemble Kalman Smoother
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-2-ensemblerts-ensemble-rauch-tung-striebel-smoother" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 2: EnsembleRTS — Ensemble Rauch-Tung-Striebel Smoother
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-3-fixedlagsmoother-fixed-lag-ensemble-smoother" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 3: FixedLagSmoother — Fixed-Lag Ensemble Smoother
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-4-ensemble-square-root-smoother" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 4: Ensemble Square Root Smoother
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gap-5-ies-iterative-ensemble-smoother" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gap 5: IES — Iterative Ensemble Smoother
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-shared-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4 Shared Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-comparison-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5 Comparison Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6 References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ekalmx-ensemble-smoothers">ekalmX — Ensemble Smoothers<a class="headerlink" href="#ekalmx-ensemble-smoothers" title="Permanent link">&para;</a></h1>
+<p><strong>Subject:</strong> Backward-pass methods that refine filter estimates using future
+observations. Smoothers provide better state estimates than filters alone by
+incorporating all observations (past + future).</p>
+<p><strong>Date:</strong> 2026-04-03</p>
+<hr />
+<h2 id="1-scope">1  Scope<a class="headerlink" href="#1-scope" title="Permanent link">&para;</a></h2>
+<p>Sequential ensemble filters produce the filtering distribution
+<span class="arithmatex">\(p(x_t \mid y_{1:t})\)</span> — the best estimate given observations <em>up to</em> time <span class="arithmatex">\(t\)</span>.
+Ensemble smoothers refine these estimates into the smoothing distribution
+<span class="arithmatex">\(p(x_t \mid y_{1:T})\)</span> for <span class="arithmatex">\(T &gt; t\)</span>, incorporating future observations via a
+backward pass over stored filter results.</p>
+<p><strong>In scope:</strong> Backward-pass ensemble smoothers that operate on the output of
+any <code>AbstractSequentialFilter</code> (EnKS, EnsembleRTS, fixed-lag, square-root,
+iterative).</p>
+<p><strong>Out of scope:</strong> Forward-only filters, EKP processes (iterative parameter
+estimation), variational smoothers (4D-Var).</p>
+<p><strong>Key insight:</strong> All ensemble smoothers share the same backward-pass structure
+as the classical Rauch-Tung-Striebel smoother — only the gain computation and
+storage strategy differ. The smoother gain is always a cross-covariance
+times an inverse forecast covariance, estimated from the ensemble.</p>
+<hr />
+<h2 id="2-common-mathematical-framework">2  Common Mathematical Framework<a class="headerlink" href="#2-common-mathematical-framework" title="Permanent link">&para;</a></h2>
+<p>The filter produces the filtering distribution at each time step:</p>
+<div class="arithmatex">\[p(x_t \mid y_{1:t}) \approx \{x_t^{a,(j)}\}_{j=1}^{N_e}\]</div>
+<p>The smoother refines this to the smoothing distribution using a backward
+recursion from <span class="arithmatex">\(t = T-1\)</span> down to <span class="arithmatex">\(t = 0\)</span>:</p>
+<div class="arithmatex">\[G_t = C^{a,f}_{t,t+1} \bigl(C^{f,f}_{t+1}\bigr)^{-1}\]</div>
+<div class="arithmatex">\[X^s_t = X^a_t + G_t \bigl(X^s_{t+1} - X^f_{t+1}\bigr)\]</div>
+<p>where:</p>
+<ul>
+<li><span class="arithmatex">\(X^a_t\)</span> — analysis (filtered) ensemble at time <span class="arithmatex">\(t\)</span></li>
+<li><span class="arithmatex">\(X^f_{t+1}\)</span> — forecast ensemble at time <span class="arithmatex">\(t+1\)</span> (propagated from <span class="arithmatex">\(X^a_t\)</span>)</li>
+<li><span class="arithmatex">\(X^s_{t+1}\)</span> — smoothed ensemble at time <span class="arithmatex">\(t+1\)</span> (already computed in backward pass)</li>
+<li><span class="arithmatex">\(C^{a,f}_{t,t+1}\)</span> — cross-covariance between analysis at <span class="arithmatex">\(t\)</span> and forecast at <span class="arithmatex">\(t+1\)</span></li>
+<li><span class="arithmatex">\(C^{f,f}_{t+1}\)</span> — forecast covariance at <span class="arithmatex">\(t+1\)</span></li>
+<li><span class="arithmatex">\(G_t\)</span> — smoother gain matrix</li>
+</ul>
+<p>This backward pass has the same structure as the classical RTS smoother for
+Kalman filters. The ensemble approximation replaces parametric covariance
+matrices with sample covariances computed from the ensemble members.</p>
+<hr />
+<h2 id="3-gap-catalog">3  Gap Catalog<a class="headerlink" href="#3-gap-catalog" title="Permanent link">&para;</a></h2>
+<h3 id="gap-1-enks-ensemble-kalman-smoother">Gap 1: EnKS — Ensemble Kalman Smoother<a class="headerlink" href="#gap-1-enks-ensemble-kalman-smoother" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Evensen &amp; van Leeuwen (2000)</p>
+<p><strong>Math:</strong> Standard backward pass. At each time step <span class="arithmatex">\(t\)</span> from <span class="arithmatex">\(T-1\)</span> down to <span class="arithmatex">\(0\)</span>:</p>
+<div class="arithmatex">\[G_t = C^{a,f}_{t,t+1} \bigl(C^{f,f}_{t+1}\bigr)^{-1}\]</div>
+<div class="arithmatex">\[X^s_t = X^a_t + G_t \bigl(X^s_{t+1} - X^f_{t+1}\bigr)\]</div>
+<p>where the cross-covariance and forecast covariance are estimated from the
+ensemble:</p>
+<div class="arithmatex">\[C^{a,f}_{t,t+1} = \frac{1}{N_e - 1} A_t' (F_{t+1}')^\top, \qquad C^{f,f}_{t+1} = \frac{1}{N_e - 1} F_{t+1}' (F_{t+1}')^\top\]</div>
+<p>with <span class="arithmatex">\(A_t' = X^a_t - \bar{x}^a_t\)</span> and <span class="arithmatex">\(F_{t+1}' = X^f_{t+1} - \bar{x}^f_{t+1}\)</span> being the
+ensemble anomaly matrices.</p>
+<p><strong>Requires:</strong> Storing all filter results (analysis + forecast ensembles) for
+the full time window.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(T \times N_e^2 \times N_x)\)</span> — one gain computation per time step.</p>
+<p><strong>Compatible filters:</strong> Any <code>AbstractSequentialFilter</code> (StochasticEnKF, ETKF, EnSRF, ESTKF, LETKF).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnKS</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Kalman Smoother (Evensen &amp; van Leeuwen 2000).</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="sd">    Standard backward pass over stored filter results.</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">smooth</span><span class="p">(</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">filter_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">],</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">forecast_particles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]],</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">]:</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h3 id="gap-2-ensemblerts-ensemble-rauch-tung-striebel-smoother">Gap 2: EnsembleRTS — Ensemble Rauch-Tung-Striebel Smoother<a class="headerlink" href="#gap-2-ensemblerts-ensemble-rauch-tung-striebel-smoother" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Rauch, Tung &amp; Striebel (1965); ensemble formulation following
+Evensen (2003)</p>
+<p><strong>Math:</strong> Ensemble analog of the classical RTS smoother. Uses the same
+backward recursion as EnKS but computes the smoother gain via an
+ensemble-estimated dynamics Jacobian:</p>
+<div class="arithmatex">\[G_t = C^{a,a}_t M_{t+1}^\top \bigl(M_{t+1} C^{a,a}_t M_{t+1}^\top + Q_t\bigr)^{-1}\]</div>
+<p>where <span class="arithmatex">\(M_{t+1}\)</span> is the linearized dynamics operator estimated from the
+ensemble:</p>
+<div class="arithmatex">\[M_{t+1} \approx F_{t+1}' (A_t')^\dagger\]</div>
+<p>In practice, when the dynamics are applied via <code>AbstractDynamics</code> and the
+ensemble provides both analysis and forecast members, the cross-covariance
+formulation reduces to the same computation as EnKS. The distinction is
+conceptual: EnsembleRTS explicitly acknowledges the role of the dynamics
+Jacobian, making it natural to incorporate model error covariance <span class="arithmatex">\(Q_t\)</span>.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(T \times N_e^2 \times N_x)\)</span> — same as EnKS.</p>
+<p><strong>Compatible filters:</strong> Any <code>AbstractSequentialFilter</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnsembleRTS</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Rauch-Tung-Striebel Smoother.</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="sd">    Ensemble analog of the classical RTS smoother.</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="sd">    Optionally incorporates model error covariance Q.</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">smooth</span><span class="p">(</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="n">filter_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">],</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="n">forecast_particles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]],</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">dynamics</span><span class="p">:</span> <span class="n">AbstractDynamics</span><span class="p">,</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">]:</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h3 id="gap-3-fixedlagsmoother-fixed-lag-ensemble-smoother">Gap 3: FixedLagSmoother — Fixed-Lag Ensemble Smoother<a class="headerlink" href="#gap-3-fixedlagsmoother-fixed-lag-ensemble-smoother" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Anderson &amp; Anderson (1999); Nerger et al. (2012)</p>
+<p><strong>Math:</strong> Only smooths the last <span class="arithmatex">\(L\)</span> time steps at each new observation.
+The backward pass is truncated:</p>
+<div class="arithmatex">\[\text{for } k = t-1, \ldots, \max(0, t - L): \quad X^s_k = X^a_k + G_k (X^s_{k+1} - X^f_{k+1})\]</div>
+<p>At each new filter step, only <span class="arithmatex">\(L\)</span> backward corrections are applied.
+Old states beyond the lag window are finalized and discarded from memory.</p>
+<p><strong>Bounded memory:</strong> <span class="arithmatex">\(O(L \times N_e \times N_x)\)</span> — independent of the total
+number of time steps <span class="arithmatex">\(T\)</span>.</p>
+<p><strong>Use case:</strong> Online / real-time applications where you cannot wait for all
+data before producing smoothed estimates. Also useful when <span class="arithmatex">\(T\)</span> is very large
+and storing all filter results is infeasible.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(L \times N_e^2 \times N_x)\)</span> per new observation.</p>
+<p><strong>Compatible filters:</strong> Any <code>AbstractSequentialFilter</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">FixedLagSmoother</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fixed-lag ensemble smoother.</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="sd">    Only looks back a fixed number of time steps (lag).</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="sd">    Bounded memory -- suitable for online applications.</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">lag</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">static</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>        <span class="n">new_filter_result</span><span class="p">:</span> <span class="n">AnalysisResult</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">new_forecast</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">history</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">],</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">]:</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Smooth the last `lag` time steps given new observation.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h3 id="gap-4-ensemble-square-root-smoother">Gap 4: Ensemble Square Root Smoother<a class="headerlink" href="#gap-4-ensemble-square-root-smoother" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Tippett et al. (2003); Whitaker &amp; Compo (2002)</p>
+<p><strong>Math:</strong> Deterministic backward pass — no perturbed observations at any
+stage. The smoother gain is applied to the ensemble perturbation matrix
+directly using a square root factorization:</p>
+<div class="arithmatex">\[X^{s\prime}_t = X^{a\prime}_t \, T_t^s\]</div>
+<p>where <span class="arithmatex">\(T_t^s\)</span> is the backward transform matrix derived from the smoother gain
+in perturbation space. This preserves the deterministic properties of the
+forward square root filter (ETKF, EnSRF, ESTKF).</p>
+<p><strong>Key property:</strong> No sampling noise in either the forward or backward pass.
+Ensemble mean and covariance are updated consistently.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(T \times N_e^2 \times N_x)\)</span> — same as EnKS but with
+deterministic updates.</p>
+<p><strong>Compatible filters:</strong> ETKF, EnSRF, ESTKF (deterministic forward filters).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnsembleSqrtSmoother</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensemble Square Root Smoother.</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="sd">    Deterministic backward pass -- pairs with ETKF/EnSRF forward pass.</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="sd">    No perturbed observations in either direction.</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">smooth</span><span class="p">(</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">filter_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">],</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">forecast_particles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">]],</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">AnalysisResult</span><span class="p">]:</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h3 id="gap-5-ies-iterative-ensemble-smoother">Gap 5: IES — Iterative Ensemble Smoother<a class="headerlink" href="#gap-5-ies-iterative-ensemble-smoother" title="Permanent link">&para;</a></h3>
+<p><strong>Ref:</strong> Chen &amp; Oliver (2013); Evensen et al. (2019)</p>
+<p><strong>Math:</strong> Multiple passes over the same data window using a Gauss-Newton-style
+iteration. Unlike the single-pass smoothers above, IES updates the ensemble
+parameters using <em>all</em> observations simultaneously:</p>
+<div class="arithmatex">\[\theta_{i+1}^{(j)} = \theta_0^{(j)} + C^{\theta G}_i \bigl(C^{GG}_i + \Gamma_y\bigr)^{-1} \bigl(y + \epsilon^{(j)} - G(\theta_i^{(j)}) - \Gamma_y (\theta_i^{(j)} - \theta_0^{(j)})\bigr)\]</div>
+<p>where <span class="arithmatex">\(G(\theta)\)</span> is the full forward model evaluated over the entire
+assimilation window, <span class="arithmatex">\(\Gamma_y\)</span> is the observation noise covariance, and the
+iteration index <span class="arithmatex">\(i\)</span> runs until convergence.</p>
+<p><strong>Use case:</strong> History matching and reservoir simulation, where the forward
+model maps parameters to a full observation time series. The iterative
+approach handles nonlinearity better than a single backward pass.</p>
+<p><strong>Complexity:</strong> <span class="arithmatex">\(O(n_{\text{iter}} \times J \times N_d)\)</span> forward model
+evaluations, where <span class="arithmatex">\(J\)</span> is the ensemble size and <span class="arithmatex">\(N_d\)</span> is the total number of
+observations across all time steps.</p>
+<p><strong>Compatible filters:</strong> Standalone — does not require a sequential forward
+filter. Uses <code>AbstractDynamics</code> directly.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">IES</span><span class="p">(</span><span class="n">eqx</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Iterative Ensemble Smoother (Chen &amp; Oliver 2013).</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="sd">    Gauss-Newton-style iteration over a data window.</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="sd">    Used for history matching / reservoir simulation.</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">n_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">eqx</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">static</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">scheduler</span><span class="p">:</span> <span class="n">AbstractScheduler</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;J N_p&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="n">noise_cov</span><span class="p">:</span> <span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="n">forward_model</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_p&quot;</span><span class="p">]],</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_d&quot;</span><span class="p">]],</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Run iterative smoother to convergence.</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="sd">        Parameters</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="sd">        ----------</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="sd">        particles : prior ensemble of parameters</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="sd">        obs : all observations (concatenated across time)</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="sd">        noise_cov : observation noise covariance</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="sd">        forward_model : maps parameters -&gt; full observation prediction</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="sd">        Returns</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="sd">        -------</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="sd">        AnalysisResult with updated parameter ensemble</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>        <span class="o">...</span>
+</code></pre></div>
+<hr />
+<h2 id="4-shared-infrastructure">4  Shared Infrastructure<a class="headerlink" href="#4-shared-infrastructure" title="Permanent link">&para;</a></h2>
+<p>All ensemble smoothers share infrastructure with the sequential filter layer.
+They only differ in the backward-pass gain computation and storage strategy:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ensemble anomaly matrix</td>
+<td><code>_primitives.ensemble_anomalies</code></td>
+<td><span class="arithmatex">\(A' = X - \bar{x}\mathbf{1}^\top\)</span></td>
+</tr>
+<tr>
+<td>Sample cross-covariance</td>
+<td><code>_primitives.cross_covariance</code></td>
+<td><span class="arithmatex">\(C^{ab} = \frac{1}{N_e-1} A' B'^\top\)</span></td>
+</tr>
+<tr>
+<td>Sample covariance</td>
+<td><code>_primitives.sample_covariance</code></td>
+<td><span class="arithmatex">\(C^{ff} = \frac{1}{N_e-1} F' F'^\top\)</span></td>
+</tr>
+<tr>
+<td>Covariance solve</td>
+<td><code>gaussx.solve</code></td>
+<td>Structural dispatch for <span class="arithmatex">\(C^{-1} v\)</span></td>
+</tr>
+<tr>
+<td>Filter results storage</td>
+<td><code>AnalysisResult</code></td>
+<td>PyTree — stored per time step</td>
+</tr>
+<tr>
+<td>Forecast propagation</td>
+<td><code>AbstractDynamics</code></td>
+<td>Forward model interface</td>
+</tr>
+<tr>
+<td>Observation operator</td>
+<td><code>AbstractObsOperator</code></td>
+<td>State-to-obs mapping</td>
+</tr>
+<tr>
+<td>Noise model</td>
+<td><code>AbstractNoise</code></td>
+<td>Observation error covariance <span class="arithmatex">\(R\)</span></td>
+</tr>
+<tr>
+<td>Localization</td>
+<td><code>AbstractLocalizer</code></td>
+<td>Optional — suppress spurious correlations in gain</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-comparison-table">5  Comparison Table<a class="headerlink" href="#5-comparison-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Smoother</th>
+<th>Memory</th>
+<th>Mode</th>
+<th>Passes</th>
+<th>Deterministic</th>
+<th>Compatible Filters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EnKS</td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span></td>
+<td>Offline</td>
+<td>1 backward</td>
+<td>No (inherits filter)</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>EnsembleRTS</td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span></td>
+<td>Offline</td>
+<td>1 backward</td>
+<td>No (inherits filter)</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>FixedLagSmoother</td>
+<td><span class="arithmatex">\(O(L \cdot N_e \cdot N_x)\)</span></td>
+<td>Online</td>
+<td>Rolling</td>
+<td>No (inherits filter)</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>EnsembleSqrtSmoother</td>
+<td><span class="arithmatex">\(O(T \cdot N_e \cdot N_x)\)</span></td>
+<td>Offline</td>
+<td>1 backward</td>
+<td>Yes</td>
+<td>ETKF, EnSRF, ESTKF</td>
+</tr>
+<tr>
+<td>IES</td>
+<td><span class="arithmatex">\(O(J \cdot N_p + J \cdot N_d)\)</span></td>
+<td>Offline</td>
+<td><span class="arithmatex">\(n_{\text{iter}}\)</span></td>
+<td>No</td>
+<td>Standalone</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key trade-offs:</strong></p>
+<ul>
+<li><strong>EnKS vs EnsembleRTS:</strong> Mathematically equivalent when model error <span class="arithmatex">\(Q = 0\)</span>.
+  EnsembleRTS provides a natural place to incorporate model error.</li>
+<li><strong>FixedLagSmoother:</strong> Only option for real-time / streaming applications.
+  Accuracy approaches full smoother as lag <span class="arithmatex">\(L \to T\)</span>.</li>
+<li><strong>EnsembleSqrtSmoother:</strong> Preferred when using deterministic forward filters
+  to avoid introducing sampling noise in the backward pass.</li>
+<li><strong>IES:</strong> Different paradigm — iterative, not sequential. Best for strongly
+  nonlinear problems where a single backward pass is insufficient.</li>
+</ul>
+<hr />
+<h2 id="6-references">6  References<a class="headerlink" href="#6-references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Evensen, G. &amp; van Leeuwen, P. J. (2000). <em>An Ensemble Kalman Smoother for Nonlinear Dynamics.</em> Monthly Weather Review, 128(6), 1852-1867.</li>
+<li>Rauch, H. E., Tung, F. &amp; Striebel, C. T. (1965). <em>Maximum Likelihood Estimates of Linear Dynamic Systems.</em> AIAA Journal, 3(8), 1445-1450.</li>
+<li>Chen, Y. &amp; Oliver, D. S. (2013). <em>Levenberg-Marquardt Forms of the Iterative Ensemble Smoother for Efficient History Matching and Uncertainty Quantification.</em> Computational Geosciences, 17(4), 689-703.</li>
+<li>Evensen, G., Raanes, P. N., Stordal, A. S. &amp; Hove, J. (2019). <em>Efficient Implementation of an Iterative Ensemble Smoother for Data Assimilation and Reservoir History Matching.</em> Frontiers in Applied Mathematics and Statistics, 5, 47.</li>
+<li>Tippett, M. K., Anderson, J. L., Bishop, C. H., Hamill, T. M. &amp; Whitaker, J. S. (2003). <em>Ensemble Square Root Filters.</em> Monthly Weather Review, 131(7), 1485-1490.</li>
+<li>Whitaker, J. S. &amp; Compo, G. P. (2002). <em>A Comparison of Variants of the Ensemble Square Root Filter.</em> Monthly Weather Review, 130(7), 1913-1924.</li>
+<li>Nerger, L., Janjic, T., Schroter, J. &amp; Hiller, W. (2012). <em>A Regulated Localization Scheme for Ensemble-Based Kalman Filters.</em> Quarterly Journal of the Royal Meteorological Society, 138(664), 802-812.</li>
+</ol>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
