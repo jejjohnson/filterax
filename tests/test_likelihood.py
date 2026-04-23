@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
 import numpy as np
+import pytest
 from scipy.stats import multivariate_normal
 
 import filterax as flx
@@ -99,3 +100,15 @@ def test_innovation_statistics_normalised_innovation_has_identity_covariance():
 
     # Silence unused jax import (kept for future parametric tests).
     _ = jax
+
+
+@pytest.mark.parametrize("N_e", [0, 1])
+def test_innovation_statistics_rejects_degenerate_ensemble(N_e):
+    R = lx.DiagonalLinearOperator(jnp.ones(2))
+    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+        flx.innovation_statistics(
+            jnp.zeros((N_e, 3)),
+            jnp.zeros(2),
+            lambda x: x[:2],
+            R,
+        )

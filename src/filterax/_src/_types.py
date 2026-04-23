@@ -2,20 +2,25 @@
 
 All types are :class:`equinox.Module` subclasses — PyTree-compatible,
 JIT-friendly, and safe to pass through ``jax.lax.scan`` or ``eqx.filter_jit``.
+
+Iteration counters (``step``, ``algo_time``) are stored as scalar JAX array
+leaves so they can be carried through ``lax.scan`` without triggering
+recompilation; compile-time constants like ``n_ensemble`` and ``n_iterations``
+stay in ``eqx.field(static=True)``.
 """
 
 from __future__ import annotations
 
 import equinox as eqx
 import lineax as lx
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Int
 
 
 class FilterState(eqx.Module, strict=True):
     """Running state for sequential filters."""
 
     particles: Float[Array, "N_e N_x"]
-    step: int = eqx.field(static=True)
+    step: Int[Array, ""]
 
 
 class ProcessState(eqx.Module, strict=True):
@@ -25,7 +30,7 @@ class ProcessState(eqx.Module, strict=True):
     forward_evals: Float[Array, "J N_d"]
     obs: Float[Array, " N_d"]
     noise_cov: lx.AbstractLinearOperator
-    step: int = eqx.field(static=True)
+    step: Int[Array, ""]
     algo_time: Float[Array, ""]
 
 
@@ -37,7 +42,7 @@ class UKIState(eqx.Module, strict=True):
 
     mean: Float[Array, " N_p"]
     covariance: lx.AbstractLinearOperator
-    step: int = eqx.field(static=True)
+    step: Int[Array, ""]
 
 
 class AnalysisResult(eqx.Module, strict=True):

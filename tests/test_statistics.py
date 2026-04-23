@@ -70,3 +70,16 @@ def test_cross_covariance_linear_H(getkey):
 @pytest.mark.parametrize("N_e", [3, 10, 100])
 def test_ensemble_mean_shape_parametrized(getkey, N_e):
     assert flx.ensemble_mean(jr.normal(getkey(), (N_e, 4))).shape == (4,)
+
+
+@pytest.mark.parametrize("N_e", [0, 1])
+def test_ensemble_covariance_rejects_degenerate_ensemble(N_e):
+    # N_e < 2 would divide by zero in the Bessel correction; fail fast.
+    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+        flx.ensemble_covariance(jnp.zeros((N_e, 4)))
+
+
+@pytest.mark.parametrize("N_e", [0, 1])
+def test_cross_covariance_rejects_degenerate_ensemble(N_e):
+    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+        flx.cross_covariance(jnp.zeros((N_e, 4)), jnp.zeros((N_e, 3)))

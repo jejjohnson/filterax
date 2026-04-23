@@ -7,20 +7,28 @@ Heavy linear algebra (low-rank operators, Woodbury solves, matrix-determinant
 lemma) is delegated to [`gaussx`](https://github.com/jejjohnson/gaussx);
 `filterax` stays thin and opinionated.
 
+Import from the top-level `filterax` namespace — the `_src` subpackage is an
+internal implementation detail and not part of the stable API.
+
 ---
 
 ## Ensemble statistics
 
-::: filterax._src.statistics
+::: filterax.ensemble_mean
+::: filterax.ensemble_anomalies
+::: filterax.ensemble_covariance
+::: filterax.cross_covariance
 
 ---
 
 ## Kalman gain
 
-::: filterax._src.gain
+::: filterax.kalman_gain
 
 ---
 
 ## Likelihood and innovation diagnostics
 
-::: filterax._src.likelihood
+::: filterax.log_likelihood
+::: filterax.innovation_statistics
+::: filterax.InnovationStatistics

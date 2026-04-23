@@ -11,6 +11,7 @@ import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float
 
+from filterax._src._checks import check_ensemble_size
 from filterax._src.statistics import ensemble_anomalies, ensemble_mean
 
 
@@ -83,8 +84,12 @@ def innovation_statistics(
     Returns:
         Mapping with keys ``innovation``, ``innovation_cov``,
         ``normalized_innovation``, and ``log_likelihood``.
+
+    Raises:
+        ValueError: if ``particles`` has fewer than 2 ensemble members.
     """
     N_e = particles.shape[0]
+    check_ensemble_size(N_e)
     obs_particles = jax.vmap(obs_op)(particles)  # (N_e, N_y)
     mean_obs = ensemble_mean(obs_particles)  # (N_y,)
     innovation = obs - mean_obs

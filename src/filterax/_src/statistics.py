@@ -16,6 +16,8 @@ import jax.numpy as jnp
 from einops import reduce
 from jaxtyping import Array, Float
 
+from filterax._src._checks import check_ensemble_size
+
 
 def ensemble_mean(
     particles: Float[Array, "N_e N_x"],
@@ -46,8 +48,12 @@ def ensemble_covariance(
 
     Returns:
         :class:`gaussx.LowRankUpdate` representing ``P``.
+
+    Raises:
+        ValueError: if ``particles`` has fewer than 2 ensemble members.
     """
     N_e = particles.shape[0]
+    check_ensemble_size(N_e)
     # gaussx uses the 1/N_e divisor; rescale the factor by sqrt(N_e/(N_e-1))
     # so the resulting operator represents 1/(N_e-1) X'^T X'.
     cov = gaussx.ensemble_covariance(particles)
@@ -64,8 +70,12 @@ def cross_covariance(
     Returns a dense ``(N_x, N_y)`` array since ``N_y`` is typically small.
     For nonlinear observation operators, this is the ensemble's implicit,
     derivative-free linearisation of :math:`\nabla H`.
+
+    Raises:
+        ValueError: if either ensemble has fewer than 2 members.
     """
     N_e = particles.shape[0]
+    check_ensemble_size(N_e)
     # gaussx returns 1/N_e; rescale to 1/(N_e-1).
     return gaussx.ensemble_cross_covariance(particles, obs_particles) * (
         N_e / (N_e - 1)

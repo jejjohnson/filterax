@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float
 
+from filterax._src._checks import check_ensemble_size
 from filterax._src.statistics import cross_covariance, ensemble_anomalies
 
 
@@ -36,8 +37,12 @@ def kalman_gain(
 
     Returns:
         Dense Kalman gain of shape ``(N_x, N_y)``.
+
+    Raises:
+        ValueError: if ``particles`` has fewer than 2 ensemble members.
     """
     N_e = particles.shape[0]
+    check_ensemble_size(N_e)
     Hxp = ensemble_anomalies(obs_particles)  # (N_e, N_y)
     C_xH = cross_covariance(particles, obs_particles)  # (N_x, N_y)
 

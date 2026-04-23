@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
 import numpy as np
+import pytest
 
 import filterax as flx
 
@@ -37,6 +38,13 @@ def test_kalman_gain_shape(getkey):
     R = lx.DiagonalLinearOperator(jnp.ones(3))
     K = flx.kalman_gain(particles, obs_particles, R)
     assert K.shape == (5, 3)
+
+
+@pytest.mark.parametrize("N_e", [0, 1])
+def test_kalman_gain_rejects_degenerate_ensemble(N_e):
+    R = lx.DiagonalLinearOperator(jnp.ones(2))
+    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+        flx.kalman_gain(jnp.zeros((N_e, 4)), jnp.zeros((N_e, 2)), R)
 
 
 def test_kalman_gain_zero_ensemble_spread_gives_zero_gain(getkey):
