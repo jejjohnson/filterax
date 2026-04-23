@@ -1,8 +1,8 @@
-site_name: mypackage
+site_name: filterax
 site_description: My short description for my project.
 site_author: J. Emmanuel Johnson
-repo_url: https://github.com/jejjohnson/pypackage_template
-repo_name: jejjohnson/pypackage_template
+repo_url: https://github.com/jejjohnson/filterax
+repo_name: jejjohnson/filterax
 
 theme:
   name: material
@@ -43,8 +43,9 @@ plugins:
 nav:
   - Home: index.md
   - Examples:
-      - Demo: notebooks/example_demo.py
+      - Demo: notebooks/example_demo.ipynb
   - API Reference: api/reference.md
+  - Contributing: contributing.md
   - Changelog: CHANGELOG.md
 
 markdown_extensions:
