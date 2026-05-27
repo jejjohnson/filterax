@@ -14,6 +14,7 @@ converge to ``(μ_post, Σ_post)`` after burn-in.
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
@@ -266,4 +267,107 @@ def test_sigma_points_reconstruct_mean_and_covariance():
     )
 
 
-# pytest import here so test_eki_converges_with_misfit_controller can use it.
+# ──────────────────────────────────────────────────────────────────────
+# Nonlinear inverse problem — verifies the algorithms work beyond the
+# linear-Gaussian one-shot Kalman equivalence.
+#
+# We test the *invariant* that matters in practice: the analysis
+# misfit strictly improves on the initial ensemble's, and the final
+# parameter estimate lands closer to the truth. A tight "match
+# θ_true exactly" assertion is too brittle with a finite ensemble and
+# the EKI prior-regularisation pull — the algorithm reaches the MAP
+# under the implicit ensemble prior, which only coincides with
+# ``θ_true`` in the broad-prior, infinite-ensemble limit.
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _nonlinear_forward():
+    r"""Mildly nonlinear toy: ``G(θ) = θ + 0.3 sin(2 θ)``.
+
+    Monotone (so the posterior is well-defined) but nonlinear enough
+    that the cross-covariance linearisation is a real approximation
+    rather than exact.
+    """
+
+    def G(theta):
+        return theta + 0.3 * jnp.sin(2.0 * theta)
+
+    return G
+
+
+def _nonlinear_problem():
+    forward = _nonlinear_forward()
+    theta_true = jnp.asarray([0.7, -1.1, 0.3])
+    y = forward(theta_true)
+    R = lx.DiagonalLinearOperator(jnp.full((3,), 0.01))
+    return forward, theta_true, y, R
+
+
+def _misfit(forward, theta_or_particles, y):
+    """Mean Mahalanobis-style misfit ‖y − G(θ)‖² (Γ = 0.01 I, omitted)."""
+    if theta_or_particles.ndim == 1:
+        return float(jnp.sum((y - forward(theta_or_particles)) ** 2))
+    g = jax.vmap(forward)(theta_or_particles)
+    return float(jnp.mean(jnp.sum((y[None, :] - g) ** 2, axis=-1)))
+
+
+def test_eki_reduces_misfit_and_moves_toward_truth_on_nonlinear_problem():
+    forward, theta_true, y, R = _nonlinear_problem()
+    init = 2.0 * jr.normal(jr.PRNGKey(10), (200, 3))
+    eki = flx.EKI(
+        forward_fn=forward,
+        obs=y,
+        noise_cov=R,
+        scheduler=flx.FixedScheduler(dt=0.1),
+        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.1), n_iterations=10),
+    )
+    result = eki.run(init)
+
+    initial_misfit = _misfit(forward, init, y)
+    final_misfit = _misfit(forward, result.mean, y)
+    assert final_misfit < initial_misfit / 10  # at least 10× reduction
+    # Parameter estimate is closer to the truth than the initial mean.
+    initial_dist = float(jnp.linalg.norm(jnp.mean(init, axis=0) - theta_true))
+    final_dist = float(jnp.linalg.norm(result.mean - theta_true))
+    assert final_dist < initial_dist
+
+
+def test_uki_reduces_misfit_on_nonlinear_problem():
+    forward, _theta_true, y, R = _nonlinear_problem()
+    init_cov = lx.MatrixLinearOperator(
+        4.0 * jnp.eye(3), tags=lx.positive_semidefinite_tag
+    )
+    uki = flx.UKI(
+        forward_fn=forward,
+        obs=y,
+        noise_cov=R,
+        scheduler=flx.FixedScheduler(dt=0.1),
+        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.1), n_iterations=10),
+    )
+    result = uki.run(jnp.zeros(3), init_cov)
+    initial_misfit = _misfit(forward, jnp.zeros(3), y)
+    final_misfit = _misfit(forward, result.mean, y)
+    assert final_misfit < initial_misfit / 10
+    # UKI also shrinks its parametric covariance — the trace must drop.
+    initial_cov_trace = float(jnp.trace(init_cov.as_matrix()))
+    final_cov_trace = float(jnp.trace(result.covariance.as_matrix()))
+    assert final_cov_trace < initial_cov_trace
+
+
+def test_eks_preserves_spread_on_nonlinear_problem():
+    forward, _theta_true, y, R = _nonlinear_problem()
+    init = 1.0 * jr.normal(jr.PRNGKey(11), (200, 3))
+    eks = flx.EKS(
+        forward_fn=forward,
+        obs=y,
+        noise_cov=R,
+        scheduler=flx.FixedScheduler(dt=0.02),
+        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.02), n_iterations=200),
+        seed=12,
+    )
+    result = eks.run(init)
+    # EKS is an ergodic sampler — variance shouldn't collapse like EKI's.
+    final_trace = float(jnp.trace(result.covariance.as_matrix()))
+    assert final_trace > 1e-3
+    # All particles must be finite (no NaN blow-up under the nonlinear G).
+    assert bool(jnp.all(jnp.isfinite(result.particles)))

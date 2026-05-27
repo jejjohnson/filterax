@@ -335,7 +335,9 @@ def uki(
         init_cov: Initial parameter covariance. Scalar → ``σ² I``;
             matrix → used directly.
         scheduler: Step-size strategy.
-        alpha, beta, kappa: Unscented tuning parameters.
+        alpha: Sigma-point spread parameter (Wan & van der Merwe 2000).
+        beta: Prior-moment weighting (``2.0`` is optimal for Gaussian).
+        kappa: Secondary scaling parameter; typically ``0`` or ``3 − Nₚ``.
     """
     sched = scheduler if scheduler is not None else DataMisfitController()
 

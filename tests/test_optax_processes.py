@@ -136,3 +136,53 @@ def test_eki_optax_handles_pytree_params():
     assert set(updates.keys()) == {"a", "b"}
     assert updates["a"].shape == (1,)
     assert updates["b"].shape == (1,)
+
+
+def test_adam_to_eki_hybrid_optimisation():
+    r"""Two-phase optimisation: Adam (gradient-based) → EKI (derivative-free).
+
+    Demonstrates the hybrid pattern from
+    ``docs/design_docs/features/optax_ekp.md`` §6: Adam handles a fast
+    warm-start on a smooth differentiable loss; EKI then refines
+    without gradients. Both phases use the same ``optax`` driver loop,
+    just with different transforms.
+    """
+    G, y, R, _, mu_post, _ = _problem()
+
+    def loss_fn(theta):
+        residual = G @ theta - y
+        return 0.5 * jnp.sum(residual**2 / 0.1)
+
+    forward = lambda theta: G @ theta
+
+    # ── Phase 1: Adam warm-start with explicit gradients ────────────
+    adam = optax.adam(learning_rate=0.2)
+    params = jnp.asarray([3.0, 3.0])  # far from the truth
+    state = adam.init(params)
+    for _ in range(30):
+        grads = jax.grad(loss_fn)(params)
+        updates, state = adam.update(grads, state, params)
+        params = optax.apply_updates(params, updates)
+
+    adam_error = float(jnp.linalg.norm(params - mu_post))
+
+    # ── Phase 2: EKI refinement (grads=None) ────────────────────────
+    eki_transform = flx.optax.eki(
+        forward_fn=forward,
+        obs=y,
+        noise_cov=R,
+        n_ensemble=100,
+        init_spread=0.1,  # tight cluster around the warm-started mean
+        scheduler=flx.FixedScheduler(dt=1.0),
+    )
+    state = eki_transform.init(params)
+    for _ in range(2):
+        updates, state = eki_transform.update(None, state, params)
+        params = optax.apply_updates(params, updates)
+
+    hybrid_error = float(jnp.linalg.norm(params - mu_post))
+
+    # Adam alone gets close, EKI refines it further (within Monte Carlo).
+    assert hybrid_error <= adam_error + 0.1
+    # And both phases produced finite output.
+    assert bool(jnp.all(jnp.isfinite(params)))
