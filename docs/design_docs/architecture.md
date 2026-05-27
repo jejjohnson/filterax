@@ -177,6 +177,18 @@ class AbstractScheduler(eqx.Module):
 
 All protocols are `eqx.Module` subclasses — pytree-compatible, JIT-friendly, serializable.
 
+### Structural compatibility with `pipekit-cycle`
+
+filterax's protocols are designed so that the concrete filter and operator classes **structurally satisfy** the three Protocols in `pipekit-cycle` (`ForwardModel`, `ObservationOperator`, `AnalysisStep`). filterax does **not import** pipekit. The compatibility is duck-typed:
+
+| filterax abstract | pipekit-cycle Protocol | Compatibility shape |
+|---|---|---|
+| `AbstractDynamics.__call__(state, t0, t1)` | `ForwardModel.step(state, dt)` | filterax dynamics expose `step(state, dt) -> state` as an alias when used in pipekit pipelines |
+| `AbstractObsOperator.__call__(state)` | `ObservationOperator.__call__(state)` | Identical surface |
+| `AbstractSequentialFilter.analysis(forecast, obs, obs_op, obs_noise)` | `AnalysisStep.__call__(forecast, obs, *, obs_op, obs_err_cov)` | filterax filters expose `__call__` as a keyword-arg adapter when used in pipekit pipelines |
+
+See D11 and `integrations/pipekit.md` for the adapter snippets and the rationale.
+
 ---
 
 ## Key Data Types
@@ -235,6 +247,51 @@ Design notes:
 - Ensemble dimension is the leading axis (`N_e, N_x`) for natural `eqx.filter_vmap` over members.
 - `log_likelihood` is optional — only computed when needed for differentiable training.
 - Configuration is `eqx.Module` — serializable, pytree-compatible, JIT-friendly.
+- `particles` is a bare JAX array. Coordinate-aware carriers (`coordax.Array`, `GeoTensor`) are
+  handled via a `CarrierAdapter` outside the core type — see D13 and
+  `integrations/geostack.md`.
+- State types are fully `eqx.tree_serialise_leaves`-compatible — see D15 and
+  `features/state_persistence.md` for the persistence contract.
+
+---
+
+## Carrier Adapter Layer
+
+For consumers that want coordinate-aware ensemble particles (CRS, named dimensions, time coordinates) the core types stay JAX-array only; a `CarrierAdapter` flattens to and unflattens from a plain `(N_e, N_x)` array around analysis calls. The interface lives in `filterax.integrations`:
+
+```python
+class CarrierAdapter(eqx.Module):
+    """Round-trip a coordinate-aware carrier to/from FilterState.particles."""
+
+    @abc.abstractmethod
+    def flatten(self, carrier) -> tuple[Float[Array, "N_e N_x"], "CarrierMeta"]:
+        """Project carrier to a (N_e, N_x) array and a static metadata record."""
+        ...
+
+    @abc.abstractmethod
+    def unflatten(
+        self, particles: Float[Array, "N_e N_x"], meta: "CarrierMeta"
+    ) -> Any:
+        """Reconstruct the original carrier from particles + metadata."""
+        ...
+```
+
+Filters see only `Float[Array, "N_e N_x"]`. The adapter is user-facing convenience; the math layer stays minimal. filterax ships reference adapters for plain dicts of named arrays in core, and a `coordax.Array` adapter under `filterax.integrations` (no `coordax` runtime dependency — imported lazily). See `integrations/geostack.md`.
+
+---
+
+## Serialization Contract
+
+Every state and config type is fully `eqx.tree_serialise_leaves`-compatible (D15). filterax exposes two helpers in Wave 4:
+
+```python
+filterax.save_state(path: str | Path, state: FilterState | ProcessState | UKIState) -> None
+filterax.load_state(path: str | Path, like: FilterState | ProcessState | UKIState) -> FilterState | ProcessState | UKIState
+```
+
+These wrap `eqx.tree_serialise_leaves` / `eqx.tree_deserialise_leaves` with a magic-byte header (`b"FAX1"`) so future schema changes are detectable. All static fields on state types must be JSON-serializable scalars; custom classes in static fields are rejected at construction.
+
+See `features/state_persistence.md` for the full contract, warm-start patterns, and the operational-alert recipe.
 
 ---
 

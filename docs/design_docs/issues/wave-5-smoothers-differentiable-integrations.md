@@ -190,6 +190,68 @@ Add the minimal integration-facing surfaces needed before the final tutorial wav
 
 ---
 
+# integrations(pipekit): verify structural Protocol compatibility with pipekit-cycle
+Draft ID: `FLX-55A`
+## Problem / Request
+Verify (without importing pipekit) that filterax's filter / dynamics / obs-op
+classes satisfy `pipekit_cycle.AnalysisStep`, `ForwardModel`, and
+`ObservationOperator` per Decision D11.
+
+## Motivation
+The plumax / geostack stacks compose filterax into pipekit `Sequential`,
+`Graph`, and `Cycle` pipelines. Structural compatibility must be tested
+explicitly because the duck-typing contract is implicit.
+
+## References & Existing Code
+- Design doc / spec:
+  `design_docs/integrations/pipekit.md`,
+  `design_docs/decisions.md` (D11)
+
+## Implementation Steps
+- [ ] Add an opt-in test module guarded by `pytest.importorskip("pipekit_cycle")`.
+- [ ] Assert `isinstance(filter_instance, pipekit_cycle.AnalysisStep)` for every
+      concrete sequential filter shipped by filterax.
+- [ ] Assert the analogous checks for `ForwardModel` and `ObservationOperator`
+      using a minimal user-supplied dynamics / obs-op.
+- [ ] Document the `StatefulOperator` wrapper recipe in the integration doc
+      (not shipped by filterax).
+
+## Definition of Done
+- A pipekit-cycle user can drop a filterax filter into a `Sequential` graph
+  without writing a custom adapter.
+
+## Relationships
+- Parent epic: FLX-51.
+
+---
+
+# integrations(plumax): worked multi-instrument Tier IV recipe
+Draft ID: `FLX-55B`
+## Problem / Request
+Author the worked-example recipe in `integrations/plumax.md` (already exists)
+into a runnable end-to-end smoke script that exercises `JointObsOperator`,
+`SequentialAssimilation`, `GeoLocalizer`, and the fixed-lag smoother.
+
+## Motivation
+The Tier IV use case is the canonical multi-instrument fusion target. A smoke
+script catches integration regressions before they reach plumax.
+
+## References & Existing Code
+- Design doc / spec: `design_docs/integrations/plumax.md`
+
+## Implementation Steps
+- [ ] Author a synthetic multi-instrument problem in `tests/integration/`.
+- [ ] Run end-to-end: forecast → joint analysis → sequential analysis →
+      fixed-lag smoother → save_state / load_state.
+- [ ] Smoke assertion only (RMSE finite, no NaNs). Numerical correctness lives
+      in the per-component tests.
+
+## Relationships
+- Parent epic: FLX-51.
+- Blocked by FLX-24A, FLX-43A, FLX-46A, FLX-52.
+
+---
+
 # references(zoo): add minimal geo_toolz/xr_assimilate seams and zoo/reference surfaces
 Draft ID: `FLX-56`
 ## Problem / Request

@@ -25,10 +25,17 @@ filterX/
 │   ├── filters.md         # Sequential EnKF variants (ETKF, LETKF, EnSRF, ESTKF, etc.)
 │   ├── processes.md       # EKP algorithms (EKI, EKS, UKI, GNKI, SparseEKI, TEKI)
 │   ├── smoothers.md       # Ensemble smoothers (EnKS, RTS, fixed-lag, IES)
-│   ├── localization_inflation.md  # Localization tapers + inflation strategies
+│   ├── localization_inflation.md  # Localization tapers + inflation strategies (incl. GeoLocalizer)
 │   ├── diagnostics.md     # DA evaluation metrics (rank histogram, Desroziers, CRPS, etc.)
 │   ├── differentiable_da.md      # Deep dive: backprop through filters
-│   └── optax_ekp.md       # Deep dive: EKP as optax GradientTransformations
+│   ├── optax_ekp.md       # Deep dive: EKP as optax GradientTransformations
+│   ├── multi_instrument.md       # JointObsOperator + SequentialAssimilation (D12)
+│   └── state_persistence.md      # Serialization contract + warm-start patterns (D15)
+├── integrations/
+│   ├── README.md          # Index and reading order for ecosystem integration docs
+│   ├── pipekit.md         # Structural Protocol satisfaction with pipekit-cycle (D11)
+│   ├── plumax.md          # Multi-instrument methane attribution recipe (Tier IV)
+│   └── geostack.md        # CarrierAdapter for coordax / GeoTensor particles (D13)
 ├── examples/
 │   ├── README.md          # Index and reading order
 │   ├── primitives.md      # Layer 0 usage patterns
@@ -38,8 +45,9 @@ filterX/
 ├── research/
 │   ├── README.md          # Index for research docs
 │   ├── research_enskf.md  # Audit of existing kalman_filter/ code (~5,000 lines)
-│   └── ens_kalman_process.md  # EKP theory: math, process zoo, BLR connection
-└── decisions.md           # 10 ADRs (D1–D10)
+│   ├── ens_kalman_process.md  # EKP theory: math, process zoo, BLR connection
+│   └── operational_da.md  # Streaming / alert-service patterns
+└── decisions.md           # 16 ADRs (D1–D16)
 ```
 
 ## Reading Order
@@ -52,6 +60,8 @@ filterX/
 6. **[features/filters.md](features/filters.md)** → **[processes.md](features/processes.md)** → **[smoothers.md](features/smoothers.md)** — algorithm deep dives
 7. **[features/localization_inflation.md](features/localization_inflation.md)** → **[diagnostics.md](features/diagnostics.md)** — tuning and evaluation
 8. **[features/differentiable_da.md](features/differentiable_da.md)** → **[optax_ekp.md](features/optax_ekp.md)** — unique capabilities
-9. **[examples/primitives.md](examples/primitives.md)** → **[components.md](examples/components.md)** → **[models.md](examples/models.md)** → **[integration.md](examples/integration.md)** — see it in action
-10. **[decisions.md](decisions.md)** — understand the tradeoffs (D1–D10)
-11. **[research/](research/)** — background theory and code audits
+9. **[features/multi_instrument.md](features/multi_instrument.md)** → **[features/state_persistence.md](features/state_persistence.md)** — operational extensions
+10. **[examples/primitives.md](examples/primitives.md)** → **[components.md](examples/components.md)** → **[models.md](examples/models.md)** → **[integration.md](examples/integration.md)** — see it in action
+11. **[integrations/pipekit.md](integrations/pipekit.md)** → **[integrations/plumax.md](integrations/plumax.md)** → **[integrations/geostack.md](integrations/geostack.md)** — ecosystem integration recipes
+12. **[decisions.md](decisions.md)** — understand the tradeoffs (D1–D16)
+13. **[research/](research/)** — background theory, code audits, operational DA

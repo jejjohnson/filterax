@@ -35,6 +35,10 @@ This document defines what ekalmX owns, what it delegates, and how it interacts 
 | Variational DA (4DVar, 4DVarNet) | **vardax** | Sister library, different DA paradigm |
 | Natural-gradient optimization (BLR) | **optax_bayes** | Sister library |
 | xarray-level DA orchestration | **xr_assimilate** | Consumes ekalmX as compute backend |
+| Operator composition / pipelines / cycles | **pipekit** + **pipekit-cycle** | filterax classes **structurally satisfy** pipekit-cycle Protocols (`ForwardModel`, `ObservationOperator`, `AnalysisStep`). No import (D11). |
+| Geographic catalogs, readers, carriers | **geostack** / **georeader** / **geotoolz** | filterax provides `CarrierAdapter` for coordax / `GeoTensor` particles (D13). |
+| Spatial patcher (sampler + stitcher) | **filterax** L0 (in-house, Wave 2) → **geotoolz.patch** (post-stabilization) | Hybrid migration per D16. |
+| Plumax / methane attribution forward models | **plumax** (external) | Pluggable via `AbstractDynamics`; multi-instrument observation operators composed via `JointObsOperator` / `SequentialAssimilation` (D12). |
 | xarray pre/post-processing | **geo_toolz** | Upstream (preprocess) and downstream (evaluate) |
 | Training / assimilation loops | **user** | Library, not framework |
 | Continuous-time filters (Kalman-Bucy, etc.) | **ekalmX** zoo/ | Reference only, not core API |
@@ -242,15 +246,21 @@ Sister libraries (same level, different paradigm):
 
 3. **xr_assimilate integration depth** — ekalmX is the compute backend, but the API contract between them (how xr_assimilate calls ekalmX, what state/result types cross the boundary) isn't defined yet.
 
-4. **coordax integration** — Should ensemble states use coordax for coordinate-aware arrays? Depends on coordax maturity. Same open question as vardax.
+4. **3D / volumetric support** — How much native 3D support vs treating 3D as multilayer 2D via `eqx.filter_vmap`?
 
-5. **3D / volumetric support** — How much native 3D support vs treating 3D as multilayer 2D via `eqx.filter_vmap`?
+5. **Particle filters** — The zoo has a continuous-time particle filter. Should ekalmX core include discrete particle filters (bootstrap PF, optimal PF), or is that a separate library?
 
-6. **Particle filters** — The zoo has a continuous-time particle filter. Should ekalmX core include discrete particle filters (bootstrap PF, optimal PF), or is that a separate library?
+6. **Ensemble size adaptivity** — Dynamic ensemble resizing during assimilation. Research topic, not immediate.
 
-7. **Ensemble size adaptivity** — Dynamic ensemble resizing during assimilation. Research topic, not immediate.
+## Resolved (see decisions.md)
 
-8. **Package rename** — Directory is currently `filterX`, library will be `ekalmx`. Rename when standalone repo is created.
+- **pipekit-cycle coupling** — Structural Protocol satisfaction, no import. D11.
+- **Multi-instrument fusion** — Both `JointObsOperator` and `SequentialAssimilation`. D12.
+- **coordax / GeoTensor carriers** — Adapter pattern, core stays JAX-array. D13.
+- **Geospatial localization** — Owned by filterax (`GeoLocalizer`). D14.
+- **Filter state persistence** — `eqx.tree_serialise_leaves`-compatible state types, `save_state` / `load_state` helpers. D15.
+- **Patcher** — In-house in Wave 2; migrate to `geotoolz.patch` once stable. D16.
+- **Package rename** — Directory renamed to `filterax`; package shipped as `filterax`.
 
 ---
 

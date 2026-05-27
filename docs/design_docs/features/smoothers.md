@@ -28,6 +28,13 @@ iterative).
 **Out of scope:** Forward-only filters, EKP processes (iterative parameter
 estimation), variational smoothers (4D-Var).
 
+**Priority note (motivating use case).** The plumax Tier IV attribution use
+case (see `vision.md` "Motivating Downstream Use Case") drives post-hoc
+reconstruction of multi-day events spanning 3–5 satellite overpasses. The
+fixed-lag smoother and ensemble RTS variants are first-class deliverables in
+Wave 5, not optional extensions. See `integrations/plumax.md` for the API
+sketch.
+
 **Key insight:** All ensemble smoothers share the same backward-pass structure
 as the classical Rauch-Tung-Striebel smoother — only the gain computation and
 storage strategy differ. The smoother gain is always a cross-covariance

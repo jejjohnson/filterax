@@ -36,6 +36,14 @@ cross-validation for hyperparameters, offline regression for model error
 correction, adjoint models for 4DVar. A differentiable filter unifies all
 four under a single gradient-based framework.
 
+**Motivating downstream target.** The plumax Tier IV v2+ roadmap replaces the
+look-up-table radiative transfer model with a neural surrogate trained
+end-to-end against TROPOMI / EMIT / GHGSat radiances. The neural RTM lives
+inside the observation operator; `jax.grad` must flow through the entire
+forecast-analysis pipeline to train it. Differentiability is the design
+constraint that lets filterax be this gradient pipe rather than a black box.
+See `integrations/plumax.md` for the API sketch.
+
 ---
 
 ## 2  Why JAX Makes This Free

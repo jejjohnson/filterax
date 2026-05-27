@@ -28,6 +28,12 @@ LETKF, parametric square-root Kalman filter.
 **Out of scope:** Iterative processes (EKI, EKS — see processes.md), smoothers
 (EnKS, RTS — see smoothers.md), particle filters.
 
+**Multi-instrument fusion:** assimilating several observation streams (e.g.
+TROPOMI + EMIT + GHGSat) is handled by composing single-instrument filters
+through `JointObsOperator` (one analysis call, block-diagonal noise) or
+`SequentialAssimilation` (loop over instruments, one analysis call per
+overpass). See `features/multi_instrument.md` and Decision D12.
+
 ---
 
 ## 2  Common Mathematical Framework

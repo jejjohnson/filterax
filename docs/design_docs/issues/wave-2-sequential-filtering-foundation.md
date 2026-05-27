@@ -41,6 +41,8 @@ After this wave, later work should be able to assume:
 - `create_patches`, `assign_obs_to_patches`, `blend_patches`
 - `StochasticEnKF`, `ETKF`, `EnSRF`, `LETKF`
 - high-level `ETKF`, `EnSRF`, and `LETKF` assimilation models
+- `JointObsOperator(ops, noise_covs)` combinator + `MaskedObsOperator` wrapper
+- `SequentialAssimilation(filter)` Layer 2 helper (D12, `features/multi_instrument.md`)
 
 ## Canonical API Snapshot
 The design docs suggest two main user-facing entry patterns in this wave.
@@ -343,6 +345,41 @@ analysis-step components.
 ## Relationships
 - Parent epic: FLX-17.
 - Blocked by FLX-22 and FLX-23.
+
+---
+
+# filters(multi-instrument): implement JointObsOperator, MaskedObsOperator, and SequentialAssimilation
+Draft ID: `FLX-24A`
+## Problem / Request
+Provide the two surfaces for multi-instrument fusion mandated by Decision D12.
+
+## Motivation
+The plumax/geostack motivating use case (see `vision.md`) assimilates TROPOMI,
+EMIT, and GHGSat observations at heterogeneous resolutions and overpass times.
+Single-instrument analysis is insufficient.
+
+## References & Existing Code
+- Design doc / spec: `design_docs/features/multi_instrument.md`,
+  `design_docs/decisions.md` (D12), `design_docs/integrations/plumax.md`
+
+## Implementation Steps
+- [ ] Implement `JointObsOperator(ops, noise_covs)` returning a stacked obs
+      vector and block-diagonal noise (via `gaussx`).
+- [ ] Implement `MaskedObsOperator(op, mask_fn)` wrapper for partial obs / NaN
+      masking.
+- [ ] Implement `SequentialAssimilation(filter)` Layer 2 helper that loops
+      `filter.analysis` over a list of `(obs, obs_op, obs_noise)` tuples.
+- [ ] Add joint-vs-sequential equivalence test on a 2-instrument linear
+      Gaussian problem (block-diagonal R, independent obs ⇒ identical
+      posterior).
+
+## Definition of Done
+- Users can fuse 2+ observation streams either jointly or sequentially without
+  rewriting their filter.
+
+## Relationships
+- Parent epic: FLX-17.
+- Blocked by FLX-22.
 
 ---
 
