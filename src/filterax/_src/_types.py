@@ -53,6 +53,19 @@ class AnalysisResult(eqx.Module, strict=True):
     diagnostics: dict | None = None
 
 
+class AssimilationResult(eqx.Module, strict=True):
+    """Output of a full forecast-analysis-inflate loop.
+
+    The history arrays are stacked along a leading time axis so callers
+    can index into per-window analyses without materialising a Python list.
+    """
+
+    particles: Float[Array, "N_e N_x"]
+    forecast_history: Float[Array, "T N_e N_x"]
+    analysis_history: Float[Array, "T N_e N_x"]
+    log_likelihoods: Float[Array, " T"] | None = None
+
+
 class FilterConfig(eqx.Module, strict=True):
     """Static configuration for sequential filters.
 

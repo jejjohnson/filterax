@@ -12,7 +12,7 @@ import lineax as lx
 from jaxtyping import Array, Float
 
 from filterax._src._checks import check_ensemble_size
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._src.statistics import ensemble_mean
 
 
 def log_likelihood(
@@ -49,6 +49,21 @@ def log_likelihood(
         innovation,
         solver=solver,
     )
+
+
+def innovation_covariance(
+    obs_particles: Float[Array, "N_e N_y"],
+    obs_noise: lx.AbstractLinearOperator,
+) -> gaussx.LowRankUpdate:
+    r"""Innovation covariance :math:`S = C^{HH} + R` as a low-rank update.
+
+    Composes the Bessel-corrected ensemble covariance of the observation-space
+    particles with the observation noise as base, so structural dispatch can
+    apply Woodbury / matrix-determinant lemma on solves and logdets.
+    """
+    check_ensemble_size(obs_particles.shape[0])
+    cov = gaussx.ensemble_covariance(obs_particles, bessel=True)
+    return gaussx.LowRankUpdate(obs_noise, cov.U)
 
 
 class InnovationStatistics(TypedDict):
@@ -88,16 +103,11 @@ def innovation_statistics(
     Raises:
         ValueError: if ``particles`` has fewer than 2 ensemble members.
     """
-    N_e = particles.shape[0]
-    check_ensemble_size(N_e)
+    check_ensemble_size(particles.shape[0])
     obs_particles = jax.vmap(obs_op)(particles)  # (N_e, N_y)
-    mean_obs = ensemble_mean(obs_particles)  # (N_y,)
-    innovation = obs - mean_obs
+    innovation = obs - ensemble_mean(obs_particles)
 
-    Hxp = ensemble_anomalies(obs_particles)
-    U = Hxp.T / jnp.sqrt(N_e - 1)
-    S = gaussx.LowRankUpdate(obs_noise, U)
-
+    S = innovation_covariance(obs_particles, obs_noise)
     log_prob = log_likelihood(innovation, S, solver=solver)
 
     # Normalised innovation S^{-1/2} v via Cholesky of the (small) dense S.

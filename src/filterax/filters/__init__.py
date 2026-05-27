@@ -1,5 +1,12 @@
-"""Sequential ensemble Kalman filters.
+"""Layer-1 sequential filter components.
 
-Concrete filter implementations (ETKF, EnSRF, LETKF, ...) land in later
-waves; this subpackage is intentionally empty in Wave 1.
+Re-exports the L1 filter classes from ``filterax._src.sequential`` so the
+canonical ``filterax.filters.ETKF()`` access path matches the design docs.
 """
+
+from filterax._src.sequential import (
+    ETKF as ETKF,
+    LETKF as LETKF,
+    EnSRF as EnSRF,
+    StochasticEnKF as StochasticEnKF,
+)

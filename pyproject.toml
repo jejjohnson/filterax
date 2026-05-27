@@ -27,12 +27,12 @@ classifiers = [
 ]
 dependencies = [
     "einops>=0.8",
-    "equinox>=0.11",
-    "gaussx @ git+https://github.com/jejjohnson/gaussx@fd9a242730e32caeebcc7e5bd3441bf80e0d053f",
-    "jax>=0.4",
-    "jaxlib>=0.4",
-    "jaxtyping>=0.2",
-    "lineax>=0.0.5",
+    "equinox>=0.13.8",
+    "gaussx @ git+https://github.com/jejjohnson/gaussx@a66bab1",
+    "jax>=0.10",
+    "jaxlib>=0.10",
+    "jaxtyping>=0.3",
+    "lineax>=0.1.1",
     "optax>=0.2",
 ]
 
@@ -87,9 +87,12 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
-# F722 is ignored globally so jaxtyping shape strings (e.g. Float[Array, "N_x N_y"])
-# do not trigger "syntax error in forward annotation".
-ignore = ["E402", "E721", "E731", "E741", "F722"]
+# F722 / F821 are ignored globally so jaxtyping shape strings (e.g.
+# Float[Array, "N_x N_y"]) do not trigger "syntax error in forward
+# annotation" or "undefined name" on the named axes. UP037 is ignored
+# because removing the quotes makes jaxtyping shape specs ("..." or
+# "N_e *spatial") parse as bare Python expressions and break at import.
+ignore = ["E402", "E721", "E731", "E741", "F722", "F821", "UP037"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

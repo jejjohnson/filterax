@@ -491,7 +491,7 @@ wheels = [
 
 [[package]]
 name = "equinox"
-version = "0.13.7"
+version = "0.13.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jax" },
@@ -499,9 +499,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "wadler-lindig" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/05/54/9655a0546bbff95f93f6c81bdc6ecefecc7d92761b25fbbf4442d14491be/equinox-0.13.7.tar.gz", hash = "sha256:fcba83317fd53ee4505cfe32f919c13f9d4c3a68c266696dfa115129ed8c465f", size = 142098, upload-time = "2026-04-20T13:21:13.651Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/ff/522336d2f8264f2ad97119710b76e2cddf66145d03a1e89899175d26b192/equinox-0.13.8.tar.gz", hash = "sha256:dd075050018e2dd02e252e9d29d3060f7e67f085622d8d27a8e89e24bb8523db", size = 145257, upload-time = "2026-05-05T10:03:43.258Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/5e/28df919a8d5741a96fe7f56ac19493389f7a3de9c819c7a1ec3b2c557852/equinox-0.13.7-py3-none-any.whl", hash = "sha256:f2c8f4713ccdb0db117937d27dc6572a643bd2a15a1213e379cc6065e38a1731", size = 182093, upload-time = "2026-04-20T13:21:12.302Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/d6/69a76c8ccdef14af687c497040292a46e59fc7a0ab24724b60e50ca61030/equinox-0.13.8-py3-none-any.whl", hash = "sha256:ca004348533cc30a63ebe8823d7dd4bb626dce17743d40bbddb89b402ef2a240", size = 185813, upload-time = "2026-05-05T10:03:41.673Z" },
 ]
 
 [[package]]
@@ -573,12 +573,12 @@ typecheck = [
 [package.metadata]
 requires-dist = [
     { name = "einops", specifier = ">=0.8" },
-    { name = "equinox", specifier = ">=0.11" },
-    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=fd9a242730e32caeebcc7e5bd3441bf80e0d053f" },
-    { name = "jax", specifier = ">=0.4" },
-    { name = "jaxlib", specifier = ">=0.4" },
-    { name = "jaxtyping", specifier = ">=0.2" },
-    { name = "lineax", specifier = ">=0.0.5" },
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=a66bab1" },
+    { name = "jax", specifier = ">=0.10" },
+    { name = "jaxlib", specifier = ">=0.10" },
+    { name = "jaxtyping", specifier = ">=0.3" },
+    { name = "lineax", specifier = ">=0.1.1" },
     { name = "optax", specifier = ">=0.2" },
 ]
 
@@ -645,8 +645,8 @@ wheels = [
 
 [[package]]
 name = "gaussx"
-version = "0.0.10"
-source = { git = "https://github.com/jejjohnson/gaussx?rev=fd9a242730e32caeebcc7e5bd3441bf80e0d053f#fd9a242730e32caeebcc7e5bd3441bf80e0d053f" }
+version = "0.0.15"
+source = { git = "https://github.com/jejjohnson/gaussx?rev=a66bab1#a66bab1904d5cbb7dd5ef89cafcef9a9a3455896" }
 dependencies = [
     { name = "einops" },
     { name = "equinox" },
@@ -1025,7 +1025,7 @@ wheels = [
 
 [[package]]
 name = "lineax"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
@@ -1033,9 +1033,9 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/35/d6/4e28416a6fe58dd6bc7565b1ffa330f4d0ba7d74212642b1b734c511299e/lineax-0.1.0.tar.gz", hash = "sha256:5f1a8f060142af2cdbf7d66b99e8d3071c3aa734b677df6339df4b4c4c0554d2", size = 50209, upload-time = "2026-01-27T21:17:26.652Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/e0/b7e501899cebd6dc609a01645350afa7976d40a8f3c0bfdf4560e448b2b7/lineax-0.1.1.tar.gz", hash = "sha256:187b8ea93b8e1099fb792e81c6e71a9c269f4fcadbb5313fe312d5847f581f9d", size = 53195, upload-time = "2026-05-01T15:59:06.793Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/0c/2ed47112fc1958a0a81c9b015d4e1861953a1ec3a17b081c0180a25ce82c/lineax-0.1.0-py3-none-any.whl", hash = "sha256:f00911c6b07d427c4835db46856970c8348bc82a035b51f4386ad09382af957a", size = 74600, upload-time = "2026-01-27T21:17:25.33Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/f8/0d32243c6b8e5dbee9097cf0c95bbdf8681ba4463c927c2e3445f3775814/lineax-0.1.1-py3-none-any.whl", hash = "sha256:2e399f1674773ab2ba54d76175a618977a554f47abd0a345198d53d92c07beb2", size = 77567, upload-time = "2026-05-01T15:59:05.517Z" },
 ]
 
 [[package]]
