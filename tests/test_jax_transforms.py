@@ -68,3 +68,100 @@ def test_kalman_gain_differentiable_wrt_particles(getkey):
     g = jax.grad(scalar, argnums=0)(p, o)
     assert g.shape == p.shape
     assert jnp.isfinite(g).all()
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Gradient stability of L1 sequential filters (regression for #82).
+#
+# The old ``_transform_eig`` decomposed an (N_e, N_e) matrix with
+# ``N_e − N_y`` structurally-repeated eigenvalues; JAX's ``eigh`` JVP
+# returns ``NaN`` for repeated eigenvalues, so reverse-mode gradients
+# through ETKF / EnSRF / ESTKF / LETKF / ETKF_Livings all NaN-out for
+# ``N_e >> N_y``. The QR-based rank-``N_y`` reformulation removes the
+# degeneracy entirely. These tests run at ``N_e = N_y + 20`` so the
+# old code reliably NaN'd and the new code stays finite.
+# ──────────────────────────────────────────────────────────────────────
+
+
+class _LinObs(flx.AbstractObsOperator):
+    H: jnp.ndarray
+
+    def __call__(self, state):
+        return self.H @ state
+
+
+def _grad_through_analysis(filter_, particles, obs, obs_op, R, **kwargs):
+    def loss(scale):
+        forecast = particles @ (scale * jnp.eye(particles.shape[1])).T
+        result = filter_.analysis(forecast, obs, obs_op, R, **kwargs)
+        return jnp.sum(result.particles**2)
+
+    return jax.grad(loss)(1.0)
+
+
+def test_etkf_grad_finite_at_large_ensemble(getkey):
+    N_e, N_x, N_y = 30, 4, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    H = jnp.zeros((N_y, N_x)).at[jnp.arange(N_y), jnp.arange(N_y)].set(1.0)
+    R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.1))
+    g = _grad_through_analysis(
+        flx.filters.ETKF(), particles, jnp.zeros(N_y), _LinObs(H=H), R
+    )
+    assert jnp.isfinite(g)
+    assert g != 0.0
+
+
+def test_ensrf_grad_finite_at_large_ensemble(getkey):
+    N_e, N_x, N_y = 30, 4, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    H = jnp.zeros((N_y, N_x)).at[jnp.arange(N_y), jnp.arange(N_y)].set(1.0)
+    R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.1))
+    g = _grad_through_analysis(
+        flx.filters.EnSRF(), particles, jnp.zeros(N_y), _LinObs(H=H), R
+    )
+    assert jnp.isfinite(g)
+    assert g != 0.0
+
+
+def test_estkf_grad_finite_at_large_ensemble(getkey):
+    N_e, N_x, N_y = 30, 4, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    H = jnp.zeros((N_y, N_x)).at[jnp.arange(N_y), jnp.arange(N_y)].set(1.0)
+    R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.1))
+    g = _grad_through_analysis(
+        flx.filters.ESTKF(), particles, jnp.zeros(N_y), _LinObs(H=H), R
+    )
+    assert jnp.isfinite(g)
+    assert g != 0.0
+
+
+def test_letkf_grad_finite_at_large_ensemble(getkey):
+    N_e, N_x, N_y = 30, 6, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    state_coords = jnp.arange(N_x, dtype=jnp.float64)[:, None]
+    obs_coords = jnp.asarray([[0.5], [2.5], [4.5]])
+    H = jnp.zeros((N_y, N_x)).at[jnp.arange(N_y), jnp.asarray([0, 2, 4])].set(1.0)
+    R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.3))
+    g = _grad_through_analysis(
+        flx.filters.LETKF(radius=1.5),
+        particles,
+        jnp.zeros(N_y),
+        _LinObs(H=H),
+        R,
+        state_coords=state_coords,
+        obs_coords=obs_coords,
+    )
+    assert jnp.isfinite(g)
+    assert g != 0.0
+
+
+def test_etkf_livings_grad_finite_at_large_ensemble(getkey):
+    N_e, N_x, N_y = 30, 4, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    H = jnp.zeros((N_y, N_x)).at[jnp.arange(N_y), jnp.arange(N_y)].set(1.0)
+    R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.1))
+    g = _grad_through_analysis(
+        flx.filters.ETKF_Livings(0), particles, jnp.zeros(N_y), _LinObs(H=H), R
+    )
+    assert jnp.isfinite(g)
+    assert g != 0.0

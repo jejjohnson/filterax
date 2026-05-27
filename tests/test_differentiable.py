@@ -265,7 +265,7 @@ def test_pattern_a_learn_dynamics_params(getkey):
     H = jnp.eye(N_y, N_x)
     obs_op = _LinearObs(H=H)
     R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.05**2))
-    filter_ = flx.filters.EnSRF_Serial()
+    filter_ = flx.filters.ETKF()
 
     def loss(scale):
         dyn = _LinearDynamics(M=scale * jnp.eye(N_x))
@@ -297,7 +297,7 @@ def test_pattern_b_learn_observation_operator_params(getkey):
     times = jnp.arange(1.0, T + 1.0)
     particles = jnp.asarray(rng.standard_normal((N_e, N_x))) + truth
     R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.05**2))
-    filter_ = flx.filters.EnSRF_Serial()
+    filter_ = flx.filters.ETKF()
     dyn = _IdentityDynamics()
 
     def loss(gain):
@@ -330,7 +330,7 @@ def test_pattern_c_learn_inflation_factor(getkey):
     particles, obs, times, _, obs_op, dyn, R = _setup(
         getkey, T=T, N_e=N_e, N_x=N_x, N_y=N_y
     )
-    filter_ = flx.filters.EnSRF_Serial()
+    filter_ = flx.filters.ETKF()
 
     def loss(log_factor):
         factor = jnp.exp(log_factor)
@@ -361,7 +361,7 @@ def test_diff_assimilate_under_jit_and_grad(getkey):
     """JIT-compiled gradient of the NLL through the scan loop runs and is
     finite — required composition of jit + grad + scan."""
     particles, obs, times, _, obs_op, _dyn, R = _setup(getkey)
-    filter_ = flx.filters.EnSRF_Serial()
+    filter_ = flx.filters.ETKF()
 
     @jax.jit
     @jax.grad
@@ -380,7 +380,7 @@ def test_diff_assimilate_grad_with_checkpoint(getkey):
     """``checkpoint=True`` must round-trip through ``jax.grad`` (the whole
     reason it exists)."""
     particles, obs, times, _, obs_op, _dyn, R = _setup(getkey)
-    filter_ = flx.filters.EnSRF_Serial()
+    filter_ = flx.filters.ETKF()
 
     def loss(scale):
         dyn = _LinearDynamics(M=scale * jnp.eye(particles.shape[1]))

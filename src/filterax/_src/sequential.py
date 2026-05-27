@@ -55,12 +55,6 @@ from filterax._src.statistics import ensemble_anomalies, ensemble_mean
 
 ObsCallable = Callable[[Float[Array, " N_x"]], Float[Array, " N_y"]]
 
-# Floor applied to eigenvalues of the (Nₑ, Nₑ) transform precision before
-# inversion / square root. The eigenvalues are mathematically bounded
-# below by Nₑ − 1 (≥ 2 for any valid ensemble), so a tiny absolute floor
-# only kicks in if a near-zero negative slipped through due to round-off.
-_EIG_FLOOR: float = 1e-12
-
 
 def _apply_obs_op(
     obs_op: AbstractObsOperator | ObsCallable,
@@ -70,31 +64,76 @@ def _apply_obs_op(
     return jax.vmap(obs_op)(particles)
 
 
-def _symmetrize(matrix: Float[Array, "N N"]) -> Float[Array, "N N"]:
-    """Return ``½ (M + Mᵀ)`` — kills accumulated antisymmetric round-off."""
-    return 0.5 * (matrix + matrix.T)
+def _etkf_inner_spectrum(
+    obs_anom: Float[Array, "K N_y"],
+    R_inv_Y: Float[Array, "K N_y"],
+) -> tuple[Float[Array, " N_y"], Float[Array, "K N_y"]]:
+    r"""Rank-``Nᵧ`` spectrum of the inner product ``Y′ R⁻¹ Y′ᵀ``.
 
+    ``Y′ R⁻¹ Y′ᵀ = U_y diag(λ_i) U_yᵀ`` with ``U_y ∈ ℝ^{K × Nᵧ}`` an
+    orthonormal basis for the column span of ``Y′`` (the only directions
+    where the outer product has non-trivial action). The remaining
+    ``K − Nᵧ`` eigenvalues are all zero; they correspond to a degenerate
+    null subspace that downstream matrix-function evaluations short-
+    circuit through ``g(K_base)`` and never need explicit eigenvectors
+    for.
 
-def _transform_eig(
-    obs_anom: Float[Array, "N_e N_y"],
-    R_inv_Y: Float[Array, "N_e N_y"],
-    N_e: int,
-) -> tuple[Float[Array, " N_e"], Float[Array, "N_e N_e"]]:
-    r"""Eigendecomposition of the ETKF transform precision.
+    Computed via thin QR + a small ``(Nᵧ, Nᵧ)`` eigh:
 
-    ``C̃ = (Nₑ − 1) I + Y′ R⁻¹ Y′ᵀ ∈ ℝ^{Nₑ×Nₑ}``
+    1. ``Y′ = Q R_qr`` (thin QR; ``Q ∈ ℝ^{K × Nᵧ}``, ``R_qr ∈ ℝ^{Nᵧ × Nᵧ}``).
+    2. ``M_y = Qᵀ (Y′ R⁻¹) R_qrᵀ = R_qr R⁻¹ R_qrᵀ`` (symmetric PSD,
+       ``Nᵧ × Nᵧ``).
+    3. ``M_y = V_M diag(λ_i) V_Mᵀ`` via eigh on the small matrix.
+    4. ``U_y = Q V_M``.
 
-    Symmetrises ``C̃`` to absorb floating-point antisymmetry, calls
-    :func:`jax.numpy.linalg.eigh`, and clamps eigenvalues to a tiny
-    positive floor so the downstream ``1/λ`` and ``√λ`` stay finite.
+    This avoids the ``(K, K)`` eigh of the design-doc form
+    ``(Nₑ − 1) I + Y′ R⁻¹ Y′ᵀ`` whose ``K − Nᵧ`` structurally-repeated
+    eigenvalues give ``NaN`` reverse-mode gradients in JAX (issue #82).
 
-    Returns ``(λ, U)`` where ``C̃ = U diag(λ) Uᵀ`` and all ``λ_k > 0``.
-    Cost ``O(Nₑ³)``.
+    Used in two places:
+
+    * ETKF-style filters with ``K = Nₑ`` (``ETKF``, ``EnSRF``,
+      ``ETKF_Livings``; ``LETKF`` per-grid-point).
+    * ESTKF with ``K = Nₑ − 1`` (reduced subspace).
+
+    Assumes ``Nᵧ ≤ K``; gradient-stable when ``Y′`` has full column
+    rank (i.e. observations are linearly independent across the
+    ensemble), which is the typical ensemble-filtering setting.
     """
-    C_tilde = (N_e - 1) * jnp.eye(N_e) + einx.dot("e a, f a -> e f", obs_anom, R_inv_Y)
-    eigvals, eigvecs = jnp.linalg.eigh(_symmetrize(C_tilde))
-    eigvals = jnp.maximum(eigvals, _EIG_FLOOR)
-    return eigvals, eigvecs
+    Q, R_qr = jnp.linalg.qr(obs_anom)  # Q: (K, N_y), R_qr: (N_y, N_y)
+    # Qᵀ (Y′ R⁻¹) = R_qr R⁻¹ (since Qᵀ Y′ = R_qr).
+    R_qr_R_inv = einx.dot("e a, e b -> a b", Q, R_inv_Y)  # (N_y, N_y)
+    M_y = einx.dot("a b, c b -> a c", R_qr_R_inv, R_qr)  # (N_y, N_y)
+    M_y = 0.5 * (M_y + jnp.swapaxes(M_y, -1, -2))
+    eigvals, V_M = jnp.linalg.eigh(M_y)
+    # ``M_y`` is PSD by construction; tiny negative round-off is clipped.
+    eigvals = jnp.maximum(eigvals, 0.0)
+    U_y = einx.dot("e a, a b -> e b", Q, V_M)
+    return eigvals, U_y
+
+
+def _apply_ctilde_func(
+    U_y: Float[Array, "K N_y"],
+    g_diff: Float[Array, " N_y"],
+    g_base: Float[Array, ""],
+    v: Float[Array, "K ..."],
+) -> Float[Array, "K ..."]:
+    r"""Apply ``g(C̃)`` to ``v`` via the rank-``Nᵧ`` correction form.
+
+    ``g(C̃) = g_base · I + U_y diag(g_diff) U_yᵀ``
+
+    with ``g_diff[i] = g((Nₑ − 1) + λ_i) − g_base`` and
+    ``g_base = g(Nₑ − 1)``. The caller supplies the precomputed
+    differences so the same ``U_y`` / ``λ`` decomposition can be reused
+    across multiple matrix functions in one analysis step.
+
+    ``v`` is a vector ``(K,)`` or matrix ``(K, …)``; the leading axis is
+    the one ``g(C̃)`` acts on.
+    """
+    Ut_v = einx.dot("e a, e ... -> a ...", U_y, v)
+    scaled = einx.multiply("a, a ... -> a ...", g_diff, Ut_v)
+    correction = einx.dot("e a, a ... -> e ...", U_y, scaled)
+    return g_base * v + correction
 
 
 class StochasticEnKF(AbstractSequentialFilter, strict=True):
@@ -219,28 +258,24 @@ class ETKF(AbstractSequentialFilter, strict=True):
         # for DiagonalLinearOperator, Toeplitz, etc.).
         R_inv_Y = gaussx.solve_rows(obs_noise, obs_anom)  # (Nₑ, Nᵧ)
 
-        eigvals, eigvecs = _transform_eig(obs_anom, R_inv_Y, N_e)
+        # Rank-Nᵧ spectrum of Y′ R⁻¹ Y′ᵀ via QR + small eigh; avoids the
+        # gradient-NaN trap of an eigh on the full (Nₑ, Nₑ) C̃ matrix.
+        eigvals, U_y = _etkf_inner_spectrum(obs_anom, R_inv_Y)
 
-        # Symmetric inverse square root: Wₐ = U diag(√((Nₑ−1)/λ)) Uᵀ.
-        # ``eigvecs`` is U; columns are eigenvectors, so eigvecs[:, k] is the
-        # k-th eigenvector. Equivalently, U[i, k] is the i-th component of
-        # the k-th eigenvector — when we sum over the FIRST axis we apply Uᵀ.
-        inv_lambda = 1.0 / eigvals
-        sqrt_scale = jnp.sqrt((N_e - 1) * inv_lambda)
+        # T = C̃⁻¹ = (1/(Nₑ−1)) I + U_y diag(inv_diff) U_yᵀ.
+        inv_base = jnp.asarray(1.0 / (N_e - 1), dtype=anom.dtype)
+        inv_diff = 1.0 / ((N_e - 1) + eigvals) - inv_base
+        # Wₐ = √((Nₑ−1) C̃⁻¹) = I + U_y diag(sqrt_diff) U_yᵀ.
+        sqrt_base = jnp.asarray(1.0, dtype=anom.dtype)
+        sqrt_diff = jnp.sqrt((N_e - 1) / ((N_e - 1) + eigvals)) - sqrt_base
 
-        # y = Y′ R⁻¹ v ∈ ℝ^{Nₑ}.
+        # Mean: w̄ = T (Y′ R⁻¹ v); then mean_correction = w̄ᵀ X′.
         Y_R_inv_v = einx.dot("e y, y -> e", R_inv_Y, innovation)
-        # w̄ = T y = U diag(1/λ) Uᵀ y. Sum the FIRST axis of U for Uᵀ.
-        Ut_y = einx.dot("e a, e -> a", eigvecs, Y_R_inv_v)
-        w_bar = einx.dot("e a, a -> e", eigvecs, inv_lambda * Ut_y)
-
-        # Mean update: x̄_a = x̄ + Σ_k w̄[k] X′[k, :].
+        w_bar = _apply_ctilde_func(U_y, inv_diff, inv_base, Y_R_inv_v)
         mean_correction = einx.dot("e, e x -> x", w_bar, anom)
 
-        # Wₐ X′ = U diag(sqrt_scale) Uᵀ X′ — three factored matmuls.
-        Ut_anom = einx.dot("e a, e x -> a x", eigvecs, anom)
-        scaled = einx.multiply("a x, a -> a x", Ut_anom, sqrt_scale)
-        pert_correction = einx.dot("e a, a x -> e x", eigvecs, scaled)
+        # Perturbations: Wₐ X′.
+        pert_correction = _apply_ctilde_func(U_y, sqrt_diff, sqrt_base, anom)
 
         particles_a = (
             einx.add("x, x -> x", x_bar, mean_correction)[None, :] + pert_correction
@@ -310,11 +345,10 @@ class EnSRF(AbstractSequentialFilter, strict=True):
         # anomalies to mean-zero anomalies, leaving the analysis mean
         # equal to ``x̄ + K v`` (see Tippett et al. 2003 §3).
         R_inv_Y = gaussx.solve_rows(obs_noise, obs_anom)
-        eigvals, eigvecs = _transform_eig(obs_anom, R_inv_Y, N_e)
-        sqrt_scale = jnp.sqrt((N_e - 1) / eigvals)
-        Ut_anom = einx.dot("e a, e x -> a x", eigvecs, anom)
-        scaled = einx.multiply("a x, a -> a x", Ut_anom, sqrt_scale)
-        pert_correction = einx.dot("e a, a x -> e x", eigvecs, scaled)
+        eigvals, U_y = _etkf_inner_spectrum(obs_anom, R_inv_Y)
+        sqrt_base = jnp.asarray(1.0, dtype=anom.dtype)
+        sqrt_diff = jnp.sqrt((N_e - 1) / ((N_e - 1) + eigvals)) - sqrt_base
+        pert_correction = _apply_ctilde_func(U_y, sqrt_diff, sqrt_base, anom)
 
         particles_a = mean_a[None, :] + pert_correction
 
@@ -430,20 +464,22 @@ class LETKF(AbstractSequentialFilter, strict=True):
             # Local ETKF in ensemble space.
             # R⁻¹_loc Y′ — broadcasted elementwise over the obs axis.
             R_inv_Y = einx.multiply("e y, y -> e y", obs_anom, inv_R_loc)
-            eigvals_loc, eigvecs_loc = _transform_eig(obs_anom, R_inv_Y, N_e)
-            inv_lambda = 1.0 / eigvals_loc
-            sqrt_scale = jnp.sqrt((N_e - 1) * inv_lambda)
-            # w̄ᵢ = U diag(1/λ) Uᵀ (Y′ R⁻¹_loc v). Sum the FIRST axis of U
-            # to apply Uᵀ — see ETKF.analysis comments.
+            eigvals_loc, U_y_loc = _etkf_inner_spectrum(obs_anom, R_inv_Y)
+
+            inv_base = jnp.asarray(1.0 / (N_e - 1), dtype=anom.dtype)
+            inv_diff = 1.0 / ((N_e - 1) + eigvals_loc) - inv_base
+            sqrt_base = jnp.asarray(1.0, dtype=anom.dtype)
+            sqrt_diff = jnp.sqrt((N_e - 1) / ((N_e - 1) + eigvals_loc)) - sqrt_base
+
+            # w̄ᵢ = T (Y′ R⁻¹_loc v); T = (1/(Nₑ−1)) I + rank-Nᵧ correction.
             Y_R_inv_v = einx.dot("e y, y -> e", R_inv_Y, innovation)
-            Ut_y = einx.dot("e a, e -> a", eigvecs_loc, Y_R_inv_v)
-            w_bar_i = einx.dot("e a, a -> e", eigvecs_loc, inv_lambda * Ut_y)
-            # Wᵢ = U diag(sqrt_scale) Uᵀ — symmetric square root.
-            W_i = einx.dot(
-                "i a, j a -> i j",
-                eigvecs_loc * sqrt_scale[None, :],
-                eigvecs_loc,
-            )
+            w_bar_i = _apply_ctilde_func(U_y_loc, inv_diff, inv_base, Y_R_inv_v)
+            # Wᵢ = I + U_y_loc diag(sqrt_diff) U_y_locᵀ — materialise the
+            # (Nₑ, Nₑ) transform so the outer ``einx`` can fuse over grid
+            # points without re-invoking per-point spectra.
+            scaled_U = einx.multiply("e a, a -> e a", U_y_loc, sqrt_diff)
+            correction = einx.dot("e a, f a -> e f", scaled_U, U_y_loc)
+            W_i = jnp.eye(N_e, dtype=anom.dtype) + correction
             return w_bar_i, W_i
 
         # vmap over state grid points → per-point (w̄ᵢ, Wᵢ).
@@ -563,20 +599,18 @@ class ETKF_Livings(AbstractSequentialFilter, strict=True):
         innovation = obs - ensemble_mean(obs_particles)
 
         R_inv_Y = gaussx.solve_rows(obs_noise, obs_anom)
-        eigvals, eigvecs = _transform_eig(obs_anom, R_inv_Y, N_e)
-        inv_lambda = 1.0 / eigvals
-        sqrt_scale = jnp.sqrt((N_e - 1) * inv_lambda)
+        eigvals, U_y = _etkf_inner_spectrum(obs_anom, R_inv_Y)
+        inv_base = jnp.asarray(1.0 / (N_e - 1), dtype=anom.dtype)
+        inv_diff = 1.0 / ((N_e - 1) + eigvals) - inv_base
+        sqrt_base = jnp.asarray(1.0, dtype=anom.dtype)
+        sqrt_diff = jnp.sqrt((N_e - 1) / ((N_e - 1) + eigvals)) - sqrt_base
 
         # ETKF weight + symmetric square root, same as the base ETKF.
         Y_R_inv_v = einx.dot("e y, y -> e", R_inv_Y, innovation)
-        Ut_y = einx.dot("e a, e -> a", eigvecs, Y_R_inv_v)
-        w_bar = einx.dot("e a, a -> e", eigvecs, inv_lambda * Ut_y)
-
+        w_bar = _apply_ctilde_func(U_y, inv_diff, inv_base, Y_R_inv_v)
         mean_correction = einx.dot("e, e x -> x", w_bar, anom)
 
-        Ut_anom = einx.dot("e a, e x -> a x", eigvecs, anom)
-        scaled = einx.multiply("a x, a -> a x", Ut_anom, sqrt_scale)
-        W_anom = einx.dot("e a, a x -> e x", eigvecs, scaled)  # (Nₑ, Nₓ)
+        W_anom = _apply_ctilde_func(U_y, sqrt_diff, sqrt_base, anom)  # (Nₑ, Nₓ)
 
         # Apply the mean-preserving rotation Θ on the *left* of W_a X′:
         # Θ leaves 𝟙 fixed, so the column-mean (== analysis mean) is
@@ -732,26 +766,23 @@ class ESTKF(AbstractSequentialFilter, strict=True):
         X_tilde = einx.dot("e r, e x -> r x", L, anom)  # (Nₑ−1, Nₓ)
         Y_tilde = einx.dot("e r, e y -> r y", L, obs_anom)  # (Nₑ−1, Nᵧ)
 
-        # Transform precision in the reduced subspace.
+        # Rank-Nᵧ spectrum of Ỹ R⁻¹ Ỹᵀ in the reduced subspace; same
+        # rank-deficiency story as ETKF, so the QR + small-eigh form
+        # keeps gradients finite.
         R_inv_Y = gaussx.solve_rows(obs_noise, Y_tilde)  # (Nₑ−1, Nᵧ)
-        A = (N_e - 1) * jnp.eye(N_e - 1, dtype=dtype) + einx.dot(
-            "r y, s y -> r s", Y_tilde, R_inv_Y
-        )
-        A = 0.5 * (A + A.T)
-        eigvals, eigvecs = jnp.linalg.eigh(A)
-        eigvals = jnp.maximum(eigvals, _EIG_FLOOR)
-        inv_lambda = 1.0 / eigvals
-        sqrt_scale = jnp.sqrt((N_e - 1) * inv_lambda)
+        eigvals, U_y = _etkf_inner_spectrum(Y_tilde, R_inv_Y)
 
-        # Reduced weights w̃ = T̃ Ỹ R⁻¹ d  ∈ ℝ^{Nₑ−1}.
+        inv_base = jnp.asarray(1.0 / (N_e - 1), dtype=dtype)
+        inv_diff = 1.0 / ((N_e - 1) + eigvals) - inv_base
+        sqrt_base = jnp.asarray(1.0, dtype=dtype)
+        sqrt_diff = jnp.sqrt((N_e - 1) / ((N_e - 1) + eigvals)) - sqrt_base
+
+        # Reduced weights w̃ = T̃ (Ỹ R⁻¹ d)  ∈ ℝ^{Nₑ−1}.
         rhs = einx.dot("r y, y -> r", R_inv_Y, innovation)
-        Ut_rhs = einx.dot("r a, r -> a", eigvecs, rhs)
-        w_tilde = einx.dot("r a, a -> r", eigvecs, inv_lambda * Ut_rhs)
+        w_tilde = _apply_ctilde_func(U_y, inv_diff, inv_base, rhs)
 
-        # Symmetric square-root applied to X̃: W̃ X̃ = U diag(s) Uᵀ X̃.
-        Ut_X = einx.dot("r a, r x -> a x", eigvecs, X_tilde)
-        scaled = einx.multiply("a x, a -> a x", Ut_X, sqrt_scale)
-        WX_tilde = einx.dot("r a, a x -> r x", eigvecs, scaled)  # (Nₑ−1, Nₓ)
+        # Symmetric square-root applied to X̃: W̃ X̃ = (I + correction) X̃.
+        WX_tilde = _apply_ctilde_func(U_y, sqrt_diff, sqrt_base, X_tilde)
 
         # Lift back to Nₑ space and assemble the analysis.
         mean_shift = einx.dot("r, r x -> x", w_tilde, X_tilde)  # (Nₓ,)

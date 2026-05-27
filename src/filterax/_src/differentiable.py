@@ -27,20 +27,6 @@ well with ``jax.grad``:
 
 We validate the stochastic-component constraint at call time so users
 get a clear error instead of silently noisy gradients.
-
-.. warning::
-    ``ETKF`` / ``EnSRF`` / ``ESTKF`` / ``LETKF`` / ``ETKF_Livings`` all
-    route through an internal :func:`jax.numpy.linalg.eigh` of a matrix
-    with structurally-degenerate eigenvalues (the rank-``N_y``
-    transform precision has ``N_e − N_y`` repeated eigenvalues). JAX's
-    ``eigh`` AD returns ``NaN`` for repeated eigenvalues, so reverse-
-    mode gradients through these filters underflow to ``NaN`` when
-    ``N_e`` is meaningfully larger than ``N_y``. **Use
-    :class:`filterax.filters.EnSRF_Serial`** for differentiable
-    training — it uses scalar-per-observation updates with no
-    eigendecomposition and is gradient-stable at any ``N_e``. Fixing
-    the eigh-based filters via a rank-``N_y`` SVD reformulation is
-    tracked in issue #82.
 """
 
 from __future__ import annotations
