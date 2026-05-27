@@ -1,6 +1,6 @@
 [project]
 name = "filterax"
-version = "0.0.0"
+version = "0.1.0"
 description = "Differentiable ensemble Kalman filters, smoothers, and processes for JAX."
 authors = [
     {name="J. Emmanuel Johnson", email="jemanjohnson34@gmail.com"},
