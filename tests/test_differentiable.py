@@ -94,22 +94,42 @@ def test_diff_assimilate_matches_l2_etkf(getkey):
     )
 
 
+def _assert_full_result_match(got, ref, atol):
+    """Compare every field of an ``AssimilationResult`` — forecasts,
+    analyses, terminal particles, and log-likelihoods."""
+    np.testing.assert_allclose(
+        np.asarray(got.forecast_history),
+        np.asarray(ref.forecast_history),
+        atol=atol,
+    )
+    np.testing.assert_allclose(
+        np.asarray(got.analysis_history),
+        np.asarray(ref.analysis_history),
+        atol=atol,
+    )
+    np.testing.assert_allclose(
+        np.asarray(got.particles), np.asarray(ref.particles), atol=atol
+    )
+    np.testing.assert_allclose(
+        np.asarray(got.log_likelihoods),
+        np.asarray(ref.log_likelihoods),
+        atol=atol,
+    )
+
+
 def test_diff_assimilate_matches_l2_ensrf(getkey):
-    """Same parity check for EnSRF."""
+    """Same parity check for EnSRF — full step-for-step equivalence."""
     particles, obs, times, obs_list, obs_op, dyn, R = _setup(getkey)
     ref = flx.EnSRF(dynamics=dyn, obs_op=obs_op).assimilate(particles, obs_list, R)
     got = flx.differentiable_assimilate(
         flx.filters.EnSRF(), dyn, obs_op, particles, obs, times, R
     )
-    np.testing.assert_allclose(
-        np.asarray(got.analysis_history),
-        np.asarray(ref.analysis_history),
-        atol=1e-10,
-    )
+    _assert_full_result_match(got, ref, atol=1e-10)
 
 
 def test_diff_assimilate_with_inflator_matches_l2(getkey):
-    """Deterministic inflator threads through the same way."""
+    """Deterministic inflator threads through the same way — full
+    step-for-step equivalence across every result field."""
     particles, obs, times, obs_list, obs_op, dyn, R = _setup(getkey)
     inflator = flx.MultiplicativeInflator(factor=1.05)
     ref = flx.ETKF(dynamics=dyn, obs_op=obs_op, inflator=inflator).assimilate(
@@ -125,16 +145,13 @@ def test_diff_assimilate_with_inflator_matches_l2(getkey):
         R,
         inflator=inflator,
     )
-    np.testing.assert_allclose(
-        np.asarray(got.analysis_history),
-        np.asarray(ref.analysis_history),
-        atol=1e-10,
-    )
+    _assert_full_result_match(got, ref, atol=1e-10)
 
 
 def test_diff_assimilate_letkf_with_coords(getkey):
     """LETKF needs ``state_coords`` / ``obs_coords`` — they thread through
-    ``analysis_extra`` and the scan loop matches the L2 LETKF."""
+    ``analysis_extra`` and the scan loop matches the L2 LETKF across
+    every result field."""
     N_e, N_x, N_y, T = 20, 4, 2, 3
     particles = jr.normal(getkey(), (N_e, N_x))
     state_coords = jnp.arange(N_x, dtype=jnp.float64)[:, None]
@@ -161,16 +178,12 @@ def test_diff_assimilate_letkf_with_coords(getkey):
         state_coords=state_coords,
         obs_coords=obs_coords,
     )
-    np.testing.assert_allclose(
-        np.asarray(got.analysis_history),
-        np.asarray(ref.analysis_history),
-        atol=1e-10,
-    )
+    _assert_full_result_match(got, ref, atol=1e-10)
 
 
 def test_diff_assimilate_checkpoint_is_value_equivalent(getkey):
     """``checkpoint=True`` is a memory/compute trade-off, not a numerical
-    change — the output values must be identical."""
+    change — every result field must match the eager run exactly."""
     particles, obs, times, _, obs_op, dyn, R = _setup(getkey)
     eager = flx.differentiable_assimilate(
         flx.filters.ETKF(), dyn, obs_op, particles, obs, times, R, checkpoint=False
@@ -178,11 +191,7 @@ def test_diff_assimilate_checkpoint_is_value_equivalent(getkey):
     ckpt = flx.differentiable_assimilate(
         flx.filters.ETKF(), dyn, obs_op, particles, obs, times, R, checkpoint=True
     )
-    np.testing.assert_allclose(
-        np.asarray(ckpt.analysis_history),
-        np.asarray(eager.analysis_history),
-        atol=1e-12,
-    )
+    _assert_full_result_match(ckpt, eager, atol=1e-12)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -231,6 +240,21 @@ def test_rejects_mismatched_obs_and_times(getkey):
         flx.differentiable_assimilate(
             flx.filters.ETKF(), dyn, obs_op, particles, obs, times[:3], R
         )
+
+
+def test_diff_assimilate_handles_mixed_time_dtypes(getkey):
+    """Regression: ``lax.scan`` requires the carry's input and output
+    dtypes to match exactly. The scan loop unifies ``t0`` and
+    ``obs_times`` to a common dtype up front so float32 ensembles paired
+    with int / float64 timestamps trace cleanly."""
+    particles, obs, _times, _, obs_op, dyn, R = _setup(getkey)
+    # Integer timestamps + scalar t0 — previously crashed at trace time.
+    int_times = jnp.arange(1, obs.shape[0] + 1, dtype=jnp.int32)
+    result = flx.differentiable_assimilate(
+        flx.filters.ETKF(), dyn, obs_op, particles, obs, int_times, R, t0=0
+    )
+    assert result.analysis_history.shape == (obs.shape[0], *particles.shape)
+    assert bool(jnp.all(jnp.isfinite(result.analysis_history)))
 
 
 # ──────────────────────────────────────────────────────────────────────

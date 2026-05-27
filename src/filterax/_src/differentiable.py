@@ -82,7 +82,8 @@ def _reject_stochastic_components(
         raise ValueError(
             "AdditiveInflator injects PRNG draws that break smooth "
             "gradients. Use MultiplicativeInflator / RTPS / RTPP for "
-            "differentiable training — see §5.5 of differentiable_da.md."
+            "differentiable training — see "
+            "design_docs/features/differentiable_da.md §5.5."
         )
 
 
@@ -144,6 +145,17 @@ def differentiable_assimilate(
             f"got {observations.shape[0]} and {obs_times.shape[0]}."
         )
 
+    # ``lax.scan`` requires the carry's input and output dtypes to match
+    # exactly. ``t_prev`` enters the carry from ``t0`` and exits it from
+    # the per-step ``obs_times`` element, so cast both to a common dtype
+    # up front — otherwise float32 ensembles with float64 (or integer)
+    # ``obs_times`` raise at trace time even though the L2 Python loop
+    # would accept that combination.
+    t0_arr = jnp.asarray(t0)
+    time_dtype = jnp.result_type(t0_arr, obs_times)
+    t0_arr = t0_arr.astype(time_dtype)
+    obs_times = obs_times.astype(time_dtype)
+
     def step(
         carry: tuple[Float[Array, "N_e N_x"], Float[Array, ""]],
         inputs: tuple[Float[Array, " N_y"], Float[Array, ""]],
@@ -173,7 +185,7 @@ def differentiable_assimilate(
         )
 
     step_fn = jax.checkpoint(step) if checkpoint else step
-    init_carry = (init_ensemble, jnp.asarray(t0, dtype=init_ensemble.dtype))
+    init_carry = (init_ensemble, t0_arr)
     (final_particles, _), (forecasts, analyses, logps) = jax.lax.scan(
         step_fn, init_carry, (observations, obs_times)
     )
