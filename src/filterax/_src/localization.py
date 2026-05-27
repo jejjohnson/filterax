@@ -1,16 +1,24 @@
 r"""Covariance localization tapers.
 
-Compactly-supported (Gaspari-Cohn) and infinite-support (Gaussian) taper
-functions plus the Schur (Hadamard) product :func:`localize` used to apply a
-taper to a covariance or gain matrix.
+Finite-ensemble Kalman filters suffer from *spurious long-range
+correlations* — a sample covariance of rank ``≤ Nₑ − 1`` assigns
+non-zero correlation between physically distant variables purely from
+sampling noise. The Kalman gain then draws information from distant,
+uninformative observations and the filter diverges.
 
-Localization suppresses spurious long-range correlations in the sample
-covariance that arise from finite ensemble size. The localized covariance
-is :math:`P_{\text{loc}} = \rho \circ P`, where :math:`\rho_{ij} = \rho(d_{ij}/r)`
-is a positive-definite taper of the distance between grid points. The Schur
-product of two PSD matrices is PSD (Schur product theorem), so
-:math:`P_{\text{loc}}` remains a valid covariance for the Gaspari-Cohn and
-Gaussian tapers.
+Localization suppresses these artefacts by tapering covariance entries
+as a function of physical distance ``d``. The localized covariance is
+the Schur (Hadamard / element-wise) product
+
+``P_loc = ρ ∘ P,   ρᵢⱼ = ρ(dᵢⱼ / r)``
+
+with ``r`` the localization half-width. By the Schur product theorem,
+``ρ ∘ P`` is PSD whenever both factors are; the Gaspari-Cohn and
+Gaussian tapers below are positive definite, so they preserve the
+covariance structure. The hard cutoff is *not* PSD and is only useful
+as a debugging baseline.
+
+References: Gaspari & Cohn (1999); Houtekamer & Mitchell (2001).
 """
 
 from __future__ import annotations
@@ -25,24 +33,30 @@ def gaspari_cohn(
 ) -> Float[Array, "..."]:
     r"""Gaspari-Cohn 5th-order piecewise polynomial taper.
 
-    .. math::
+    Define ``z = d / r``. Then
 
-        \rho(z) = \begin{cases}
-        -\tfrac{1}{4}z^5 + \tfrac{1}{2}z^4 + \tfrac{5}{8}z^3 - \tfrac{5}{3}z^2 + 1,
-            & 0 \le z \le 1 \\
-        \tfrac{1}{12}z^5 - \tfrac{1}{2}z^4 + \tfrac{5}{8}z^3 + \tfrac{5}{3}z^2
-            - 5z + 4 - \tfrac{2}{3z}, & 1 < z \le 2 \\
-        0, & z > 2
-        \end{cases}
+    ``ρ(z) = {  −¼ z⁵ + ½ z⁴ + ⅝ z³ − ⁵⁄₃ z² + 1,            0 ≤ z ≤ 1
+                 ⅟₁₂ z⁵ − ½ z⁴ + ⅝ z³ + ⁵⁄₃ z² − 5 z + 4 − ⅔ / z,
+                                                              1 < z ≤ 2
+                 0,                                            z > 2 }``
 
-    where :math:`z = d / r`. Compactly supported (zero beyond ``2 * radius``),
-    :math:`C^2` smooth at all transitions, and positive definite — the
-    Schur product :math:`\rho \circ P` is guaranteed PSD when ``P`` is.
+    Properties:
+
+    * **Compact support** — exactly zero for ``d > 2 r``.
+    * **C² smoothness** — value, first and second derivatives all match
+      at ``z = 1`` and ``z = 2``.
+    * **Positive definite** — the gold standard for covariance
+      localization in operational NWP and ocean DA.
+
+    The ``2/(3 z)`` term is only evaluated on the far branch ``z > 1``,
+    but :func:`jax.numpy.where` evaluates both arms unconditionally —
+    we guard ``z`` away from zero so the unused branch doesn't return
+    ``inf`` and contaminate the gradient.
 
     Args:
         distances: Non-negative distance array, any shape.
-        radius: Positive localization half-width. Compact support at
-            ``2 * radius``.
+        radius: Positive localization half-width ``r``. Compact support
+            at ``2 r``.
 
     Returns:
         Taper weights in ``[0, 1]`` with the same shape as ``distances``.
@@ -50,11 +64,9 @@ def gaspari_cohn(
     Reference:
         Gaspari, G. & Cohn, S. E. (1999). *Construction of correlation
         functions in two and three dimensions.* Q. J. R. Meteorol. Soc.,
-        125, 723-757.
+        125, 723–757.
     """
     z = distances / radius
-    # Guard the 2/(3z) branch against z = 0 — that branch is only evaluated
-    # for z > 1, but jnp.where evaluates both arms unconditionally.
     z_safe = jnp.where(z > 0, z, 1.0)
 
     near = -0.25 * z**5 + 0.5 * z**4 + (5.0 / 8.0) * z**3 - (5.0 / 3.0) * z**2 + 1.0
@@ -75,14 +87,16 @@ def gaussian_taper(
     distances: Float[Array, "..."],
     radius: float,
 ) -> Float[Array, "..."]:
-    r"""Gaussian taper :math:`\rho(d) = \exp(-d^2 / (2 r^2))`.
+    r"""Gaussian taper ``ρ(d) = exp(−d² / (2 r²))``.
 
-    Infinitely smooth (:math:`C^\infty`) and positive definite, but **not**
+    Infinitely smooth (``C^∞``) and positive definite, but **not**
     compactly supported — decays exponentially but never reaches zero.
+    Useful as a simpler alternative to Gaspari-Cohn when compact support
+    is not required (e.g., adjoint sensitivity studies).
 
     Args:
         distances: Non-negative distance array, any shape.
-        radius: Positive characteristic length scale.
+        radius: Positive characteristic length scale ``r``.
 
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
@@ -94,18 +108,20 @@ def hard_cutoff(
     distances: Float[Array, "..."],
     radius: float,
 ) -> Float[Array, "..."]:
-    r"""Binary cutoff :math:`\rho(d) = \mathbf{1}\{d \le r\}`.
+    r"""Binary cutoff ``ρ(d) = 𝟙{d ≤ r}``.
 
-    Discontinuous at ``d = radius``; **not** positive definite in general.
-    Useful only as a baseline / debugging primitive.
+    Discontinuous at ``d = r``; **not** positive definite in general
+    (the resulting localized matrix may lose PSD-ness, which can cause
+    filter instability). Provided as a debugging primitive only; prefer
+    :func:`gaspari_cohn` or :func:`gaussian_taper` in production.
 
     Args:
         distances: Non-negative distance array, any shape.
-        radius: Positive cutoff radius.
+        radius: Positive cutoff radius ``r``.
 
     Returns:
         Indicator weights (``0.0`` or ``1.0``) with the same shape as
-        ``distances``.
+        ``distances``, same dtype.
     """
     return jnp.where(distances <= radius, 1.0, 0.0).astype(distances.dtype)
 
@@ -116,12 +132,15 @@ def localize(
 ) -> Float[Array, "M N"]:
     r"""Apply localization via Schur (element-wise) product.
 
-    Computes :math:`P_{\text{loc}} = \rho \circ P`.
+    Computes ``P_loc = ρ ∘ P`` where ``ρ ∘ P`` denotes
+    elementwise multiplication. Works on covariance, gain, or any other
+    dense ``(M, N)`` matrix; for structured operators apply localization
+    closer to where the matrix is consumed.
 
     Args:
         cov: Dense covariance or gain matrix of shape ``(M, N)``.
-        taper: Taper matrix of the same shape; elementwise multipliers in
-            ``[0, 1]``.
+        taper: Taper matrix of the same shape; elementwise multipliers
+            in ``[0, 1]``.
 
     Returns:
         Localized matrix of shape ``(M, N)``.

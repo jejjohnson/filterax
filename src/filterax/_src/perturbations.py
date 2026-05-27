@@ -1,8 +1,18 @@
-"""Random perturbation generation for stochastic ensemble methods."""
+"""Random perturbation generation for stochastic ensemble methods.
+
+The single primitive here, :func:`perturbed_observations`, is the Monte
+Carlo Burgers-van-Leeuwen-Evensen (1998) draw used by the stochastic
+EnKF analysis. When ``R`` is diagonal — the overwhelmingly common case
+for instrument noise — we skip the dense Cholesky entirely; otherwise we
+fall back to gaussx's structured root decomposition so dense matrices are
+still avoided when ``R`` carries low-rank or Toeplitz structure.
+"""
 
 from __future__ import annotations
 
-import jax.numpy as jnp
+import einx
+import gaussx
+import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
@@ -15,37 +25,46 @@ def perturbed_observations(
 ) -> Float[Array, "N_e N_y"]:
     r"""Generate perturbed observations for the stochastic EnKF.
 
-    .. math::
+    ``y⁽ʲ⁾_pert = y + ε⁽ʲ⁾, ε⁽ʲ⁾ ~ 𝒩(0, R)`` for ``j = 1, …, Nₑ``.
 
-        y^{(j)}_{\text{pert}} = y + \varepsilon^{(j)}, \qquad
-        \varepsilon^{(j)} \sim \mathcal{N}(0, R)
+    The sampling path depends on the structure of ``R``:
 
-    Samples are drawn with a Cholesky factor of ``R.as_matrix()``. For
-    diagonal ``R`` this is exact and cheap; for dense ``R`` the cost is the
-    one-time :math:`O(N_y^3)` Cholesky plus :math:`O(N_e N_y^2)` for the
-    apply. Use a structured operator on the caller side if ``N_y`` is large.
+    * :class:`lineax.DiagonalLinearOperator`: draws are computed as
+      ``ε = z ⊙ √diag(R)`` for ``z ~ 𝒩(0, I)``. No matrix is ever
+      formed; cost is ``O(Nₑ Nᵧ)``.
+    * General ``R``: a structural square root from
+      :func:`gaussx.root_decomposition` is applied to standard normals.
+      For dense ``R`` this still costs ``O(Nᵧ³)`` for the factorisation,
+      but the cost is amortised across ``Nₑ`` samples; structured ``R``
+      (low-rank, Toeplitz, …) avoids the cubic term entirely.
 
     Args:
-        key: PRNG key.
-        obs: Observation vector ``(N_y,)``.
-        obs_noise: Observation error covariance :math:`R` as a linear operator.
-        n_ensemble: Number of perturbed copies to draw.
+        key: PRNG key consumed by this call.
+        obs: Observation vector ``(Nᵧ,)``.
+        obs_noise: Observation error covariance ``R`` as a linear operator.
+        n_ensemble: Number of perturbed copies ``Nₑ``.
 
     Returns:
-        Perturbed observation matrix of shape ``(n_ensemble, N_y)``.
+        Perturbed observation matrix of shape ``(Nₑ, Nᵧ)``.
 
     Reference:
         Burgers, G., van Leeuwen, P. J., & Evensen, G. (1998). *Analysis
         scheme in the ensemble Kalman filter.* Mon. Wea. Rev., 126,
-        1719-1724.
+        1719–1724.
     """
-    import jax.random as jr
-
     n_obs = obs.shape[0]
-    # Cholesky of the dense materialisation; diagonal R is the typical case
-    # and incurs no real cost. Callers with structured R can pre-decompose.
-    cov_dense = obs_noise.as_matrix()
-    chol = jnp.linalg.cholesky(cov_dense)
     standard = jr.normal(key, (n_ensemble, n_obs))
-    eps = standard @ chol.T  # (N_e, N_y)
-    return obs[None, :] + eps
+
+    if isinstance(obs_noise, lx.DiagonalLinearOperator):
+        # ε⁽ʲ⁾_k = z⁽ʲ⁾_k √R_kk — pointwise scaling along the obs axis.
+        sigma = lx.diagonal(obs_noise) ** 0.5
+        eps = einx.multiply("e y, y -> e y", standard, sigma)
+    else:
+        # Structured square root: R = L Lᵀ with L = root_decomposition(R).root.
+        # For LowRankUpdate / Toeplitz / Kronecker, gaussx avoids the dense
+        # Cholesky and returns an operator-typed factor.
+        root = gaussx.root_decomposition(obs_noise).root  # L with L Lᵀ = R
+        # ε⁽ʲ⁾ = L z⁽ʲ⁾ — sum the latent axis ``a``; ``y`` is the output axis.
+        eps = einx.dot("e a, y a -> e y", standard, root)
+
+    return einx.add("e y, y -> e y", eps, obs)

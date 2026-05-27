@@ -192,6 +192,115 @@ def test_l2_etkf_assimilate_smoke(getkey):
     assert result.log_likelihoods.shape == (2,)
 
 
+def test_stochastic_enkf_l2_uses_independent_keys_per_window(getkey):
+    # Regression: the original L1 StochasticEnKF reused self.key across
+    # windows so every window drew identical observation perturbations.
+    # The L2 model now folds the seed with the step index so successive
+    # windows produce statistically different posteriors.
+    N_e, N_x = 200, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    H = jnp.eye(N_x)
+    obs_op = _LinearObs(H=H)
+    R = lx.DiagonalLinearOperator(jnp.full((N_x,), 0.1))
+    # Two identical observations, identical dynamics — the only source of
+    # variation between windows is the perturbation draw.
+    obs_seq = [(jnp.zeros(N_x), 1.0), (jnp.zeros(N_x), 2.0)]
+
+    filter_ = flx.StochasticEnKF(dynamics=_identity_dynamics(), obs_op=obs_op, seed=7)
+    result = filter_.assimilate(particles, obs_seq, R)
+    posterior_0 = result.analysis_history[0]
+    posterior_1 = result.analysis_history[1]
+
+    # Same forecast distribution, same data, same R — but the posteriors
+    # must differ because the perturbations are independent draws.
+    diff = jnp.linalg.norm(posterior_1 - posterior_0)
+    assert float(diff) > 1e-3, "stochastic perturbations must be independent per window"
+
+
+def test_letkf_hard_cutoff_at_radius(getkey):
+    # Regression: an observation at distance r < d < 2r should be EXCLUDED
+    # by R-localization, even though Gaspari-Cohn is non-zero on (r, 2r].
+    # We compare the analysis with the far observation present vs. absent;
+    # they must be identical to numerical precision.
+    N_e, N_x = 40, 3
+    particles = jr.normal(getkey(), (N_e, N_x))
+    state_coords = jnp.arange(N_x, dtype=jnp.float64)[:, None]
+
+    # One near-by observation (distance 0.5 from state 0) and one far
+    # observation at distance 1.5 (inside Gaspari-Cohn's 2 * radius=2.0
+    # support but outside our radius=1.0 cutoff).
+    obs_coords = jnp.asarray([[0.5], [1.5]])
+    H = jnp.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    obs_op = _LinearObs(H=H)
+    R = lx.DiagonalLinearOperator(jnp.asarray([0.3, 0.3]))
+
+    full_obs = jnp.asarray([0.4, 0.9])
+    near_only_obs = jnp.asarray([0.4, 0.0])
+
+    full = flx.filters.LETKF(radius=1.0).analysis(
+        particles,
+        full_obs,
+        obs_op,
+        R,
+        state_coords=state_coords,
+        obs_coords=obs_coords,
+    )
+    # When the far obs is excluded, the analysis at state 0 should be
+    # invariant to its value. Set it to zero and confirm.
+    same = flx.filters.LETKF(radius=1.0).analysis(
+        particles,
+        near_only_obs,
+        obs_op,
+        R,
+        state_coords=state_coords,
+        obs_coords=obs_coords,
+    )
+    np.testing.assert_allclose(
+        np.asarray(full.particles[:, 0]),
+        np.asarray(same.particles[:, 0]),
+        atol=1e-10,
+    )
+
+
+def test_letkf_rejects_non_diagonal_R(getkey):
+    particles = jr.normal(getkey(), (20, 3))
+    obs = jnp.zeros(3)
+    H = jnp.eye(3)
+    obs_op = _LinearObs(H=H)
+    R = lx.MatrixLinearOperator(jnp.eye(3) * 0.1, tags=lx.positive_semidefinite_tag)
+    with pytest.raises(NotImplementedError, match="diagonal observation noise"):
+        flx.filters.LETKF(radius=1.0).analysis(
+            particles,
+            obs,
+            obs_op,
+            R,
+            state_coords=jnp.zeros((3, 1)),
+            obs_coords=jnp.zeros((3, 1)),
+        )
+
+
+def test_perturbed_observations_diagonal_fast_path():
+    # Smoke check that the diagonal-R fast path produces statistics
+    # consistent with the dense fallback.
+    key = jr.PRNGKey(11)
+    obs = jnp.asarray([1.0, -1.0, 0.5])
+    R_diag = jnp.asarray([0.5, 1.0, 2.0])
+    R_diag_op = lx.DiagonalLinearOperator(R_diag)
+    R_dense_op = lx.MatrixLinearOperator(
+        jnp.diag(R_diag), tags=lx.positive_semidefinite_tag
+    )
+
+    diag_draws = flx.perturbed_observations(key, obs, R_diag_op, n_ensemble=5000)
+    dense_draws = flx.perturbed_observations(key, obs, R_dense_op, n_ensemble=5000)
+
+    # The two paths use different sqrt factors, so the *samples* differ,
+    # but the empirical covariance must converge to diag(R) in both.
+    for draws in (diag_draws, dense_draws):
+        centred = np.asarray(draws) - np.asarray(obs)
+        emp_var = centred.var(axis=0, ddof=1)
+        np.testing.assert_allclose(emp_var, np.asarray(R_diag), rtol=0.1)
+
+
 def test_l2_etkf_with_inflator(getkey):
     N_e, N_x = 40, 3
     particles = jr.normal(getkey(), (N_e, N_x))

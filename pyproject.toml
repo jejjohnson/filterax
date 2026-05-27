@@ -27,6 +27,7 @@ classifiers = [
 ]
 dependencies = [
     "einops>=0.8",
+    "einx>=0.4.3",
     "equinox>=0.13.8",
     "gaussx @ git+https://github.com/jejjohnson/gaussx@a66bab1",
     "jax>=0.10",
@@ -92,7 +93,21 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 # annotation" or "undefined name" on the named axes. UP037 is ignored
 # because removing the quotes makes jaxtyping shape specs ("..." or
 # "N_e *spatial") parse as bare Python expressions and break at import.
-ignore = ["E402", "E721", "E731", "E741", "F722", "F821", "UP037"]
+# RUF001 / RUF002 / RUF003 are ignored because docstrings throughout
+# filterax use Unicode math (X′, x̄, Σ, ⊙, Nₑ, Nₓ, Nᵧ, …) and ruff's
+# "ambiguous character" rule would force us back to ASCII.
+ignore = [
+    "E402",
+    "E721",
+    "E731",
+    "E741",
+    "F722",
+    "F821",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "UP037",
+]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
