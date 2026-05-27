@@ -1,5 +1,13 @@
 """Ensemble smoothers.
 
-Concrete smoother implementations (EnKS, ensemble RTS, fixed-lag) land in
-later waves; this subpackage is intentionally empty in Wave 1.
+Backward-pass refiners that turn a sequential-filter history into the
+smoothing distribution ``p(x_t | y_{1:T})``. All smoothers operate on the
+stacked ``forecast_history`` / ``analysis_history`` produced by an
+:class:`filterax.AssimilationResult`.
 """
+
+from filterax._src.smoothers import (
+    EnKS as EnKS,
+    EnsembleRTS as EnsembleRTS,
+    FixedLagSmoother as FixedLagSmoother,
+)

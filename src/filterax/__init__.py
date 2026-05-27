@@ -4,6 +4,7 @@ from filterax import (
     filters as filters,
     optax as optax,
     processes as processes,
+    smoothers as smoothers,
     utils as utils,
 )
 from filterax._src._protocols import (
@@ -23,6 +24,7 @@ from filterax._src._types import (
     FilterState as FilterState,
     ProcessConfig as ProcessConfig,
     ProcessState as ProcessState,
+    SmoothingResult as SmoothingResult,
     UKIState as UKIState,
 )
 from filterax._src.gain import kalman_gain as kalman_gain
@@ -73,6 +75,11 @@ from filterax._src.schedulers import (
     DataMisfitController as DataMisfitController,
     EKSStableScheduler as EKSStableScheduler,
     FixedScheduler as FixedScheduler,
+)
+from filterax._src.smoothers import (
+    EnKS as EnKS,
+    EnsembleRTS as EnsembleRTS,
+    FixedLagSmoother as FixedLagSmoother,
 )
 from filterax._src.statistics import (
     cross_covariance as cross_covariance,

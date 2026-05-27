@@ -66,6 +66,19 @@ class AssimilationResult(eqx.Module, strict=True):
     log_likelihoods: Float[Array, " T"] | None = None
 
 
+class SmoothingResult(eqx.Module, strict=True):
+    """Output of a backward-pass ensemble smoother.
+
+    ``smoothed_history`` shares the time axis of the filter history that
+    produced it; ``particles`` is the smoothed ensemble at the earliest
+    time (``smoothed_history[0]``) so callers can chain a smoother straight
+    into a follow-up forecast without re-indexing.
+    """
+
+    particles: Float[Array, "N_e N_x"]
+    smoothed_history: Float[Array, "T N_e N_x"]
+
+
 class FilterConfig(eqx.Module, strict=True):
     """Static configuration for sequential filters.
 
