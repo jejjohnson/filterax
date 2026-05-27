@@ -217,15 +217,16 @@ filterax filters need to slot into pipekit `Sequential` / `Graph` / `Cycle` pipe
 - (B) Structural — same method names/shapes, no import, satisfies Protocols via duck typing
 - (C) Optional integration module — `filterax.integrations.pipekit` re-declares classes as protocol satisfiers
 
-**Decision:** Option B. filterax abstracts have method signatures that **structurally satisfy** the pipekit-cycle Protocols. filterax does not import pipekit-cycle. pipekit's `@runtime_checkable` makes `isinstance(my_filter, pipekit_cycle.AnalysisStep)` work without any inheritance.
+**Decision:** Option B. filterax abstracts have method **shapes** (argument types, return types) that map cleanly onto the pipekit-cycle Protocols, even though method names diverge where DA-domain conventions warrant it (`analysis` vs `__call__`; `(state, t0, t1)` vs `(state, dt)`). Bridging is a one-line user-side wrapper per concept; filterax does not import pipekit and does not ship the wrappers. `@runtime_checkable` then makes `isinstance(wrapper, pipekit_cycle.AnalysisStep)` pass at runtime without inheritance.
 
 This mirrors pipekit's own rule: algorithm libraries do not import pipekit. The same discipline keeps filterax usable on its own and droppable into pipekit graphs without coupling.
 
 **Consequences:**
-- Method names on filterax abstracts are chosen with pipekit-cycle compatibility in mind (see `integrations/pipekit.md`).
+- Method shapes on filterax abstracts are chosen with pipekit-cycle bridge clarity in mind (see `integrations/pipekit.md`).
+- filterax filters do **not** themselves satisfy `isinstance(filter, pipekit_cycle.AnalysisStep)` — the wrapper does. Wave 5's compatibility test (FLX-55A) asserts `isinstance(FilterAsAnalysisStep(filter), AnalysisStep)`, not the bare filter.
 - Compatibility is tested from outside filterax (in pipekit-cycle's own test suite, or in a downstream integration test repo). filterax has no pipekit imports.
 - Users who want pipekit's `StatefulOperator` wrapping (e.g., to drive a `Cycle`) write a 5-line wrapper in their own code; filterax does not ship the wrapper.
-- If pipekit-cycle's Protocol signatures change, filterax compatibility breaks silently. We accept this risk in exchange for zero coupling.
+- If pipekit-cycle's Protocol signatures change, filterax compatibility may need a one-line wrapper update on the user side. We accept this in exchange for zero coupling.
 
 ---
 
@@ -264,7 +265,7 @@ This mirrors pipekit's own rule: algorithm libraries do not import pipekit. The 
 - (B) PyTree leaves — relax type to allow particles to be any JAX PyTree; primitives gain an internal flatten step
 - (C) Defer
 
-**Decision:** Option A. `FilterState.particles` is `Float[Array, "N_e N_x"]` in the core type. A `CarrierAdapter` (interface, plus reference implementations for `coordax.Array` and `GeoTensor`) lives in `filterax.integrations` and provides:
+**Decision:** Option A. `FilterState.particles` is `Float[Array, "N_e N_x"]` in the core type. A `CarrierAdapter` interface lives in `filterax.integrations`:
 
 ```python
 class CarrierAdapter(eqx.Module):
@@ -272,12 +273,14 @@ class CarrierAdapter(eqx.Module):
     def unflatten(self, particles: Float[Array, "N_e N_x"], meta: CarrierMeta) -> Carrier: ...
 ```
 
+filterax ships **one** reference implementation — `DictAdapter` for `dict[str, Array]` schemas — because it has zero optional dependencies and covers the common mixed-shape state case. Adapters for `coordax.Array`, `GeoTensor`, or other coordinate-aware carriers are **downstream-owned** (geostack, plumax, user code); filterax does not pull `coordax` or `pyproj` for the carrier path.
+
 Filters never see metadata. Adapters are user-facing convenience; the math layer stays minimal.
 
 **Consequences:**
 - Core stays lean, JAX-pure, and free of optional carrier dependencies.
 - Coordinate awareness costs one flatten/unflatten per analysis call — cheap relative to the analysis itself.
-- Downstream libraries (geostack, plumax) ship their own `CarrierAdapter` implementations; filterax ships the interface plus one reference adapter for plain dicts of named arrays.
+- filterax owns the `CarrierAdapter` interface and the `DictAdapter` reference. Coordinate-aware adapters (e.g. `CoordaxAdapter`, `GeoTensorAdapter`) live in the libraries that own those carriers; `integrations/geostack.md` documents the expected shape so downstream authors can build them consistently.
 - Documented in `integrations/geostack.md`.
 
 ---

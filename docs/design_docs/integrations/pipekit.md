@@ -103,7 +103,9 @@ class DynamicsAsForwardModel:
 pipekit threads `(carrier, state) -> (carrier, state)` through `Sequential` graphs. A filterax filter does not own its history; the user does. The wrapper is again user-side:
 
 ```python
-import equinox as eqx
+from typing import Any
+
+import filterax
 import pipekit as pk
 
 class FilterCycle(pk.StatefulOperator):

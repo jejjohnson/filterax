@@ -190,35 +190,41 @@ Add the minimal integration-facing surfaces needed before the final tutorial wav
 
 ---
 
-# integrations(pipekit): verify structural Protocol compatibility with pipekit-cycle
+# integrations(pipekit): verify wrapper-based Protocol compatibility with pipekit-cycle
 Draft ID: `FLX-55A`
 ## Problem / Request
-Verify (without importing pipekit) that filterax's filter / dynamics / obs-op
-classes satisfy `pipekit_cycle.AnalysisStep`, `ForwardModel`, and
-`ObservationOperator` per Decision D11.
+Verify (without importing pipekit) that the user-side wrappers documented in
+`integrations/pipekit.md` satisfy `pipekit_cycle.AnalysisStep`, `ForwardModel`,
+and `ObservationOperator` per Decision D11.
 
 ## Motivation
 The plumax / geostack stacks compose filterax into pipekit `Sequential`,
-`Graph`, and `Cycle` pipelines. Structural compatibility must be tested
-explicitly because the duck-typing contract is implicit.
+`Graph`, and `Cycle` pipelines. D11 commits to **shape compatibility via
+one-line user wrappers**, not bare-class duck typing — filterax filters expose
+`.analysis(...)`, pipekit wants `__call__(..., *, obs_op, obs_err_cov)`. The
+test target is the wrapper, not the bare filter.
 
 ## References & Existing Code
 - Design doc / spec:
-  `design_docs/integrations/pipekit.md`,
+  `design_docs/integrations/pipekit.md` §4,
   `design_docs/decisions.md` (D11)
 
 ## Implementation Steps
 - [ ] Add an opt-in test module guarded by `pytest.importorskip("pipekit_cycle")`.
-- [ ] Assert `isinstance(filter_instance, pipekit_cycle.AnalysisStep)` for every
-      concrete sequential filter shipped by filterax.
-- [ ] Assert the analogous checks for `ForwardModel` and `ObservationOperator`
-      using a minimal user-supplied dynamics / obs-op.
-- [ ] Document the `StatefulOperator` wrapper recipe in the integration doc
-      (not shipped by filterax).
+- [ ] Re-create the `FilterAsAnalysisStep`, `DynamicsAsForwardModel`, and
+      `FilterCycle` wrappers from `integrations/pipekit.md` in the test file.
+- [ ] Assert `isinstance(FilterAsAnalysisStep(filter_), pipekit_cycle.AnalysisStep)`
+      for every concrete sequential filter shipped by filterax.
+- [ ] Assert the analogous checks for `DynamicsAsForwardModel` and the obs-op
+      (which is structurally identical and needs no wrapper).
+- [ ] Explicitly assert that the bare filter does **not** satisfy
+      `AnalysisStep` (negative test — guards against accidental coupling).
 
 ## Definition of Done
-- A pipekit-cycle user can drop a filterax filter into a `Sequential` graph
-  without writing a custom adapter.
+- A pipekit-cycle user can drop a filterax filter into a `Sequential` graph by
+  writing the ~5-line `FilterAsAnalysisStep` wrapper documented in
+  `integrations/pipekit.md`, and the test suite proves the wrapper satisfies
+  the Protocol.
 
 ## Relationships
 - Parent epic: FLX-51.

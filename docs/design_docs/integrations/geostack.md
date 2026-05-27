@@ -41,14 +41,15 @@ class CarrierAdapter(eqx.Module):
         ...
 ```
 
-filterax ships two reference implementations in `filterax.integrations`:
+filterax ships **one** reference implementation:
 
-| Adapter | Carrier | When to use |
-|---------|---------|-------------|
-| `DictAdapter` | `dict[str, Array]` of named state fields | Mixed-shape state (scalars + grids), no spatial coords needed |
-| `CoordaxAdapter` | `coordax.Array` | Pure spatial state, coordinates needed for localization |
+| Adapter | Carrier | When to use | Owner |
+|---------|---------|-------------|-------|
+| `DictAdapter` | `dict[str, Array]` of named state fields | Mixed-shape state (scalars + grids), no spatial coords needed | **filterax** |
+| `CoordaxAdapter` | `coordax.Array` | Pure spatial state, coordinates needed for localization | downstream (geostack / plumax) |
+| `GeoTensorAdapter` | `georeader.GeoTensor` | Raster particles with CRS + affine transform | downstream (geostack) |
 
-`coordax` is a soft (optional) dependency — `CoordaxAdapter` is imported lazily. The core filterax install does not pull in coordax.
+filterax does **not** depend on `coordax`, `georeader`, or `pyproj` for the carrier path. Coordinate-aware adapters are recipe-level documentation here; the implementations live in the libraries that own those carrier types. §4 below shows the expected shape so downstream authors stay consistent with filterax's interface.
 
 ## 3  DictAdapter recipe
 
@@ -83,13 +84,27 @@ new_ensemble = adapter.unflatten(updated_particles, meta)
 
 The schema is **static**, captured in `meta` as a tuple of `(name, shape, slice)` records. JIT picks up the slicing as static structure; the flatten/unflatten round-trip is essentially free at runtime.
 
-## 4  CoordaxAdapter recipe
+## 4  CoordaxAdapter recipe (downstream-owned)
 
-For a 2D spatial state with lon/lat coordinates:
+Shape that a `coordax.Array` adapter should follow when authored in geostack / plumax / user code. **filterax does not ship this class** — it is documented here so downstream authors stay consistent with the `CarrierAdapter` interface in §2:
 
 ```python
 import coordax
+import jax.numpy as jnp
 import filterax
+
+class CoordaxAdapter(filterax.CarrierAdapter):
+    """Round-trip a coordax.Array ensemble carrier (downstream / user-owned)."""
+
+    ensemble_dim: str = "ensemble"
+
+    def flatten(self, carrier):
+        # ... extract data, dims, coords; reshape to (N_e, N_x) ...
+        ...
+
+    def unflatten(self, particles, meta):
+        # ... rebuild coordax.Array from data + saved dims/coords ...
+        ...
 
 state = coordax.Array(
     data=jnp.zeros((N_e, n_lat, n_lon)),
@@ -97,8 +112,7 @@ state = coordax.Array(
     coords={"lat": lat_array, "lon": lon_array},
 )
 
-adapter = filterax.integrations.CoordaxAdapter(ensemble_dim="ensemble")
-
+adapter = CoordaxAdapter(ensemble_dim="ensemble")
 particles, meta = adapter.flatten(state)
 # particles: (N_e, n_lat * n_lon)
 # meta: CarrierMeta(dims=("lat", "lon"), shape=(n_lat, n_lon), coords={...})
@@ -109,7 +123,7 @@ state_a = adapter.unflatten(updated_particles, meta)
 # state_a is a coordax.Array with the same dims and coords as input
 ```
 
-The adapter preserves dim order and coordinate arrays; only the underlying data buffer is replaced.
+The adapter preserves dim order and coordinate arrays; only the underlying data buffer is replaced. Authoring this in geostack or plumax keeps `coordax` (and any other carrier-side dependency) out of filterax's install.
 
 ## 5  Geographic localization
 

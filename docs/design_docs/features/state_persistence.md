@@ -75,15 +75,18 @@ Both raise `filterax.SerializationError` on:
 ## 4  Recipe — operational alert warm-start
 
 ```python
-import filterax
 from pathlib import Path
+
+import filterax
+import jax.numpy as jnp
 
 STATE_PATH = Path("/var/run/plumax/last_state.fax")
 
-# Template for load — empty arrays of the right shape/dtype
+# Template for load — empty arrays of the right shape/dtype.
+# FilterState.step is a scalar JAX integer array (Int[Array, ""]), not a Python int.
 template = filterax.FilterState(
     particles=jnp.zeros((N_ENSEMBLE, N_STATE)),
-    step=0,
+    step=jnp.array(0),
 )
 
 # Warm start

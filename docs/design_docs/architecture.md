@@ -177,17 +177,17 @@ class AbstractScheduler(eqx.Module):
 
 All protocols are `eqx.Module` subclasses — pytree-compatible, JIT-friendly, serializable.
 
-### Structural compatibility with `pipekit-cycle`
+### Compatibility with `pipekit-cycle`
 
-filterax's protocols are designed so that the concrete filter and operator classes **structurally satisfy** the three Protocols in `pipekit-cycle` (`ForwardModel`, `ObservationOperator`, `AnalysisStep`). filterax does **not import** pipekit. The compatibility is duck-typed:
+filterax's protocols are designed to map cleanly onto the three Protocols in `pipekit-cycle` (`ForwardModel`, `ObservationOperator`, `AnalysisStep`) — but the names and signatures differ where DA-domain conventions diverge from pipekit's generic surface. Bridging is **one line of user code per concept**; filterax does not ship aliases or import pipekit.
 
-| filterax abstract | pipekit-cycle Protocol | Compatibility shape |
+| filterax abstract | pipekit-cycle Protocol | Bridge |
 |---|---|---|
-| `AbstractDynamics.__call__(state, t0, t1)` | `ForwardModel.step(state, dt)` | filterax dynamics expose `step(state, dt) -> state` as an alias when used in pipekit pipelines |
-| `AbstractObsOperator.__call__(state)` | `ObservationOperator.__call__(state)` | Identical surface |
-| `AbstractSequentialFilter.analysis(forecast, obs, obs_op, obs_noise)` | `AnalysisStep.__call__(forecast, obs, *, obs_op, obs_err_cov)` | filterax filters expose `__call__` as a keyword-arg adapter when used in pipekit pipelines |
+| `AbstractDynamics.__call__(state, t0, t1)` | `ForwardModel.step(state, dt)` | User wraps with a `step(state, dt)` method calling `self._dyn(state, 0.0, dt)` |
+| `AbstractObsOperator.__call__(state)` | `ObservationOperator.__call__(state)` | Identical surface — no wrapper needed |
+| `AbstractSequentialFilter.analysis(forecast, obs, obs_op, obs_noise)` | `AnalysisStep.__call__(forecast, obs, *, obs_op, obs_err_cov)` | User wraps with a `__call__(forecast, obs, *, obs_op, obs_err_cov)` method calling `self._filter.analysis(...)` |
 
-See D11 and `integrations/pipekit.md` for the adapter snippets and the rationale.
+The user wrappers are short (under 10 lines each); `@runtime_checkable` makes `isinstance(wrapper, pipekit_cycle.AnalysisStep)` pass at runtime without inheritance. See D11 and `integrations/pipekit.md` §4 for the concrete snippets and rationale.
 
 ---
 
@@ -276,7 +276,7 @@ class CarrierAdapter(eqx.Module):
         ...
 ```
 
-Filters see only `Float[Array, "N_e N_x"]`. The adapter is user-facing convenience; the math layer stays minimal. filterax ships reference adapters for plain dicts of named arrays in core, and a `coordax.Array` adapter under `filterax.integrations` (no `coordax` runtime dependency — imported lazily). See `integrations/geostack.md`.
+Filters see only `Float[Array, "N_e N_x"]`. The adapter is user-facing convenience; the math layer stays minimal. filterax ships **only** the interface plus a `DictAdapter` reference implementation for `dict[str, Array]` schemas (no optional deps). Coordinate-aware adapters (`CoordaxAdapter`, `GeoTensorAdapter`, …) are downstream-owned — they live in the libraries that own those carriers, not in filterax. See `integrations/geostack.md` for the expected adapter shape.
 
 ---
 

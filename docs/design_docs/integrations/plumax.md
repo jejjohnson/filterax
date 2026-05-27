@@ -83,31 +83,37 @@ result = filter_.analysis(
 When overpasses are an hour apart and there is no benefit to joint treatment:
 
 ```python
+import jax.numpy as jnp
+
 overpasses = [
-    (y_trop_t0,  TROPOMIOp(...),  TROPOMINoise(...)),
-    (y_emit_t1,  EMITOp(...),     EMITNoise(...)),
-    (y_ghgsat_t2, GHGSatOp(...),   GHGSatNoise(...)),
+    (y_trop_t0,   TROPOMIOp(...), TROPOMINoise(...)),
+    (y_emit_t1,   EMITOp(...),    EMITNoise(...)),
+    (y_ghgsat_t2, GHGSatOp(...),  GHGSatNoise(...)),
 ]
 
 cycle = filterax.SequentialAssimilation(filter_)
-state = filterax.FilterState(particles=forecast_ensemble, step=0)
-for obs, op, noise in overpasses:
-    state, result = cycle(state, obs, op, noise)
+state = filterax.FilterState(particles=forecast_ensemble, step=jnp.array(0))
+final_state, results = cycle(state, overpasses)
 ```
 
-`SequentialAssimilation` is a Layer 2 helper that loops `filter_.analysis` and returns the final `FilterState` plus the trail of `AnalysisResult` for diagnostics. The user dynamics are still responsible for propagating the ensemble between overpasses.
+`SequentialAssimilation.__call__(state, overpasses)` consumes the full list of `(obs, obs_op, obs_noise)` tuples in one call (see `features/multi_instrument.md` §2.2) and returns the final `FilterState` plus the trail of `AnalysisResult` for diagnostics. The user dynamics are still responsible for propagating the ensemble between overpasses — see §5 for the inter-overpass case.
 
 ## 5  Multi-day event reconstruction (fixed-lag smoother)
 
-A plume event spans 12–24 hours and 3–5 overpasses. Operational triage uses the filter trail; the post-hoc attribution report uses a fixed-lag smoother to incorporate future observations:
+A plume event spans 12–24 hours and 3–5 overpasses with non-trivial dynamics in between. Operational triage uses the filter trail; the post-hoc attribution report uses a fixed-lag smoother to incorporate future observations. When dynamics matter between overpasses, run one analysis per step (rather than batching them through `SequentialAssimilation`):
 
 ```python
 filter_results = []
-state = filterax.FilterState(particles=init, step=0)
-for t, (obs, op, noise) in enumerate(overpasses):
+forecast_history = []
+state = filterax.FilterState(particles=init, step=jnp.array(0))
+t_prev = 0.0
+for t, (obs, op, noise) in zip(overpass_times, overpasses):
     forecast = dynamics_step(state.particles, t_prev, t)
-    state, result = cycle(filterax.FilterState(forecast, t), obs, op, noise)
+    forecast_history.append(forecast)
+    result = filter_.analysis(forecast, obs, op, noise)
+    state = filterax.FilterState(particles=result.particles, step=state.step + 1)
     filter_results.append(result)
+    t_prev = t
 
 smoother = filterax.FixedLagSmoother(lag=5)
 smoothed = smoother.smooth(filter_results, forecast_history)
