@@ -49,12 +49,6 @@ from filterax._src.models import (
     EnSRF as EnSRF,
     StochasticEnKF as StochasticEnKF,
 )
-from filterax._src.patches import (
-    PatchMetadata as PatchMetadata,
-    assign_obs_to_patches as assign_obs_to_patches,
-    blend_patches as blend_patches,
-    create_patches as create_patches,
-)
 from filterax._src.perturbations import (
     perturbed_observations as perturbed_observations,
 )
