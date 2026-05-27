@@ -1,6 +1,6 @@
 """filterax — differentiable ensemble Kalman filters and processes for JAX."""
 
-from filterax import filters as filters
+from filterax import filters as filters, optax as optax, processes as processes
 from filterax._src._protocols import (
     AbstractDynamics as AbstractDynamics,
     AbstractInflator as AbstractInflator,
@@ -51,6 +51,17 @@ from filterax._src.models import (
 )
 from filterax._src.perturbations import (
     perturbed_observations as perturbed_observations,
+)
+from filterax._src.process_models import (
+    EKI as EKI,
+    EKS as EKS,
+    UKI as UKI,
+    ProcessResult as ProcessResult,
+)
+from filterax._src.schedulers import (
+    DataMisfitController as DataMisfitController,
+    EKSStableScheduler as EKSStableScheduler,
+    FixedScheduler as FixedScheduler,
 )
 from filterax._src.statistics import (
     cross_covariance as cross_covariance,

@@ -45,6 +45,9 @@ nav:
   - API Reference:
       - Overview: api/reference.md
       - Primitives (Layer 0): api/primitives.md
+      - Processes (Wave 3): api/processes.md
+      - Schedulers: api/schedulers.md
+      - optax integration: api/optax.md
   - Contributing: contributing.md
   - Changelog: CHANGELOG.md
 

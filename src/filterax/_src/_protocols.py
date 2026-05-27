@@ -163,6 +163,13 @@ class AbstractProcess(eqx.Module, strict=True):
         self,
         state: ProcessState,
         forward_evals: Float[Array, "J N_d"],
+        **kwargs: Any,
     ) -> ProcessState:
-        """Apply a single update step given forward evaluations."""
+        """Apply a single update step given forward evaluations.
+
+        Concrete processes may extend with extra keyword arguments
+        (per-step PRNG keys, hyperparameters, …); the ``**kwargs`` slot
+        keeps the protocol open without forcing every process to thread
+        every extension parameter.
+        """
         ...
