@@ -26,7 +26,10 @@ class _LinearObs(flx.AbstractObsOperator):
 
 @pytest.fixture
 def linear_gaussian():
-    N_e, N_x = 2000, 4
+    # N_e only has to exceed N_x for the sample covariance to be full
+    # rank; the references are evaluated on the sample stats, so the
+    # comparison is algebraic (atol = 1e-9), not Monte Carlo.
+    N_e, N_x = 60, 4
     P_f = jnp.asarray(
         [
             [1.0, 0.3, 0.1, 0.0],
@@ -147,13 +150,16 @@ def test_estkf_preserves_ensemble_mean_consistency():
 
 
 def test_square_root_kf_tracks_random_walk():
-    """Parametric KF on a 2-D random walk with scalar observations.
+    """Parametric KF on a 2-D random walk with one observed component.
 
-    Asserts shape + finiteness + that the observed component of the
-    filtered mean is closer to truth than the *unobserved* component
-    (the hidden state) is — i.e. observations actually constrain x[0].
+    Algebraic invariants (independent of trajectory realisation):
+    shape, finite log-likelihood, PSD filtered covariances, and the
+    structural fact that the *unobserved* component's posterior
+    variance must exceed the *observed* one's at every step — the
+    filter never sees ``x[1]``, so it cannot shrink its uncertainty
+    there while ``x[0]`` is constrained by ``H``.
     """
-    N, M, T = 2, 1, 30
+    N, M, T = 2, 1, 4
     F = jnp.eye(N)
     H = jnp.array([[1.0, 0.0]])
     Q = jnp.eye(N) * 0.01
@@ -168,18 +174,11 @@ def test_square_root_kf_tracks_random_walk():
 
     assert result.filtered_means.shape == (T, N)
     assert result.filtered_covs.shape == (T, N, N)
-    # The observed component should be more accurate than the hidden
-    # component (the filter sees x[0] every step, x[1] never).
-    rmse_obs = float(
-        jnp.sqrt(jnp.mean((result.filtered_means[:, 0] - x_true[:, 0]) ** 2))
-    )
-    rmse_hidden = float(
-        jnp.sqrt(jnp.mean((result.filtered_means[:, 1] - x_true[:, 1]) ** 2))
-    )
-    assert rmse_obs < rmse_hidden
-    # Marginal log-likelihood is finite.
     assert bool(jnp.isfinite(result.log_likelihood))
-    # Filtered covariances are PSD (Cholesky-form propagation guards this).
-    for t in range(T):
-        eigs = jnp.linalg.eigvalsh(result.filtered_covs[t])
-        assert float(eigs.min()) > -1e-9
+    eigs = jnp.linalg.eigvalsh(result.filtered_covs)
+    assert float(eigs.min()) > -1e-9
+    # Observed component is constrained by H every step; the unobserved
+    # one only sees the process noise — so var_unobs > var_obs at every t.
+    var_obs = result.filtered_covs[:, 0, 0]
+    var_unobs = result.filtered_covs[:, 1, 1]
+    assert bool(jnp.all(var_unobs > var_obs))

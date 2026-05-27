@@ -17,20 +17,20 @@ def test_perturbed_observations_shape(getkey):
     assert pert.shape == (12, 4)
 
 
-def test_perturbed_observations_empirical_mean_and_cov(getkey):
+def test_perturbed_observations_diagonal_scales_with_sqrt_R(getkey):
+    """Algebraic correctness for the diagonal fast path: a draw equals
+    ``obs + sqrt(R_diag) * standard_normal`` element-wise, which we
+    reproduce from the same PRNG key without going through the package."""
     obs = jnp.asarray([3.0, -1.0, 2.0])
     R_diag = jnp.asarray([0.5, 1.0, 2.0])
     R = lx.DiagonalLinearOperator(R_diag)
-
-    pert = flx.perturbed_observations(getkey(), obs, R, n_ensemble=20000)
-    # Mean converges to obs.
-    np.testing.assert_allclose(
-        np.asarray(pert).mean(axis=0), np.asarray(obs), atol=2e-2
+    key = jr.PRNGKey(0)
+    pert = flx.perturbed_observations(key, obs, R, n_ensemble=4)
+    standard = jr.normal(key, (4, 3))
+    expected = np.asarray(obs)[None, :] + np.asarray(standard) * np.sqrt(
+        np.asarray(R_diag)
     )
-    # Empirical covariance close to diag(R) at large sample sizes.
-    centred = np.asarray(pert) - np.asarray(obs)
-    emp_cov = centred.T @ centred / (pert.shape[0] - 1)
-    np.testing.assert_allclose(np.diag(emp_cov), np.asarray(R_diag), rtol=0.05)
+    np.testing.assert_allclose(np.asarray(pert), expected, atol=1e-12)
 
 
 def test_perturbed_observations_deterministic(getkey):

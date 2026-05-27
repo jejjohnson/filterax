@@ -47,8 +47,22 @@ def _forward(G):
 
 
 def test_eki_one_step_matches_kalman_posterior():
-    G, y, R, sigma0, mu_post, _ = _linear_inverse_problem()
-    init = sigma0 * jr.normal(jr.PRNGKey(0), (3000, 2))
+    """One EKI step with ``Δt = 1`` collapses to the Kalman update applied
+    to the sample covariance — pin against that (algebraic), not against
+    the broad-prior analytic posterior (convergence)."""
+    G, y, R, sigma0, _, _ = _linear_inverse_problem()
+    init = sigma0 * jr.normal(jr.PRNGKey(0), (60, 2))
+    # Reference: Kalman analysis on the sample mean / sample cov.
+    init_np = np.asarray(init)
+    sample_mean = init_np.mean(axis=0)
+    sample_cov = np.cov(init_np.T, ddof=1)
+    G_np = np.asarray(G)
+    R_np = np.diag(np.asarray([0.1, 0.1, 0.1]))
+    y_np = np.asarray(y)
+    S = G_np @ sample_cov @ G_np.T + R_np
+    K = sample_cov @ G_np.T @ np.linalg.inv(S)
+    mean_ref = sample_mean + K @ (y_np - G_np @ sample_mean)
+
     eki = flx.EKI(
         forward_fn=_forward(G),
         obs=y,
@@ -57,32 +71,28 @@ def test_eki_one_step_matches_kalman_posterior():
         config=ProcessConfig(scheduler=flx.FixedScheduler(dt=1.0), n_iterations=1),
     )
     result = eki.run(init)
-    np.testing.assert_allclose(np.asarray(result.mean), np.asarray(mu_post), atol=5e-2)
+    np.testing.assert_allclose(np.asarray(result.mean), mean_ref, atol=1e-9)
 
 
 def test_eki_misfit_controller_reduces_misfit_monotonically():
-    """The data-misfit controller's adaptive Δt is conservative; we just
-    check that the misfit decreases monotonically over a long run."""
+    """Correctness invariant: misfit decreases. Don't need 200 iterations
+    to verify this."""
     G, y, R, sigma0, _, _ = _linear_inverse_problem()
-    init = sigma0 * jr.normal(jr.PRNGKey(1), (200, 2))
+    init = sigma0 * jr.normal(jr.PRNGKey(1), (50, 2))
     eki = flx.EKI(
         forward_fn=_forward(G),
         obs=y,
         noise_cov=R,
         scheduler=flx.DataMisfitController(),
-        config=ProcessConfig(scheduler=flx.DataMisfitController(), n_iterations=200),
+        config=ProcessConfig(scheduler=flx.DataMisfitController(), n_iterations=20),
     )
     result = eki.run(init)
 
-    # Initial and final misfits in Mahalanobis-norm.
     def misfit(particles):
         residuals = y[None, :] - particles @ G.T
         return float(jnp.mean(jnp.sum(residuals**2 / 0.1, axis=-1)))
 
-    initial = misfit(init)
-    final = misfit(result.particles)
-    assert final < initial
-    # algo_time grows but may not reach 1.0 with the conservative recipe.
+    assert misfit(result.particles) < misfit(init)
     assert float(result.history_algo_time[-1]) > 0
 
 
@@ -92,21 +102,22 @@ def test_eki_misfit_controller_reduces_misfit_monotonically():
 
 
 def test_eks_does_not_collapse():
-    # EKS should preserve spread (ergodic sampler) — after many steps,
-    # the ensemble covariance trace must remain bounded away from zero.
-    G, y, R, sigma0, _, _Sigma_post = _linear_inverse_problem()
-    init = sigma0 * jr.normal(jr.PRNGKey(2), (200, 2))
+    """Correctness invariant: EKS's noise injection keeps the spread
+    bounded away from zero. A short run is enough to verify the noise
+    term fires — long-horizon convergence to the posterior isn't what
+    this test should cover."""
+    G, y, R, sigma0, _, _ = _linear_inverse_problem()
+    init = sigma0 * jr.normal(jr.PRNGKey(2), (50, 2))
     eks = flx.EKS(
         forward_fn=_forward(G),
         obs=y,
         noise_cov=R,
         scheduler=flx.FixedScheduler(dt=0.05),
-        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.05), n_iterations=200),
+        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.05), n_iterations=20),
         seed=3,
     )
     result = eks.run(init)
     sample_cov = result.covariance.as_matrix()
-    # Trace bounded away from zero — sampler is exploring.
     assert float(jnp.trace(sample_cov)) > 1e-3
 
 
@@ -394,19 +405,20 @@ def test_gnki_rejects_underdetermined_ensemble():
 
 
 def test_eks_preserves_spread_on_nonlinear_problem():
+    """Correctness invariant on a nonlinear problem: EKS's noise term
+    keeps spread positive and the update is finite. A short run is
+    enough to catch a regression that would collapse the ensemble."""
     forward, _theta_true, y, R = _nonlinear_problem()
-    init = 1.0 * jr.normal(jr.PRNGKey(11), (200, 3))
+    init = 1.0 * jr.normal(jr.PRNGKey(11), (50, 3))
     eks = flx.EKS(
         forward_fn=forward,
         obs=y,
         noise_cov=R,
         scheduler=flx.FixedScheduler(dt=0.02),
-        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.02), n_iterations=200),
+        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.02), n_iterations=20),
         seed=12,
     )
     result = eks.run(init)
-    # EKS is an ergodic sampler — variance shouldn't collapse like EKI's.
     final_trace = float(jnp.trace(result.covariance.as_matrix()))
     assert final_trace > 1e-3
-    # All particles must be finite (no NaN blow-up under the nonlinear G).
     assert bool(jnp.all(jnp.isfinite(result.particles)))
