@@ -38,6 +38,7 @@ from filterax._src._protocols import AbstractScheduler
 from filterax._src._types import ProcessState, UKIState
 from filterax._src.processes import (
     _eki_delta,
+    _safe_inv_dt,
     sigma_points,
 )
 from filterax._src.schedulers import (
@@ -160,10 +161,14 @@ def eki(
 
     def init_fn(params: Any) -> EKIOptaxState:
         mean, unravel = _flatten(params)
-        # θ⁽ʲ⁾ ~ 𝒩(mean, init_spread² I)
+        # θ⁽ʲ⁾ ~ 𝒩(mean, init_spread² I), recentred so that
+        # ``particles.mean(axis=0) == mean`` exactly — otherwise the
+        # first ``update`` would return a non-zero delta driven purely
+        # by finite-sample sampling noise rather than by the data.
         noise = init_spread * jr.normal(
             base_key, (n_ensemble, mean.shape[0]), dtype=mean.dtype
         )
+        noise = noise - jnp.mean(noise, axis=0, keepdims=True)
         particles = mean[None, :] + noise
         return EKIOptaxState(
             particles=particles,
@@ -389,7 +394,7 @@ def uki(
         C_theta_y = einx.dot("k p, k d -> p d", weighted_theta, y_anom)
         weighted_y = einx.multiply("k d, k -> k d", y_anom, w_cov)
         S_dense = einx.dot("k a, k b -> a b", weighted_y, y_anom)
-        S_tempered = S_dense + (1.0 / dt) * noise_cov.as_matrix()
+        S_tempered = S_dense + _safe_inv_dt(dt) * noise_cov.as_matrix()
         innovation = obs - y_mean
         K_gain = jnp.linalg.solve(S_tempered.T, C_theta_y.T).T
 

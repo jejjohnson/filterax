@@ -58,6 +58,22 @@ def _with_evals(state: ProcessState, evals: Float[Array, "J N_d"]) -> ProcessSta
     return eqx.tree_at(lambda s: s.forward_evals, state, evals)
 
 
+# When the scheduler reports ``dt = 0`` (DataMisfitController past
+# ``algo_time = 1``), downstream ``1 / dt`` would blow up. The L2 run
+# loops break out before that happens, but L1 ``update()`` and the
+# optax wrappers can still be called in a fixed-length loop. We floor
+# ``1 / dt`` at ``1 / _DT_EPSILON`` — large enough that the tempered
+# noise ``Δt⁻¹ Γ`` dominates ``S``, so the EKI / UKI per-member delta
+# (which is itself ``∝ dt``) ends up identically zero. Repeated calls
+# after convergence are therefore no-ops rather than NaNs.
+_DT_EPSILON: float = 1e-30
+
+
+def _safe_inv_dt(dt: Float[Array, ""]) -> Float[Array, ""]:
+    """Reciprocal of ``dt`` with a tiny floor so post-convergence calls are stable."""
+    return 1.0 / jnp.maximum(dt, _DT_EPSILON)
+
+
 def _scale_noise(
     noise_cov: lx.AbstractLinearOperator, factor: Float[Array, ""]
 ) -> lx.AbstractLinearOperator:
@@ -111,7 +127,7 @@ def _eki_delta(
         particles, forward_evals, bessel=True
     )  # (Nₚ, N_d)
     obs_anom = ensemble_anomalies(forward_evals)
-    S = _innovation_covariance(obs_anom, noise_cov, 1.0 / dt)
+    S = _innovation_covariance(obs_anom, noise_cov, _safe_inv_dt(dt))
     # innovations[j, d] = y[d] − G[j, d]
     innovations = einx.subtract("d, j d -> j d", obs, forward_evals)
     # Solve once for each per-member innovation: S⁻¹ rⱼ.
@@ -449,7 +465,7 @@ class UKI(AbstractProcess, strict=True):
         weighted_y = einx.multiply("k d, k -> k d", y_anom, w_cov)
         S_dense = einx.dot("k a, k b -> a b", weighted_y, y_anom)
         # Tempered Kalman solve.
-        S_tempered = S_dense + (1.0 / dt) * noise_cov.as_matrix()
+        S_tempered = S_dense + _safe_inv_dt(dt) * noise_cov.as_matrix()
         innovation = obs - y_mean
         K = jnp.linalg.solve(S_tempered.T, C_theta_y.T).T  # (Nₚ, N_d)
 
@@ -518,8 +534,13 @@ class UKI(AbstractProcess, strict=True):
         points = state.particles
         N_p = (points.shape[0] - 1) // 2
         mean = points[0]
-        # Σ = (Nₚ + λ)⁻¹ · ½ Σⱼ (χ⁺ⱼ − μ)(χ⁺ⱼ − μ)ᵀ (matches the sigma-
-        # point construction in :func:`sigma_points`).
+        # Recover Σ from the ``Nₚ`` positive-offset sigma points alone:
+        # by construction (see :func:`sigma_points`) we have
+        #   χ⁺ⱼ − μ = c · [√Σ]_{:,j},   c = √(Nₚ + λ),
+        # so  Σ_k (χ⁺ⱼ − μ)(χ⁺ⱼ − μ)ᵀ = c² Σ = (Nₚ + λ) Σ.
+        # Dividing by ``(Nₚ + λ)`` therefore returns Σ exactly. The
+        # negative-offset block is the reflection and contributes
+        # nothing new, so we skip it.
         lam = self.alpha**2 * (N_p + self.kappa) - N_p
         scale = N_p + lam
         offsets = points[1 : 1 + N_p] - mean[None, :]  # (Nₚ, Nₚ)
@@ -652,9 +673,21 @@ class GNKI(AbstractProcess, strict=True):
         obs: Float[Array, " N_d"],
         noise_cov: lx.AbstractLinearOperator,
     ) -> ProcessState:
-        check_ensemble_size(particles.shape[0])
+        J, N_p = particles.shape
+        check_ensemble_size(J)
+        # GNKI inverts the sample parameter covariance Cᶿᶿ ∈ ℝ^{Nₚ×Nₚ}.
+        # With J ≤ Nₚ that matrix has rank ≤ J − 1 < Nₚ and is singular
+        # — the jitter regulariser would dominate and silently corrupt
+        # the Gauss-Newton step. Fail fast so users know to switch to
+        # EKI (which works in the underdetermined regime).
+        if J <= N_p:  # noqa: SIM300 — phrasing matches "J > Nₚ" requirement
+            raise ValueError(
+                "GNKI requires J > Nₚ so the sample parameter covariance "
+                f"Cᶿᶿ is invertible; got J={J} and Nₚ={N_p}. Use "
+                "filterax.EKI for the underdetermined regime."
+            )
         N_d = obs.shape[0]
-        zero_evals = jnp.zeros((particles.shape[0], N_d), dtype=particles.dtype)
+        zero_evals = jnp.zeros((J, N_d), dtype=particles.dtype)
         return ProcessState(
             particles=particles,
             forward_evals=zero_evals,

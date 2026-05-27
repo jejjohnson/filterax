@@ -57,10 +57,14 @@ class DataMisfitController(AbstractScheduler, strict=True):
 
     ``Φₙ = J⁻¹ Σⱼ ‖y − G(θ⁽ʲ⁾)‖²_{Γ⁻¹}``
 
-    computed in observation space (the caller supplies ``Γ⁻¹`` via
-    ``state.noise_cov``). The ``min`` clamps the final step so
-    ``algo_time`` lands exactly at ``1.0``, which is the standard EKI
-    termination criterion.
+    computed in observation space — ``state.noise_cov`` carries ``Γ``
+    itself, and we apply ``Γ⁻¹`` internally via :func:`gaussx.solve_rows`
+    so structured ``Γ`` (diagonal, low-rank, …) is never densified.
+    The ``min`` clamps the final step so ``algo_time`` lands exactly at
+    ``1.0``, which is the standard EKI termination criterion; subsequent
+    calls return ``Δt = 0`` (the L1 processes guard their ``1/Δt``
+    paths with a small floor so further calls are no-ops rather than
+    NaNs).
 
     Attributes:
         target_misfit: Desired misfit-weighted increment. ``1.0`` is the
@@ -97,13 +101,17 @@ class EKSStableScheduler(AbstractScheduler, strict=True):
 
     ``Δtₙ = min(max_dt, target / ‖Cᶿᶿₙ‖₂)``
 
-    The ``‖Cᶿᶿ‖₂`` denominator is approximated by the largest
-    eigenvalue of the ensemble covariance, computed cheaply from the
-    low-rank factor (the ``Nₑ × Nₑ`` Gram of the anomalies).
+    We bound the spectral norm via the Frobenius norm of the
+    ``Nₑ × Nₑ`` Gram of the anomalies — ``‖A‖₂ ≤ ‖A‖_F`` for any
+    matrix, so this is a *conservative* (slightly tighter than
+    necessary) cap on ``Δt``. A true top-eigenvalue estimate would
+    require an extra ``Nₑ × Nₑ`` eigendecomposition per step; the
+    Frobenius bound costs only a single dot product and is cheap
+    enough to evaluate every iteration.
 
     Attributes:
         max_dt: Hard ceiling on the step size.
-        target: Desired ``Δt × ‖Cᶿᶿ‖₂`` product.
+        target: Desired ``Δt × ‖Cᶿᶿ‖_F`` product.
     """
 
     max_dt: float = eqx.field(static=True, default=1.0)

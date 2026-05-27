@@ -354,6 +354,45 @@ def test_uki_reduces_misfit_on_nonlinear_problem():
     assert final_cov_trace < initial_cov_trace
 
 
+def test_eki_update_is_finite_after_algo_time_one():
+    """Regression: ``DataMisfitController`` returns ``dt = 0`` once
+    ``algo_time ≥ 1``; the L1 EKI update must still produce finite
+    output (no division by zero) so fixed-length user loops are safe.
+    """
+    G, y, R, _, _, _ = _linear_inverse_problem()
+    init = 1.0 * jr.normal(jr.PRNGKey(20), (50, 2))
+    process = flx.processes.EKI(scheduler=flx.DataMisfitController())
+    state = process.init(init, y, R)
+    # Drive the loop until algo_time ≥ 1 in a couple of huge steps.
+    state = process.update(state, init @ G.T)
+    state = process.update(state, state.particles @ G.T)
+    state = process.update(state, state.particles @ G.T)
+    # Now call update past the convergence point — must not NaN.
+    for _ in range(3):
+        evals = state.particles @ G.T
+        state = process.update(state, evals)
+    assert bool(jnp.all(jnp.isfinite(state.particles)))
+
+
+def test_gnki_rejects_underdetermined_ensemble():
+    """GNKI requires ``J > Nₚ`` because it inverts ``Cᶿᶿ``."""
+    _G, y, R, _, _, _ = _linear_inverse_problem()
+    init = jr.normal(jr.PRNGKey(21), (2, 2))  # J == N_p → not enough
+    gnki = flx.processes.GNKI(
+        scheduler=flx.FixedScheduler(dt=0.1),
+        prior_mean=jnp.zeros(2),
+        prior_cov=lx.MatrixLinearOperator(
+            jnp.eye(2), tags=lx.positive_semidefinite_tag
+        ),
+    )
+    try:
+        gnki.init(init, y, R)
+    except ValueError as exc:
+        assert "GNKI requires" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
 def test_eks_preserves_spread_on_nonlinear_problem():
     forward, _theta_true, y, R = _nonlinear_problem()
     init = 1.0 * jr.normal(jr.PRNGKey(11), (200, 3))

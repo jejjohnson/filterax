@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import jax.random as jr
 import lineax as lx
 import numpy as np
 import optax
@@ -136,6 +137,52 @@ def test_eki_optax_handles_pytree_params():
     assert set(updates.keys()) == {"a", "b"}
     assert updates["a"].shape == (1,)
     assert updates["b"].shape == (1,)
+
+
+def test_eki_optax_init_ensemble_is_centred_on_params():
+    """Regression: ``init`` must subtract the empirical sampling-noise
+    mean so the first ``update`` returns a delta driven by the data
+    (not by finite-sample noise around ``params``).
+    """
+    G, y, R, _, _, _ = _problem()
+    transform = flx.optax.eki(
+        forward_fn=lambda theta: G @ theta,
+        obs=y,
+        noise_cov=R,
+        n_ensemble=40,
+        init_spread=1.0,
+        scheduler=flx.FixedScheduler(dt=0.1),
+    )
+    params = jnp.asarray([3.14, -2.71])
+    state = transform.init(params)
+    empirical_mean = jnp.mean(state.particles, axis=0)
+    np.testing.assert_allclose(
+        np.asarray(empirical_mean), np.asarray(params), atol=1e-10
+    )
+
+
+def test_l2_eki_uses_config_scheduler_when_supplied():
+    """When ``ProcessConfig.scheduler`` is set it must take precedence
+    over the L2 module's ``scheduler`` field — earlier the
+    ``config.scheduler`` slot was silently ignored.
+    """
+    G, y, R, _, mu_post, _ = _problem()
+    sentinel = flx.FixedScheduler(dt=1.0)  # one-step Kalman recovery
+    init = 5.0 * jr.normal(jr.PRNGKey(99), (500, 2))
+
+    # The module-level scheduler is FixedScheduler(0.001) — would barely
+    # move; the config-level one is FixedScheduler(1.0) — would land at
+    # the analytic posterior in a single step.
+    cfg = flx.ProcessConfig(scheduler=sentinel, n_iterations=1)
+    eki = flx.EKI(
+        forward_fn=lambda theta: G @ theta,
+        obs=y,
+        noise_cov=R,
+        scheduler=flx.FixedScheduler(dt=0.001),
+        config=cfg,
+    )
+    result = eki.run(init)
+    np.testing.assert_allclose(np.asarray(result.mean), np.asarray(mu_post), atol=2e-1)
 
 
 def test_adam_to_eki_hybrid_optimisation():

@@ -71,6 +71,31 @@ def _vmap_forward(
     return jax.vmap(forward_fn)(particles)
 
 
+def _resolve_scheduler(
+    scheduler: AbstractScheduler, config: ProcessConfig | None
+) -> AbstractScheduler:
+    """If ``config`` is supplied, its ``scheduler`` field wins over the
+    module-level field. This matches the ``ProcessConfig`` contract:
+    it is the single source of static configuration when present.
+
+    ``ProcessConfig.scheduler`` is forward-referenced as the looser
+    :class:`equinox.Module` to avoid a circular import; we narrow back
+    to :class:`AbstractScheduler` here with an explicit runtime check.
+    """
+    if config is None:
+        return scheduler
+    if not isinstance(config.scheduler, AbstractScheduler):
+        raise TypeError(
+            "ProcessConfig.scheduler must be an AbstractScheduler subclass; "
+            f"got {type(config.scheduler).__name__}."
+        )
+    return config.scheduler
+
+
+def _resolve_n_iterations(config: ProcessConfig | None, default: int) -> int:
+    return config.n_iterations if config is not None else default
+
+
 def _ensemble_cov_dense(
     particles: Float[Array, "J N_p"],
 ) -> Float[Array, "N_p N_p"]:
@@ -142,9 +167,13 @@ class EKI(eqx.Module, strict=True):
         noise_cov: Observation noise covariance ``Γ``.
         scheduler: Step-size strategy. Defaults to
             :class:`DataMisfitController` which terminates when
-            ``algo_time → 1``.
-        config: Optional :class:`ProcessConfig`. When provided, its
-            ``n_iterations`` cap is used; otherwise defaults to ``50``.
+            ``algo_time → 1``. Ignored when ``config`` is provided —
+            see ``config`` below.
+        config: Optional :class:`ProcessConfig`. When provided, **both**
+            its ``scheduler`` and ``n_iterations`` fields take precedence
+            over the module-level ``scheduler`` and the ``50``-iteration
+            default. The ``scheduler`` attribute on the L2 module then
+            acts as a fallback used only when ``config`` is ``None``.
     """
 
     forward_fn: ForwardFn
@@ -154,9 +183,10 @@ class EKI(eqx.Module, strict=True):
     config: ProcessConfig | None = None
 
     def run(self, init_particles: Float[Array, "J N_p"]) -> ProcessResult:
-        n_iter = self.config.n_iterations if self.config is not None else 50
+        sched = _resolve_scheduler(self.scheduler, self.config)
+        n_iter = _resolve_n_iterations(self.config, default=50)
         return _run_ensemble(
-            _EKI(scheduler=self.scheduler),
+            _EKI(scheduler=sched),
             self.forward_fn,
             init_particles,
             self.obs,
@@ -180,9 +210,12 @@ class EKS(eqx.Module, strict=True):
         obs: Observation vector ``y``.
         noise_cov: Observation noise covariance ``Γ``.
         scheduler: Step-size strategy. Use :class:`EKSStableScheduler`.
+            Ignored when ``config`` is provided.
         seed: PRNG seed for the Brownian draws.
-        config: Optional :class:`ProcessConfig`. Defaults to ``500``
-            iterations.
+        config: Optional :class:`ProcessConfig`. When provided, **both**
+            its ``scheduler`` and ``n_iterations`` fields take precedence
+            over the module-level ``scheduler`` and the ``500``-iteration
+            default.
     """
 
     forward_fn: ForwardFn
@@ -193,9 +226,10 @@ class EKS(eqx.Module, strict=True):
     config: ProcessConfig | None = None
 
     def run(self, init_particles: Float[Array, "J N_p"]) -> ProcessResult:
-        n_iter = self.config.n_iterations if self.config is not None else 500
+        sched = _resolve_scheduler(self.scheduler, self.config)
+        n_iter = _resolve_n_iterations(self.config, default=500)
         return _run_ensemble(
-            _EKS(scheduler=self.scheduler, key=self.seed),
+            _EKS(scheduler=sched, key=self.seed),
             self.forward_fn,
             init_particles,
             self.obs,
@@ -220,10 +254,14 @@ class UKI(eqx.Module, strict=True):
         forward_fn: ``θ → G(θ)``.
         obs: Observation vector ``y``.
         noise_cov: Observation noise covariance ``Γ``.
-        scheduler: Step-size strategy.
+        scheduler: Step-size strategy. Ignored when ``config`` is
+            provided.
         alpha, beta, kappa: Unscented tuning parameters; see
             :func:`~filterax._src.processes.sigma_points`.
-        config: Optional :class:`ProcessConfig`.
+        config: Optional :class:`ProcessConfig`. When provided, **both**
+            its ``scheduler`` and ``n_iterations`` fields take precedence
+            over the module-level ``scheduler`` and the ``50``-iteration
+            default.
     """
 
     forward_fn: ForwardFn
@@ -240,9 +278,10 @@ class UKI(eqx.Module, strict=True):
         init_mean: Float[Array, " N_p"],
         init_cov: lx.AbstractLinearOperator,
     ) -> ProcessResult:
-        n_iter = self.config.n_iterations if self.config is not None else 50
+        sched = _resolve_scheduler(self.scheduler, self.config)
+        n_iter = _resolve_n_iterations(self.config, default=50)
         process = _UKI(
-            scheduler=self.scheduler,
+            scheduler=sched,
             alpha=self.alpha,
             beta=self.beta,
             kappa=self.kappa,
@@ -252,7 +291,6 @@ class UKI(eqx.Module, strict=True):
         # evaluation happens once per iteration.
         from filterax._src.processes import sigma_points
 
-        means = [state.mean]
         algo_time = jnp.asarray(0.0)
         algo_times: list[Float[Array, ""]] = []
         converged = False
@@ -277,12 +315,11 @@ class UKI(eqx.Module, strict=True):
                 step=state.step,
                 algo_time=algo_time,
             )
-            dt = self.scheduler.get_dt(shim)
+            dt = sched.get_dt(shim)
             state = process.update_parametric(
                 state, evals, obs=self.obs, noise_cov=self.noise_cov, dt=dt
             )
             algo_time = algo_time + dt
-            means.append(state.mean)
             algo_times.append(algo_time)
             actual += 1
             if float(algo_time) >= 1.0 - 1e-9:

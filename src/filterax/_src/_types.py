@@ -80,7 +80,19 @@ class FilterConfig(eqx.Module, strict=True):
 
 
 class ProcessConfig(eqx.Module, strict=True):
-    """Static configuration for EKP processes."""
+    """Static configuration for EKP processes.
+
+    Holds the step-size strategy and iteration cap shared by the
+    Layer-2 :class:`filterax.EKI` / :class:`filterax.EKS` /
+    :class:`filterax.UKI` wrappers. When a ``ProcessConfig`` is passed
+    to one of those models, **both** fields take precedence over the
+    module-level ``scheduler`` and the model's default iteration count.
+
+    The ``scheduler`` field is forward-referenced through
+    :class:`equinox.Module` to avoid a circular import with the L1
+    protocols; concrete subclasses live in
+    :mod:`filterax._src.schedulers`.
+    """
 
     scheduler: eqx.Module
     n_iterations: int = eqx.field(static=True)
