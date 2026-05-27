@@ -81,3 +81,34 @@ class RTPP(AbstractInflator, strict=True):
         if forecast_particles is None:
             raise ValueError("RTPP requires the forecast ensemble.")
         return inflate_rtpp(particles, forecast_particles, self.alpha)
+
+
+import lineax as lx
+from jaxtyping import PRNGKeyArray
+
+from filterax._src.inflation import inflate_additive
+
+
+class AdditiveInflator(AbstractInflator, strict=True):
+    r"""Additive Gaussian inflation ``X′ ← X′ + ε,  ε ~ 𝒩(0, Q_add)``.
+
+    Wraps :func:`filterax.inflate_additive`. The PRNG key is folded
+    against an internal step counter — pass a fresh ``base_key`` per
+    construction or split externally if you call ``__call__`` multiple
+    times outside a managed loop.
+
+    Attributes:
+        noise_cov: Model-error covariance ``Q_add``.
+        base_key: PRNG key used to derive per-call sub-keys.
+    """
+
+    noise_cov: lx.AbstractLinearOperator
+    base_key: PRNGKeyArray
+
+    def __call__(
+        self,
+        particles: Float[Array, "N_e N_x"],
+        forecast_particles: Float[Array, "N_e N_x"] | None = None,
+    ) -> Float[Array, "N_e N_x"]:
+        del forecast_particles
+        return inflate_additive(self.base_key, particles, self.noise_cov)

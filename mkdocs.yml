@@ -48,6 +48,9 @@ nav:
       - Processes (Wave 3): api/processes.md
       - Schedulers: api/schedulers.md
       - optax integration: api/optax.md
+      - Advanced filters (Wave 4): api/filters_advanced.md
+      - Inflation: api/inflation.md
+      - Diagnostics: api/diagnostics.md
   - Contributing: contributing.md
   - Changelog: CHANGELOG.md
 

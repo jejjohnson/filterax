@@ -461,3 +461,318 @@ class LETKF(AbstractSequentialFilter, strict=True):
         S = innovation_covariance(obs_particles, obs_noise)
         log_p = log_likelihood(innovation, S)
         return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Advanced sequential filter variants (Wave 4.A)
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _mean_preserving_rotation(
+    key: PRNGKeyArray, n_ensemble: int, dtype: jnp.dtype = jnp.float64
+) -> Float[Array, "N_e N_e"]:
+    r"""Random orthogonal ``Θ ∈ O(Nₑ)`` with ``Θ 𝟙 = 𝟙`` (Livings 2008).
+
+    Construct an orthogonal basis ``V ∈ ℝ^{Nₑ × (Nₑ−1)}`` for the
+    complement of ``𝟙``, draw a random rotation ``Q ∈ O(Nₑ−1)`` via
+    the QR-of-Gaussian construction, and lift back to ``Nₑ`` space:
+
+    ``Θ = (1/Nₑ) 𝟙 𝟙ᵀ + V Q Vᵀ``
+
+    By construction ``Θ 𝟙 = 𝟙`` (the constant vector is the +1
+    eigenvector) and ``Θᵀ Θ = I`` (the orthogonal complement is
+    preserved). Cost ``O(Nₑ³)`` per draw; negligible compared with the
+    ETKF transform that produced ``W_a``.
+    """
+    # Basis for {𝟙}⊥: take Householder reflector that maps 𝟙/√Nₑ → e₀
+    # and keep its last Nₑ−1 columns (orthogonal to the all-ones vector).
+    ones = jnp.ones(n_ensemble, dtype=dtype) / jnp.sqrt(n_ensemble)
+    e0 = jnp.zeros(n_ensemble, dtype=dtype).at[0].set(1.0)
+    v = ones - e0
+    v_norm = jnp.linalg.norm(v)
+    # Guard against the degenerate Nₑ=1 case (already rejected by
+    # check_ensemble_size upstream).
+    v = jnp.where(v_norm > 0, v / jnp.maximum(v_norm, 1e-30), v)
+    H = jnp.eye(n_ensemble, dtype=dtype) - 2.0 * jnp.outer(v, v)
+    V = H[:, 1:]  # (Nₑ, Nₑ−1)
+    # Random rotation in the (Nₑ−1)-dim complement: Q = qr(𝒩(0, I))[0].
+    g = jr.normal(key, (n_ensemble - 1, n_ensemble - 1), dtype=dtype)
+    Q, R = jnp.linalg.qr(g)
+    # Make Q sign-canonical so it's drawn uniformly from O(Nₑ−1).
+    signs = jnp.sign(jnp.diag(R))
+    signs = jnp.where(signs == 0, 1.0, signs)
+    Q = Q * signs[None, :]
+    # Lift: Θ = projector onto 𝟙 + V Q Vᵀ.
+    proj_ones = einx.dot("a, b -> a b", ones, ones)
+    return proj_ones + V @ Q @ V.T
+
+
+class ETKF_Livings(AbstractSequentialFilter, strict=True):
+    r"""ETKF with a mean-preserving random rotation (Livings et al. 2008).
+
+    ETKF's symmetric square root ``W_a = √((Nₑ − 1) T)`` is the unique
+    PSD- and mean-preserving choice, but it produces a *deterministic*
+    transform that can develop preferred directions over many cycles —
+    the ensemble loses rank to a small invariant subspace. Livings et
+    al. break this symmetry by composing with a random orthogonal
+    matrix:
+
+    ``W_a^{rot} = W_a · Θ,    Θ ∈ O(Nₑ),  Θ 𝟙 = 𝟙``
+
+    The mean-preserving constraint ``Θ 𝟙 = 𝟙`` keeps the analysis
+    mean and the rank-deficiency-against-𝟙 property; the random factor
+    averages out preferred-direction artefacts over time.
+
+    A fresh ``Θ`` is drawn per analysis from
+    ``jr.fold_in(self.key, state.step)``-style sub-keys when the
+    optional ``key=`` kwarg is supplied; otherwise the constructor's
+    ``self.key`` is used (and successive calls repeat the same draw —
+    pass a fresh key per cycle in your loop).
+
+    Attributes:
+        key: Default PRNG key for the random rotation.
+    """
+
+    key: PRNGKeyArray
+
+    def __init__(self, key: PRNGKeyArray | int = 0):
+        if isinstance(key, int):
+            key = jr.PRNGKey(key)
+        self.key = key
+
+    def analysis(
+        self,
+        particles: Float[Array, "N_e N_x"],
+        obs: Float[Array, " N_y"],
+        obs_op: AbstractObsOperator | ObsCallable,
+        obs_noise: lx.AbstractLinearOperator,
+        *,
+        key: PRNGKeyArray | None = None,
+        **_: Any,
+    ) -> AnalysisResult:
+        N_e = particles.shape[0]
+        check_ensemble_size(N_e)
+        rot_key = self.key if key is None else key
+        obs_particles = _apply_obs_op(obs_op, particles)
+
+        anom = ensemble_anomalies(particles)
+        obs_anom = ensemble_anomalies(obs_particles)
+        x_bar = ensemble_mean(particles)
+        innovation = obs - ensemble_mean(obs_particles)
+
+        R_inv_Y = gaussx.solve_rows(obs_noise, obs_anom)
+        eigvals, eigvecs = _transform_eig(obs_anom, R_inv_Y, N_e)
+        inv_lambda = 1.0 / eigvals
+        sqrt_scale = jnp.sqrt((N_e - 1) * inv_lambda)
+
+        # ETKF weight + symmetric square root, same as the base ETKF.
+        Y_R_inv_v = einx.dot("e y, y -> e", R_inv_Y, innovation)
+        Ut_y = einx.dot("e a, e -> a", eigvecs, Y_R_inv_v)
+        w_bar = einx.dot("e a, a -> e", eigvecs, inv_lambda * Ut_y)
+
+        mean_correction = einx.dot("e, e x -> x", w_bar, anom)
+
+        Ut_anom = einx.dot("e a, e x -> a x", eigvecs, anom)
+        scaled = einx.multiply("a x, a -> a x", Ut_anom, sqrt_scale)
+        W_anom = einx.dot("e a, a x -> e x", eigvecs, scaled)  # (Nₑ, Nₓ)
+
+        # Apply the mean-preserving rotation Θ on the *left* of W_a X′:
+        # Θ leaves 𝟙 fixed, so the column-mean (== analysis mean) is
+        # invariant under the rotation.
+        Theta = _mean_preserving_rotation(rot_key, N_e, dtype=anom.dtype)
+        pert_correction = einx.dot("i j, j x -> i x", Theta, W_anom)
+
+        particles_a = (
+            einx.add("x, x -> x", x_bar, mean_correction)[None, :] + pert_correction
+        )
+        S = innovation_covariance(obs_particles, obs_noise)
+        log_p = log_likelihood(innovation, S)
+        return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+
+
+class EnSRF_Serial(AbstractSequentialFilter, strict=True):
+    r"""Serial Ensemble Square Root Filter (Whitaker & Hamill 2002).
+
+    Processes observations **one at a time** with the classical W&H
+    scalar reduced-gain formula:
+
+    ``K_k = Cˣᴴₖ / (Cᴴₖᴴₖ + R_kk)``
+
+    ``x̄_a^{(k)} = x̄_a^{(k−1)} + K_k (y_k − H_k x̄_a^{(k−1)})``
+
+    ``α_k = 1 / (1 + √(R_kk / (Cᴴₖᴴₖ + R_kk)))``
+
+    ``X′_a^{(k)} = X′_a^{(k−1)} − α_k K_k (H_k X′_a^{(k−1)})``
+
+    No matrix inversion is required — each scalar update is an inner
+    product. Cost ``O(Nₑ Nₓ Nᵧ)`` total. Requires **diagonal** ``R``
+    (uncorrelated obs); use :class:`ETKF` / :class:`EnSRF` for general
+    ``R`` or pre-decorrelate observations.
+
+    For linear observation operators we step the ensemble through all
+    ``Nᵧ`` scalar updates via :func:`jax.lax.scan`; each step uses the
+    current ensemble's anomalies (not the original forecast's) so the
+    serial update respects the standard scalar-Kalman semantics.
+    """
+
+    def analysis(
+        self,
+        particles: Float[Array, "N_e N_x"],
+        obs: Float[Array, " N_y"],
+        obs_op: AbstractObsOperator | ObsCallable,
+        obs_noise: lx.AbstractLinearOperator,
+        **_: Any,
+    ) -> AnalysisResult:
+        N_e = particles.shape[0]
+        check_ensemble_size(N_e)
+        if not isinstance(obs_noise, lx.DiagonalLinearOperator):
+            raise NotImplementedError(
+                "EnSRF_Serial requires diagonal observation noise; pre-"
+                "decorrelate or use filterax.filters.EnSRF for general Γ."
+            )
+        R_diag = lx.diagonal(obs_noise)
+
+        # Pre-compute the linearised mapping H X by mapping each member
+        # then evaluating *both* the current ensemble's obs projection
+        # (updated each iteration) and the per-obs row of the obs op.
+        # Cheapest path: compute Y once up front, then track the
+        # "running" ensemble's obs anomalies via the fact that linear
+        # updates of particles induce linear updates of Y.
+        initial_obs_particles = _apply_obs_op(obs_op, particles)
+
+        def step(carry, k):
+            parts, parts_obs = carry  # (Nₑ, Nₓ), (Nₑ, Nᵧ)
+            y_k = obs[k]
+            R_kk = R_diag[k]
+            obs_col = parts_obs[:, k]  # (Nₑ,)
+            obs_mean = jnp.mean(obs_col)
+            obs_anom_col = obs_col - obs_mean
+            obs_var = jnp.sum(obs_anom_col * obs_anom_col) / (N_e - 1)  # Cᴴₖᴴₖ
+            innovation_var = obs_var + R_kk
+
+            # Cross-covariance in state space and in obs space.
+            mean_parts = jnp.mean(parts, axis=0)
+            state_anom = parts - mean_parts[None, :]  # (Nₑ, Nₓ)
+            C_xH = einx.dot("e, e x -> x", obs_anom_col, state_anom) / (N_e - 1)
+            C_yH = einx.dot(
+                "e, e y -> y", obs_anom_col, parts_obs - jnp.mean(parts_obs, axis=0)
+            ) / (N_e - 1)
+
+            K_k = C_xH / innovation_var  # (Nₓ,)
+            K_y = C_yH / innovation_var  # (Nᵧ,) — for tracking parts_obs
+
+            # Mean update.
+            mean_parts_new = mean_parts + K_k * (y_k - obs_mean)
+            mean_obs_new = jnp.mean(parts_obs, axis=0) + K_y * (y_k - obs_mean)
+
+            # Reduced gain factor.
+            alpha = 1.0 / (1.0 + jnp.sqrt(R_kk / innovation_var))
+            # Perturbation update: X′_a = X′ − α K_k H_k X′
+            #   = X′ − α K_k (obs_anom_col)
+            pert_update_state = alpha * einx.dot("x, e -> e x", K_k, obs_anom_col)
+            pert_update_obs = alpha * einx.dot("y, e -> e y", K_y, obs_anom_col)
+            parts_new = mean_parts_new[None, :] + (state_anom - pert_update_state)
+            parts_obs_new = mean_obs_new[None, :] + (
+                (parts_obs - jnp.mean(parts_obs, axis=0)) - pert_update_obs
+            )
+            return (parts_new, parts_obs_new), None
+
+        N_y = obs.shape[0]
+        (particles_a, _), _ = jax.lax.scan(
+            step, (particles, initial_obs_particles), jnp.arange(N_y)
+        )
+
+        S = innovation_covariance(initial_obs_particles, obs_noise)
+        log_p = log_likelihood(obs - ensemble_mean(initial_obs_particles), S)
+        return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+
+
+class ESTKF(AbstractSequentialFilter, strict=True):
+    r"""Error Subspace Transform Kalman Filter (Nerger et al. 2012).
+
+    Projects ETKF into the ``(Nₑ − 1)``-dimensional error subspace via
+    a mean-preserving orthogonal map ``L ∈ ℝ^{Nₑ × (Nₑ − 1)}`` with
+    ``Lᵀ L = I_{Nₑ − 1}`` and ``Lᵀ 𝟙 = 0``. Anomalies are rank
+    ``≤ Nₑ − 1`` to begin with (their rows sum to zero), so ``L``
+    captures them losslessly.
+
+    Reduced anomalies and transform precision:
+
+    ``X̃ = Lᵀ X′ ∈ ℝ^{(Nₑ−1) × Nₓ},   Ỹ = Lᵀ Y′ ∈ ℝ^{(Nₑ−1) × Nᵧ}``
+
+    ``A = (Nₑ − 1) I + Ỹ R⁻¹ Ỹᵀ ∈ ℝ^{(Nₑ−1) × (Nₑ−1)}``
+
+    Eigendecompose ``A = U Λ Uᵀ``:
+
+    ``w̃ = U Λ⁻¹ Uᵀ Ỹ R⁻¹ d,   W̃ = U √((Nₑ − 1) Λ⁻¹) Uᵀ``
+
+    Lift back to the full ensemble:
+
+    ``x̄_a = x̄_f + w̃ᵀ X̃,   X_a = x̄_a 𝟙ᵀ + L W̃ X̃``
+
+    Mean-preserving by construction; PSD analysis covariance;
+    eigendecomposition is ``(Nₑ − 1)³`` rather than ``Nₑ³``.
+    """
+
+    def analysis(
+        self,
+        particles: Float[Array, "N_e N_x"],
+        obs: Float[Array, " N_y"],
+        obs_op: AbstractObsOperator | ObsCallable,
+        obs_noise: lx.AbstractLinearOperator,
+        **_: Any,
+    ) -> AnalysisResult:
+        N_e = particles.shape[0]
+        check_ensemble_size(N_e)
+        obs_particles = _apply_obs_op(obs_op, particles)
+
+        x_bar = ensemble_mean(particles)
+        anom = ensemble_anomalies(particles)  # (Nₑ, Nₓ)
+        obs_anom = ensemble_anomalies(obs_particles)  # (Nₑ, Nᵧ)
+        innovation = obs - ensemble_mean(obs_particles)
+
+        # Mean-preserving projection L ∈ ℝ^{Nₑ × (Nₑ−1)}: Householder
+        # reflector mapping 𝟙/√Nₑ → e₀, then drop the first column.
+        dtype = anom.dtype
+        ones = jnp.ones(N_e, dtype=dtype) / jnp.sqrt(N_e)
+        e0 = jnp.zeros(N_e, dtype=dtype).at[0].set(1.0)
+        v = ones - e0
+        v_norm = jnp.linalg.norm(v)
+        v = jnp.where(v_norm > 0, v / jnp.maximum(v_norm, 1e-30), v)
+        H_mat = jnp.eye(N_e, dtype=dtype) - 2.0 * jnp.outer(v, v)
+        L = H_mat[:, 1:]  # (Nₑ, Nₑ−1)
+
+        # Reduce both anomaly matrices to (Nₑ−1) ensemble coordinates.
+        X_tilde = einx.dot("e r, e x -> r x", L, anom)  # (Nₑ−1, Nₓ)
+        Y_tilde = einx.dot("e r, e y -> r y", L, obs_anom)  # (Nₑ−1, Nᵧ)
+
+        # Transform precision in the reduced subspace.
+        R_inv_Y = gaussx.solve_rows(obs_noise, Y_tilde)  # (Nₑ−1, Nᵧ)
+        A = (N_e - 1) * jnp.eye(N_e - 1, dtype=dtype) + einx.dot(
+            "r y, s y -> r s", Y_tilde, R_inv_Y
+        )
+        A = 0.5 * (A + A.T)
+        eigvals, eigvecs = jnp.linalg.eigh(A)
+        eigvals = jnp.maximum(eigvals, _EIG_FLOOR)
+        inv_lambda = 1.0 / eigvals
+        sqrt_scale = jnp.sqrt((N_e - 1) * inv_lambda)
+
+        # Reduced weights w̃ = T̃ Ỹ R⁻¹ d  ∈ ℝ^{Nₑ−1}.
+        rhs = einx.dot("r y, y -> r", R_inv_Y, innovation)
+        Ut_rhs = einx.dot("r a, r -> a", eigvecs, rhs)
+        w_tilde = einx.dot("r a, a -> r", eigvecs, inv_lambda * Ut_rhs)
+
+        # Symmetric square-root applied to X̃: W̃ X̃ = U diag(s) Uᵀ X̃.
+        Ut_X = einx.dot("r a, r x -> a x", eigvecs, X_tilde)
+        scaled = einx.multiply("a x, a -> a x", Ut_X, sqrt_scale)
+        WX_tilde = einx.dot("r a, a x -> r x", eigvecs, scaled)  # (Nₑ−1, Nₓ)
+
+        # Lift back to Nₑ space and assemble the analysis.
+        mean_shift = einx.dot("r, r x -> x", w_tilde, X_tilde)  # (Nₓ,)
+        pert_full = einx.dot("e r, r x -> e x", L, WX_tilde)  # (Nₑ, Nₓ)
+
+        particles_a = (x_bar + mean_shift)[None, :] + pert_full
+
+        S = innovation_covariance(obs_particles, obs_noise)
+        log_p = log_likelihood(innovation, S)
+        return AnalysisResult(particles=particles_a, log_likelihood=log_p)

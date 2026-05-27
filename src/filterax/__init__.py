@@ -1,6 +1,11 @@
 """filterax — differentiable ensemble Kalman filters and processes for JAX."""
 
-from filterax import filters as filters, optax as optax, processes as processes
+from filterax import (
+    filters as filters,
+    optax as optax,
+    processes as processes,
+    utils as utils,
+)
 from filterax._src._protocols import (
     AbstractDynamics as AbstractDynamics,
     AbstractInflator as AbstractInflator,
@@ -22,13 +27,17 @@ from filterax._src._types import (
 )
 from filterax._src.gain import kalman_gain as kalman_gain
 from filterax._src.inflation import (
+    inflate_adaptive as inflate_adaptive,
+    inflate_additive as inflate_additive,
     inflate_multiplicative as inflate_multiplicative,
     inflate_rtpp as inflate_rtpp,
     inflate_rtps as inflate_rtps,
+    ledoit_wolf_shrinkage as ledoit_wolf_shrinkage,
 )
 from filterax._src.inflators import (
     RTPP as RTPP,
     RTPS as RTPS,
+    AdditiveInflator as AdditiveInflator,
     MultiplicativeInflator as MultiplicativeInflator,
 )
 from filterax._src.likelihood import (
@@ -38,10 +47,12 @@ from filterax._src.likelihood import (
     log_likelihood as log_likelihood,
 )
 from filterax._src.localization import (
+    adaptive_localization as adaptive_localization,
     gaspari_cohn as gaspari_cohn,
     gaussian_taper as gaussian_taper,
     hard_cutoff as hard_cutoff,
     localize as localize,
+    soar_taper as soar_taper,
 )
 from filterax._src.models import (
     ETKF as ETKF,

@@ -146,3 +146,102 @@ def localize(
         Localized matrix of shape ``(M, N)``.
     """
     return cov * taper
+
+
+def soar_taper(
+    distances: Float[Array, "..."],
+    radius: float,
+) -> Float[Array, "..."]:
+    r"""Second-Order Auto-Regressive taper (Thiebaux & Pedder 1987).
+
+    ``ρ(d) = (1 + d/r) exp(−d/r)``
+
+    Properties:
+
+    * **C¹ smooth** — value and first derivative continuous, second is
+      not (compare with Gaspari-Cohn's C²).
+    * **Positive definite** — Schur product preserves PSD.
+    * **Approximate compact support** — decays to ``< 0.01`` by
+      ``d ≈ 5 r``; finite but exponentially small beyond that.
+
+    Often used as a correlation model for background error covariance
+    in operational variational systems (e.g. Met Office VAR). Simpler
+    than Gaspari-Cohn while still being positive definite — useful as
+    a localization taper when the strict compact support of
+    :func:`gaspari_cohn` is not required.
+
+    Args:
+        distances: Non-negative distance array, any shape.
+        radius: Positive characteristic length scale ``r``.
+
+    Returns:
+        Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+
+    Reference:
+        Thiebaux, H. J. & Pedder, M. A. (1987). *Spatial Objective
+        Analysis.* Academic Press.
+    """
+    z = distances / radius
+    return (1.0 + z) * jnp.exp(-z)
+
+
+def adaptive_localization(
+    state_particles: Float[Array, "N_e N_x"],
+    obs_particles: Float[Array, "N_e N_y"],
+    *,
+    significance: float = 1.0,
+) -> Float[Array, "N_x N_y"]:
+    r"""Adaptive localization weights from ensemble correlations (Anderson 2007).
+
+    Estimates a per-pair localization weight on the ``(Nₓ, Nᵧ)`` Kalman
+    gain by checking whether each sample correlation
+    ``r_{ij} = Cˣᴴ_{ij} / (σ_xᵢ σ_yⱼ)`` exceeds its sampling
+    uncertainty:
+
+    ``se(r) ≈ (1 − r²) / √(Nₑ − 2)``
+
+    Correlations smaller than ``significance · se(r)`` are zeroed.
+    Correlations above that threshold are kept at unit weight (a
+    hard-mask variant). The resulting weight matrix is multiplied into
+    the Kalman gain (Schur product) to suppress spurious long-range
+    correlations driven by sampling noise rather than physical
+    structure.
+
+    Unlike a distance-based taper, this localizer is *data-driven* —
+    no radius to tune. The trade-off: it requires enough ensemble
+    members for the correlation noise floor to be informative
+    (typically ``Nₑ ≥ 20``) and an extra ``O(Nₑ Nₓ Nᵧ)`` work per
+    cycle.
+
+    Args:
+        state_particles: Prior ensemble in state space, ``(Nₑ, Nₓ)``.
+        obs_particles: Prior ensemble in obs space ``(Nₑ, Nᵧ)`` —
+            ``H`` applied to each member.
+        significance: Threshold multiplier on ``se(r)``. Larger →
+            more aggressive zeroing.
+
+    Returns:
+        Weight matrix ``ρ ∈ ℝ^{Nₓ × Nᵧ}`` with entries in ``{0, 1}``.
+
+    Reference:
+        Anderson, J. L. (2007). *Exploring the need for localization
+        in ensemble data assimilation using a hierarchical ensemble
+        filter.* Physica D, 230, 99-111.
+    """
+    N_e = state_particles.shape[0]
+    state_mean = jnp.mean(state_particles, axis=0)
+    obs_mean = jnp.mean(obs_particles, axis=0)
+    state_anom = state_particles - state_mean[None, :]
+    obs_anom = obs_particles - obs_mean[None, :]
+    state_std = jnp.std(state_particles, axis=0, ddof=1)
+    obs_std = jnp.std(obs_particles, axis=0, ddof=1)
+
+    # Sample cross-correlation r_{ij} (Bessel-corrected).
+    cross_cov = jnp.einsum("ex,ey->xy", state_anom, obs_anom) / (N_e - 1)
+    denom = jnp.maximum(jnp.outer(state_std, obs_std), 1e-30)
+    corr = cross_cov / denom
+    # Sampling-noise floor; the (1 − r²) factor uses the absolute
+    # value so the floor stays positive even for slightly noisy r.
+    se = (1.0 - corr * corr) / jnp.sqrt(jnp.asarray(N_e - 2, dtype=corr.dtype))
+    keep = jnp.abs(corr) > significance * jnp.maximum(se, 0.0)
+    return keep.astype(state_particles.dtype)
