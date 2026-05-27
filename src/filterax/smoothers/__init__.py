@@ -7,7 +7,9 @@ stacked ``forecast_history`` / ``analysis_history`` produced by an
 """
 
 from filterax._src.smoothers import (
+    IES as IES,
     EnKS as EnKS,
     EnsembleRTS as EnsembleRTS,
+    EnsembleSqrtSmoother as EnsembleSqrtSmoother,
     FixedLagSmoother as FixedLagSmoother,
 )
