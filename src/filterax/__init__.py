@@ -77,8 +77,10 @@ from filterax._src.schedulers import (
     FixedScheduler as FixedScheduler,
 )
 from filterax._src.smoothers import (
+    IES as IES,
     EnKS as EnKS,
     EnsembleRTS as EnsembleRTS,
+    EnsembleSqrtSmoother as EnsembleSqrtSmoother,
     FixedLagSmoother as FixedLagSmoother,
 )
 from filterax._src.statistics import (

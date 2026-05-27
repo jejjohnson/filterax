@@ -26,14 +26,21 @@ backward step factors through ``F Fᵀ ∈ ℝ^{Nₑ × Nₑ}`` instead, giving
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import einx
 import equinox as eqx
+import gaussx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Int
+import jax.random as jr
+import lineax as lx
+from jaxtyping import Array, Float, Int, PRNGKeyArray
 
 from filterax._src._checks import check_ensemble_size
-from filterax._src._types import SmoothingResult
+from filterax._src._types import AnalysisResult, SmoothingResult
+from filterax._src.perturbations import perturbed_observations
+from filterax._src.statistics import ensemble_anomalies, ensemble_mean
 
 
 def _pinv_threshold(eigvals: Float[Array, " N_e"]) -> Float[Array, ""]:
@@ -296,3 +303,260 @@ class FixedLagSmoother(eqx.Module, strict=True):
 
         smoothed = jax.vmap(smooth_one_anchor)(jnp.arange(T))
         return SmoothingResult(particles=smoothed[-1], smoothed_history=smoothed)
+
+
+def _sqrt_smoother_step(
+    smoothed_next: Float[Array, "N_e N_x"],
+    analysis_t: Float[Array, "N_e N_x"],
+    forecast_t1: Float[Array, "N_e N_x"],
+) -> Float[Array, "N_e N_x"]:
+    r"""One deterministic square-root backward step.
+
+    Decomposes the update into:
+
+    * **Mean** — ``m^s_t = m^a_t + G_t (m^s_{t+1} - m^f_{t+1})`` via the
+      dual ensemble form ``G_t v = A_tᵀ (F Fᵀ)⁺ F v``.
+    * **Perturbations** — apply a symmetric square-root transform in
+      ensemble space ``W = Λ^{1/2}`` with
+      ``Λ = I + K_e (Dᵀ D − Fᵀ F) K_eᵀ`` and
+      ``K_e = (F Fᵀ)⁺ F``. New anomalies = ``Wᵀ A_t``.
+
+    Negative eigenvalues of ``Λ`` (sample-noise artefacts when the
+    smoother reduces variance) are clamped to zero before the sqrt.
+    """
+    m_a = ensemble_mean(analysis_t)
+    A = ensemble_anomalies(analysis_t)
+    m_f = ensemble_mean(forecast_t1)
+    F = ensemble_anomalies(forecast_t1)
+    m_s_next = ensemble_mean(smoothed_next)
+    D = ensemble_anomalies(smoothed_next)
+
+    # F Fᵀ eigendecomposition shared by the mean and perturbation updates.
+    M = einx.dot("e x, f x -> e f", F, F)
+    M = 0.5 * (M + jnp.swapaxes(M, -1, -2))
+    eigvals, eigvecs = jnp.linalg.eigh(M)
+    threshold = _pinv_threshold(eigvals)
+    inv_lambda = jnp.where(eigvals > threshold, 1.0 / eigvals, 0.0)
+
+    # Mean update: G_t (m^s_{t+1} - m^f_{t+1}) = Aᵀ (F Fᵀ)⁺ F (m^s_{t+1} - m^f_{t+1}).
+    delta_mean = m_s_next - m_f
+    Fv = einx.dot("e x, x -> e", F, delta_mean)
+    Ut_Fv = einx.dot("e a, e -> a", eigvecs, Fv)
+    z = einx.dot("e a, a -> e", eigvecs, inv_lambda * Ut_Fv)
+    mean_correction = einx.dot("e x, e -> x", A, z)
+    m_s = einx.add("x, x -> x", m_a, mean_correction)
+
+    # Perturbation update: ensemble-space transform Λ such that
+    # AᵀΛA = (Nₑ−1) P^s_t. K_e = (F Fᵀ)⁺ F appears only through
+    # B = K_e Dᵀ and (K_e Fᵀ K_e F) = projector onto col(F).
+    B = einx.dot("a b, e b -> a e", eigvecs * inv_lambda[None, :], eigvecs)
+    # B is now (F Fᵀ)⁺ in eigh form. Multiply by F → K_e (N_e, N_x):
+    K_e = einx.dot("e a, a x -> e x", B, F)
+    # B_D = K_e Dᵀ (Nₑ, Nₑ); projector_F = K_e Fᵀ = (F Fᵀ)⁺ (F Fᵀ).
+    B_D = einx.dot("e x, f x -> e f", K_e, D)
+    projector_F = einx.dot("e x, f x -> e f", K_e, F)
+    # Λ = I + B_D B_Dᵀ − projector_F.  Symmetrise + clamp negative eigvals.
+    I_ne = jnp.eye(F.shape[0], dtype=F.dtype)
+    Lambda = I_ne + einx.dot("e a, f a -> e f", B_D, B_D) - projector_F
+    Lambda = 0.5 * (Lambda + jnp.swapaxes(Lambda, -1, -2))
+    lam_eigvals, lam_eigvecs = jnp.linalg.eigh(Lambda)
+    lam_eigvals = jnp.maximum(lam_eigvals, 0.0)
+    sqrt_lambda = jnp.sqrt(lam_eigvals)
+    # W = Λ^{1/2} = U diag(√λ) Uᵀ. New anomalies = Wᵀ A = W A (symmetric).
+    Ut_A = einx.dot("e a, e x -> a x", lam_eigvecs, A)
+    scaled = einx.multiply("a x, a -> a x", Ut_A, sqrt_lambda)
+    new_anom = einx.dot("e a, a x -> e x", lam_eigvecs, scaled)
+
+    return einx.add("x, e x -> e x", m_s, new_anom)
+
+
+def _sqrt_backward(
+    analysis_history: Float[Array, "T N_e N_x"],
+    forecast_history: Float[Array, "T N_e N_x"],
+) -> Float[Array, "T N_e N_x"]:
+    """Full backward pass using :func:`_sqrt_smoother_step`."""
+    T = analysis_history.shape[0]
+    init = analysis_history[-1]
+
+    def step(
+        carry: Float[Array, "N_e N_x"], idx: Int[Array, ""]
+    ) -> tuple[Float[Array, "N_e N_x"], Float[Array, "N_e N_x"]]:
+        smoothed_t = _sqrt_smoother_step(
+            carry,
+            analysis_history[idx],
+            forecast_history[idx + 1],
+        )
+        return smoothed_t, smoothed_t
+
+    indices = jnp.arange(T - 1)
+    _, partial = jax.lax.scan(step, init, indices, reverse=True)
+    return jnp.concatenate([partial, init[None, :, :]], axis=0)
+
+
+class EnsembleSqrtSmoother(eqx.Module, strict=True):
+    r"""Ensemble Square Root Smoother — Tippett et al. (2003); Whitaker & Compo (2002).
+
+    Deterministic backward pass paired with a forward square-root filter
+    (ETKF, EnSRF, ESTKF). Differs from :class:`EnKS` in *how* the
+    smoothed perturbations are produced: instead of the raw per-member
+    correction ``δ_j = G_t (X^s_{t+1}[j] - X^f_{t+1}[j])``, the
+    smoothed mean and perturbations are updated separately, with the
+    perturbation half applied through a *symmetric square root* of the
+    ensemble-space cov-update transform
+
+    ``Λ = I + K_e (Dᵀ D − Fᵀ F) K_eᵀ,    K_e = (F Fᵀ)⁺ F``.
+
+    This avoids accumulating cross-member coupling across many backward
+    steps — the same reason :class:`ETKF` uses a symmetric square-root
+    transform on the forward pass.
+
+    Mathematically agrees with :class:`EnKS` in the infinite-ensemble
+    limit; with finite ensembles the *mean* is identical (both produce
+    ``m^a_t + G_t (m^s_{t+1} - m^f_{t+1})``) and the *perturbations*
+    differ only in their ensemble-space rotation.
+
+    Complexity: ``O(T (Nₑ² Nₓ + Nₑ³))`` — same as :class:`EnKS`.
+    """
+
+    def smooth(
+        self,
+        forecast_history: Float[Array, "T N_e N_x"],
+        analysis_history: Float[Array, "T N_e N_x"],
+    ) -> SmoothingResult:
+        """Run the square-root backward pass — see :meth:`EnKS.smooth`."""
+        _validate_history(analysis_history, forecast_history)
+        smoothed = _sqrt_backward(analysis_history, forecast_history)
+        return SmoothingResult(particles=smoothed[-1], smoothed_history=smoothed)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# IES — Iterative Ensemble Smoother (Chen & Oliver 2013; Evensen 2019)
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _ies_step(
+    particles_i: Float[Array, "J N_p"],
+    particles_0: Float[Array, "J N_p"],
+    obs: Float[Array, " N_d"],
+    noise_cov: lx.AbstractLinearOperator,
+    forward_model: Callable[[Float[Array, " N_p"]], Float[Array, " N_d"]],
+    step_size: Float[Array, ""],
+    key: PRNGKeyArray,
+) -> Float[Array, "J N_p"]:
+    r"""One Chen-Oliver IES iteration.
+
+    ``θ_{i+1}^j = (1 − α) θ_i^j + α [θ_0^j + K_i (y + ε^j − G(θ_i^j))]``
+
+    where ``K_i = C^{θG}_i (C^{GG}_i + Γ_y)⁻¹`` is the sample-cov gain
+    at the current iterate. With ``α = 1`` this is the pure
+    Chen-Oliver update — particles snap to ``θ_0 + K_i r_i`` each step;
+    with ``α < 1`` the iteration is damped (Levenberg-Marquardt-style).
+
+    The gain solve runs through gaussx's structural Woodbury so
+    diagonal / low-rank ``Γ_y`` never densifies.
+    """
+    J = particles_i.shape[0]
+    evals = jax.vmap(forward_model)(particles_i)  # (J, N_d)
+    # Perturbed obs y + ε^j with ε^j ~ 𝒩(0, Γ_y) via the structure-aware draw.
+    y_pert = perturbed_observations(key, obs, noise_cov, J)
+    innovations = y_pert - evals  # (J, N_d)
+    # K_i applied to innovations via the ensemble-cov Kalman recipe.
+    # S = C^GG + Γ_y as a low-rank update for structural Woodbury dispatch.
+    C_GG = gaussx.ensemble_covariance(evals, bessel=True)
+    S = gaussx.LowRankUpdate(noise_cov, C_GG.U)
+    S_inv_innov = gaussx.solve_rows(S, innovations)  # (J, N_d)
+    C_theta_G = gaussx.ensemble_cross_covariance(
+        particles_i, evals, bessel=True
+    )  # (N_p, N_d)
+    K_r = einx.dot("p d, j d -> j p", C_theta_G, S_inv_innov)  # (J, N_p)
+    target = particles_0 + K_r
+    return (1.0 - step_size) * particles_i + step_size * target
+
+
+class IES(eqx.Module, strict=True):
+    r"""Iterative Ensemble Smoother — Chen & Oliver (2013); Evensen et al. (2019).
+
+    Standalone iterative ensemble method that solves an inverse problem
+    in a single window of observations. At each iteration:
+
+    ``θ_{i+1}^j = (1 − α) θ_i^j + α [θ_0^j + K_i (y + ε^j − G(θ_i^j))]``
+
+    The anchor to ``θ_0^j`` (the *initial* ensemble member) is what
+    distinguishes IES from :class:`~filterax.EKI`'s drift-style
+    iteration: rather than walking ``θ`` toward a MAP with a step-size
+    schedule, IES re-targets ``θ_0`` plus the current Kalman correction
+    every iteration. ``α = 1`` is the pure Chen-Oliver update;
+    ``α < 1`` damps the iteration for strongly nonlinear ``G``.
+
+    Use case: history matching, reservoir simulation, and any inverse
+    problem where the forward model maps parameters to a *full*
+    observation time series and a single backward pass on a sequential
+    filter would be insufficient. For sequential filtering followed by a
+    backward refinement, use :class:`EnKS` instead.
+
+    Attributes:
+        n_iterations: Static iteration count.
+        step_size: Damping factor ``α ∈ (0, 1]``. Default 1.0
+            (pure Chen-Oliver).
+        seed: Integer for the default per-iteration PRNG key.
+        base_key: Optional explicit PRNG key (takes precedence over
+            ``seed``).
+    """
+
+    n_iterations: int = eqx.field(static=True)
+    step_size: float = eqx.field(static=True, default=1.0)
+    seed: int = eqx.field(static=True, default=0)
+    base_key: PRNGKeyArray | None = None
+
+    def __check_init__(self) -> None:
+        if not isinstance(self.n_iterations, int) or self.n_iterations < 1:
+            raise ValueError(
+                f"n_iterations must be a positive int; got {self.n_iterations!r}."
+            )
+        if not (0.0 < float(self.step_size) <= 1.0):
+            raise ValueError(f"step_size must lie in (0, 1]; got {self.step_size!r}.")
+
+    def solve(
+        self,
+        particles: Float[Array, "J N_p"],
+        obs: Float[Array, " N_d"],
+        noise_cov: lx.AbstractLinearOperator,
+        forward_model: Callable[[Float[Array, " N_p"]], Float[Array, " N_d"]],
+    ) -> AnalysisResult:
+        """Run the iterative smoother to its fixed iteration count.
+
+        Args:
+            particles: Initial ensemble ``(J, Nₚ)``. Doubles as the
+                anchor ``θ_0`` against which every subsequent iterate is
+                compared.
+            obs: Observation vector ``y ∈ ℝ^{N_d}``.
+            noise_cov: Observation noise covariance ``Γ_y``.
+            forward_model: ``G(θ): ℝ^{Nₚ} → ℝ^{N_d}`` applied to a single
+                particle; vectorised internally with :func:`jax.vmap`.
+
+        Returns:
+            :class:`AnalysisResult` with the final iterate's particles.
+        """
+        check_ensemble_size(particles.shape[0])
+        base_key = self.base_key if self.base_key is not None else jr.PRNGKey(self.seed)
+        step_size = jnp.asarray(self.step_size, dtype=particles.dtype)
+
+        def step(
+            carry: Float[Array, "J N_p"], i: Int[Array, ""]
+        ) -> tuple[Float[Array, "J N_p"], None]:
+            # Fresh per-iteration sub-key so the perturbation draws are
+            # independent across iterations.
+            sub = jr.fold_in(base_key, i)
+            new_carry = _ies_step(
+                carry,
+                particles,
+                obs,
+                noise_cov,
+                forward_model,
+                step_size,
+                sub,
+            )
+            return new_carry, None
+
+        final, _ = jax.lax.scan(step, particles, jnp.arange(self.n_iterations))
+        return AnalysisResult(particles=final)
