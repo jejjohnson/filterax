@@ -85,6 +85,42 @@ def test_additive_inflator_class_matches_function():
     np.testing.assert_allclose(np.asarray(direct), np.asarray(via_class), atol=1e-12)
 
 
+def test_additive_inflator_folds_step_into_key():
+    """Regression: AdditiveInflator must derive a fresh per-step key
+    when the L2 _run_loop passes ``step=`` through kwargs, otherwise
+    every assimilation window draws identical Gaussian perturbations.
+    """
+    ensemble = jr.normal(jr.PRNGKey(20), (30, 3))
+    R = lx.DiagonalLinearOperator(jnp.full((3,), 0.05))
+    inflator = flx.AdditiveInflator(noise_cov=R, base_key=jr.PRNGKey(21))
+    a = np.asarray(inflator(ensemble, step=0))
+    b = np.asarray(inflator(ensemble, step=1))
+    # Different steps must produce different draws.
+    assert np.linalg.norm(a - b) > 1e-3
+    # Same step is reproducible.
+    a_again = np.asarray(inflator(ensemble, step=0))
+    np.testing.assert_array_equal(a, a_again)
+
+
+def test_inflate_adaptive_returns_jax_scalars():
+    """Regression: inflate_adaptive must return JAX scalars so callers
+    can carry the (μ, σ²) belief through jit / grad / lax.scan."""
+    import jax
+
+    S = jnp.eye(3) * 0.1
+    d = jnp.ones(3)
+
+    def run_one(mu_var):
+        mu, var = mu_var
+        return flx.inflate_adaptive(mu, var, d, S)
+
+    # JIT compiles only when both return values are JAX arrays.
+    mu_post, var_post = jax.jit(run_one)((1.0, 0.01))
+    assert hasattr(mu_post, "dtype")
+    assert hasattr(var_post, "dtype")
+    assert bool(jnp.isfinite(mu_post))
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Adaptive inflation (Anderson 2009)
 # ──────────────────────────────────────────────────────────────────────

@@ -94,7 +94,10 @@ def _run_loop(
         result = filter_.analysis(forecast, obs_values, obs_op, obs_noise, **extra)
         analysis_particles = result.particles
         if inflator is not None:
-            analysis_particles = inflator(analysis_particles, forecast)
+            # ``step=`` lets stochastic inflators (AdditiveInflator) fold
+            # a fresh PRNG sub-key per window. Deterministic inflators
+            # accept the kwarg via **_ and ignore it.
+            analysis_particles = inflator(analysis_particles, forecast, step=step)
         analyses.append(analysis_particles)
         logps.append(result.log_likelihood)
 

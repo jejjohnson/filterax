@@ -523,14 +523,16 @@ class ETKF_Livings(AbstractSequentialFilter, strict=True):
     mean and the rank-deficiency-against-𝟙 property; the random factor
     averages out preferred-direction artefacts over time.
 
-    A fresh ``Θ`` is drawn per analysis from
-    ``jr.fold_in(self.key, state.step)``-style sub-keys when the
-    optional ``key=`` kwarg is supplied; otherwise the constructor's
-    ``self.key`` is used (and successive calls repeat the same draw —
-    pass a fresh key per cycle in your loop).
+    PRNG key handling. The constructor's ``self.key`` is the *default*
+    source of randomness; ``analysis(..., key=subkey)`` overrides it
+    for a single call. Pattern-match the :class:`StochasticEnKF` API:
+    if you call ``analysis`` directly inside a loop, pass a freshly
+    split key each cycle or you will get the *same* rotation every
+    window — which defeats the whole purpose of the Livings recipe.
 
     Attributes:
-        key: Default PRNG key for the random rotation.
+        key: Default PRNG key for the random rotation. Used when no
+            explicit ``key=`` kwarg is passed to ``analysis``.
     """
 
     key: PRNGKeyArray
@@ -609,10 +611,13 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
     (uncorrelated obs); use :class:`ETKF` / :class:`EnSRF` for general
     ``R`` or pre-decorrelate observations.
 
-    For linear observation operators we step the ensemble through all
-    ``Nᵧ`` scalar updates via :func:`jax.lax.scan`; each step uses the
-    current ensemble's anomalies (not the original forecast's) so the
-    serial update respects the standard scalar-Kalman semantics.
+    The implementation reapplies ``obs_op`` to the running ensemble
+    inside each scalar update. That keeps the serial trajectory
+    consistent for **nonlinear** ``H`` (where the relationship between
+    state-space and obs-space anomalies is updated by ``H`` itself, not
+    by linear book-keeping). Cost is ``O(Nᵧ × Nₑ × cost(H))`` —
+    fractionally more than the linear-only shortcut but correct for
+    every ``H`` filterax supports.
     """
 
     def analysis(
@@ -631,17 +636,12 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
                 "decorrelate or use filterax.filters.EnSRF for general Γ."
             )
         R_diag = lx.diagonal(obs_noise)
-
-        # Pre-compute the linearised mapping H X by mapping each member
-        # then evaluating *both* the current ensemble's obs projection
-        # (updated each iteration) and the per-obs row of the obs op.
-        # Cheapest path: compute Y once up front, then track the
-        # "running" ensemble's obs anomalies via the fact that linear
-        # updates of particles induce linear updates of Y.
         initial_obs_particles = _apply_obs_op(obs_op, particles)
 
-        def step(carry, k):
-            parts, parts_obs = carry  # (Nₑ, Nₓ), (Nₑ, Nᵧ)
+        def step(parts, k):
+            # Re-evaluate H on the *current* ensemble so nonlinear obs
+            # ops remain consistent across the serial sweep.
+            parts_obs = _apply_obs_op(obs_op, parts)  # (Nₑ, Nᵧ)
             y_k = obs[k]
             R_kk = R_diag[k]
             obs_col = parts_obs[:, k]  # (Nₑ,)
@@ -650,37 +650,23 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
             obs_var = jnp.sum(obs_anom_col * obs_anom_col) / (N_e - 1)  # Cᴴₖᴴₖ
             innovation_var = obs_var + R_kk
 
-            # Cross-covariance in state space and in obs space.
             mean_parts = jnp.mean(parts, axis=0)
             state_anom = parts - mean_parts[None, :]  # (Nₑ, Nₓ)
             C_xH = einx.dot("e, e x -> x", obs_anom_col, state_anom) / (N_e - 1)
-            C_yH = einx.dot(
-                "e, e y -> y", obs_anom_col, parts_obs - jnp.mean(parts_obs, axis=0)
-            ) / (N_e - 1)
 
             K_k = C_xH / innovation_var  # (Nₓ,)
-            K_y = C_yH / innovation_var  # (Nᵧ,) — for tracking parts_obs
 
             # Mean update.
             mean_parts_new = mean_parts + K_k * (y_k - obs_mean)
-            mean_obs_new = jnp.mean(parts_obs, axis=0) + K_y * (y_k - obs_mean)
-
-            # Reduced gain factor.
+            # Reduced-gain factor for the perturbation half of the
+            # square-root update.
             alpha = 1.0 / (1.0 + jnp.sqrt(R_kk / innovation_var))
-            # Perturbation update: X′_a = X′ − α K_k H_k X′
-            #   = X′ − α K_k (obs_anom_col)
             pert_update_state = alpha * einx.dot("x, e -> e x", K_k, obs_anom_col)
-            pert_update_obs = alpha * einx.dot("y, e -> e y", K_y, obs_anom_col)
             parts_new = mean_parts_new[None, :] + (state_anom - pert_update_state)
-            parts_obs_new = mean_obs_new[None, :] + (
-                (parts_obs - jnp.mean(parts_obs, axis=0)) - pert_update_obs
-            )
-            return (parts_new, parts_obs_new), None
+            return parts_new, None
 
         N_y = obs.shape[0]
-        (particles_a, _), _ = jax.lax.scan(
-            step, (particles, initial_obs_particles), jnp.arange(N_y)
-        )
+        particles_a, _ = jax.lax.scan(step, particles, jnp.arange(N_y))
 
         S = innovation_covariance(initial_obs_particles, obs_noise)
         log_p = log_likelihood(obs - ensemble_mean(initial_obs_particles), S)

@@ -26,6 +26,8 @@ from __future__ import annotations
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from filterax._src._checks import check_ensemble_size
+
 
 def gaspari_cohn(
     distances: Float[Array, "..."],
@@ -223,12 +225,24 @@ def adaptive_localization(
     Returns:
         Weight matrix ``ρ ∈ ℝ^{Nₓ × Nᵧ}`` with entries in ``{0, 1}``.
 
+    Raises:
+        ValueError: if ``Nₑ < 3`` (the ``√(Nₑ − 2)`` noise floor is
+            undefined for the smallest ensembles).
+
     Reference:
         Anderson, J. L. (2007). *Exploring the need for localization
         in ensemble data assimilation using a hierarchical ensemble
         filter.* Physica D, 230, 99-111.
     """
     N_e = state_particles.shape[0]
+    # √(N_e − 2) appears in the sampling-noise denominator; we also
+    # rely on the Bessel-corrected std (N_e ≥ 2). Demand N_e ≥ 3.
+    check_ensemble_size(N_e)
+    if N_e < 3:
+        raise ValueError(
+            "adaptive_localization needs N_e ≥ 3 so the √(N_e − 2) "
+            f"sampling-noise floor is defined; got N_e={N_e}."
+        )
     state_mean = jnp.mean(state_particles, axis=0)
     obs_mean = jnp.mean(obs_particles, axis=0)
     state_anom = state_particles - state_mean[None, :]

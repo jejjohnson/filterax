@@ -1,9 +1,18 @@
 # Inflation
 
 Counteract spread collapse from finite-ensemble, model-error, or
-localization-side-effect sources. Three families of primitives, each
-also exposed as a concrete [`AbstractInflator`][filterax.AbstractInflator]
-class that drops straight into the Layer-2 assimilation loops.
+localization-side-effect sources. Two flavours of primitive:
+
+* **Drop-in inflators** — `MultiplicativeInflator`, `RTPS`, `RTPP`,
+  `AdditiveInflator` all implement
+  [`AbstractInflator`][filterax.AbstractInflator] and plug straight
+  into the Layer-2 assimilation loops (`filterax.ETKF`, `LETKF`, …).
+* **Helper primitives** — `inflate_adaptive` returns a posterior on
+  the multiplicative factor ``λ`` (the caller composes it with a
+  fresh `MultiplicativeInflator(factor=μ_post)` on the next cycle);
+  `ledoit_wolf_shrinkage` returns a regularised covariance matrix, not
+  an inflated ensemble. Neither is an `AbstractInflator`, so they are
+  driven from custom loops rather than dropped into L2 models.
 
 ## Picking an inflator
 

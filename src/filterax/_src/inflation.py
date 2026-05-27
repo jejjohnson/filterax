@@ -19,6 +19,7 @@ import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
+from filterax._src._checks import check_ensemble_size
 from filterax._src.statistics import ensemble_anomalies, ensemble_mean
 
 
@@ -192,55 +193,57 @@ def inflate_additive(
 
 
 def inflate_adaptive(
-    inflation_mean: float,
-    inflation_var: float,
+    inflation_mean: Float[Array, ""] | float,
+    inflation_var: Float[Array, ""] | float,
     innovation: Float[Array, " N_y"],
     innovation_cov: Float[Array, "N_y N_y"],
     *,
     min_factor: float = 1.0,
     max_factor: float = 1.2,
-) -> tuple[float, float]:
+) -> tuple[Float[Array, ""], Float[Array, ""]]:
     r"""Bayesian update of a multiplicative inflation factor (Anderson 2009).
 
     Treats the inflation factor ``λ`` as a random variable with a
     Gaussian prior ``λ ~ 𝒩(μ_λ, σ²_λ)`` and updates it from the
-    observed innovation. The "data-implied" inflation is the scalar
-    that would explain the *measured* innovation magnitude in
-    Mahalanobis norm:
+    cycle's *normalised innovation*. The data-implied factor is the
+    clamped Mahalanobis ratio
 
-    ``λ̂_obs = (dᵀ S⁻¹ d / Nᵧ − 1) / (tr(S₀ S⁻¹) / Nᵧ)``
+    ``λ̂_obs = clip(dᵀ S⁻¹ d / Nᵧ,  min_factor,  max_factor)``
 
-    with ``S = HPHᵀ + R`` the prescribed innovation covariance and
-    ``S₀ = HPHᵀ`` the ensemble part. The posterior on ``λ`` is then
-    the Gaussian product
+    (the simplified Anderson-2009 form — under correct specification
+    ``E[χ²/Nᵧ] = 1``; under-dispersive ensembles overshoot and pull
+    ``λ̂_obs`` above 1). The posterior on ``λ`` is then the Gaussian
+    product of the prior with an "observation likelihood" centred at
+    ``λ̂_obs`` whose variance is the χ²-distribution variance
+    ``σ²_obs = 2 / Nᵧ``:
 
     ``μ_post = (σ²_λ · λ̂_obs + σ²_obs · μ_prior) / (σ²_λ + σ²_obs)``
 
     ``σ²_post = σ²_λ · σ²_obs / (σ²_λ + σ²_obs)``
 
-    A flat clamp ``λ ∈ [min_factor, max_factor]`` prevents the
-    estimator from running away on outlier cycles. Returns the
-    *posterior* ``(μ, σ²)`` so the caller can carry it as state
-    across assimilation windows.
-
-    This primitive only returns the updated inflation belief — actual
-    inflation of an ensemble is one extra call to
-    :func:`inflate_multiplicative` with ``μ_post`` as the factor.
+    Returns the *posterior* ``(μ, σ²)`` as **JAX scalars** so callers
+    can carry the belief through ``jax.jit`` / ``jax.grad`` / ``lax.scan``
+    state across assimilation windows. Actual inflation of an ensemble
+    is one extra call to :func:`inflate_multiplicative` with ``μ_post``
+    as the factor.
 
     Args:
-        inflation_mean: Prior mean ``μ_λ``.
-        inflation_var: Prior variance ``σ²_λ``.
+        inflation_mean: Prior mean ``μ_λ`` (scalar or 0-d JAX array).
+        inflation_var: Prior variance ``σ²_λ`` (scalar or 0-d JAX array).
         innovation: Innovation vector ``d = y − H x̄``.
-        innovation_cov: Dense innovation covariance ``S``. The
-            (N_y, N_y) materialisation is intentional — Anderson's
-            recipe involves both ``S⁻¹`` and the trace of ``S₀ S⁻¹``,
-            which is cheapest dense for typical observation counts.
+        innovation_cov: Dense innovation covariance ``S``.
+            ``(Nᵧ, Nᵧ)`` materialisation is acceptable because the
+            recipe needs ``S⁻¹`` applied to ``d`` — for typical
+            observation counts the dense solve is cheaper than
+            assembling a structured operator. Pass the dense form when
+            you have it; otherwise build it via ``S_op.as_matrix()`` at
+            the call site.
         min_factor: Clamp lower bound for the data-implied estimate.
         max_factor: Clamp upper bound.
 
     Returns:
-        ``(μ_post, σ²_post)`` posterior on ``λ``, suitable for use as
-        the prior on the next cycle.
+        ``(μ_post, σ²_post)`` JAX-scalar posterior on ``λ``, suitable
+        for use as the prior on the next cycle.
 
     Reference:
         Anderson, J. L. (2009). *Spatially and temporally varying
@@ -248,19 +251,18 @@ def inflate_adaptive(
         61, 72-83.
     """
     N_y = innovation.shape[0]
-    # Mahalanobis norm of the innovation under the prescribed S.
-    chi2 = float(innovation @ jnp.linalg.solve(innovation_cov, innovation))
+    chi2 = innovation @ jnp.linalg.solve(innovation_cov, innovation)
     chi2_norm = chi2 / N_y
-    # Data-implied λ — simple Anderson-2009 form: inflate when the
-    # observed normalised innovation exceeds 1 (under-dispersive), do
-    # nothing when it equals 1 (well calibrated).
-    lambda_obs = max(min_factor, min(max_factor, chi2_norm))
-    sigma_obs_sq = 2.0 / N_y  # variance of χ²/N_y under the null
-    # Gaussian-product posterior.
-    sigma_sum = inflation_var + sigma_obs_sq
-    mu_post = (inflation_var * lambda_obs + sigma_obs_sq * inflation_mean) / sigma_sum
-    var_post = inflation_var * sigma_obs_sq / sigma_sum
-    return float(mu_post), float(var_post)
+    # Data-implied λ; clamped to keep the estimator from running away
+    # on outlier innovations.
+    lambda_obs = jnp.clip(chi2_norm, min_factor, max_factor)
+    sigma_obs_sq = jnp.asarray(2.0 / N_y, dtype=chi2_norm.dtype)
+    prior_mean = jnp.asarray(inflation_mean, dtype=chi2_norm.dtype)
+    prior_var = jnp.asarray(inflation_var, dtype=chi2_norm.dtype)
+    sigma_sum = prior_var + sigma_obs_sq
+    mu_post = (prior_var * lambda_obs + sigma_obs_sq * prior_mean) / sigma_sum
+    var_post = prior_var * sigma_obs_sq / sigma_sum
+    return mu_post, var_post
 
 
 def ledoit_wolf_shrinkage(
@@ -286,9 +288,12 @@ def ledoit_wolf_shrinkage(
     approximation; capped at ``d²`` so ``λ* ≤ 1``).
 
     Useful when ``Nₑ ≪ Nₓ`` and the rank-deficient sample covariance
-    would otherwise contaminate downstream operations. Guaranteed
-    positive definite. Returns a dense ``(Nₓ, Nₓ)`` matrix — only
-    call it when ``Nₓ`` is small enough to materialise.
+    would otherwise contaminate downstream operations. **Positive
+    semidefinite** by construction (PSD, not strictly PD — when the
+    ensemble is collapsed in some direction both the sample covariance
+    and the target ``μ I`` are singular there). Returns a dense
+    ``(Nₓ, Nₓ)`` matrix — only call it when ``Nₓ`` is small enough to
+    materialise.
 
     Args:
         particles: Ensemble of shape ``(Nₑ, Nₓ)``.
@@ -297,12 +302,16 @@ def ledoit_wolf_shrinkage(
         ``(P_shrunk, λ*)`` — shrunk covariance and the optimal
         shrinkage intensity.
 
+    Raises:
+        ValueError: if ``Nₑ < 2`` (the Bessel divisor is undefined).
+
     Reference:
         Ledoit, O. & Wolf, M. (2004). *A well-conditioned estimator
         for large-dimensional covariance matrices.* J. Multivariate
         Anal., 88, 365-411.
     """
     N_e, N_x = particles.shape
+    check_ensemble_size(N_e)
     mean = jnp.mean(particles, axis=0)
     centered = particles - mean[None, :]
     sample = centered.T @ centered / (N_e - 1)  # (Nₓ, Nₓ)
