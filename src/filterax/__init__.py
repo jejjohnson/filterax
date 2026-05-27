@@ -27,6 +27,9 @@ from filterax._src._types import (
     SmoothingResult as SmoothingResult,
     UKIState as UKIState,
 )
+from filterax._src.differentiable import (
+    differentiable_assimilate as differentiable_assimilate,
+)
 from filterax._src.gain import kalman_gain as kalman_gain
 from filterax._src.inflation import (
     inflate_adaptive as inflate_adaptive,
