@@ -190,6 +190,74 @@ Add the minimal integration-facing surfaces needed before the final tutorial wav
 
 ---
 
+# integrations(pipekit): verify wrapper-based Protocol compatibility with pipekit-cycle
+Draft ID: `FLX-55A`
+## Problem / Request
+Verify (without importing pipekit) that the user-side wrappers documented in
+`integrations/pipekit.md` satisfy `pipekit_cycle.AnalysisStep`, `ForwardModel`,
+and `ObservationOperator` per Decision D11.
+
+## Motivation
+The plumax / geostack stacks compose filterax into pipekit `Sequential`,
+`Graph`, and `Cycle` pipelines. D11 commits to **shape compatibility via
+one-line user wrappers**, not bare-class duck typing — filterax filters expose
+`.analysis(...)`, pipekit wants `__call__(..., *, obs_op, obs_err_cov)`. The
+test target is the wrapper, not the bare filter.
+
+## References & Existing Code
+- Design doc / spec:
+  `design_docs/integrations/pipekit.md` §4,
+  `design_docs/decisions.md` (D11)
+
+## Implementation Steps
+- [ ] Add an opt-in test module guarded by `pytest.importorskip("pipekit_cycle")`.
+- [ ] Re-create the `FilterAsAnalysisStep`, `DynamicsAsForwardModel`, and
+      `FilterCycle` wrappers from `integrations/pipekit.md` in the test file.
+- [ ] Assert `isinstance(FilterAsAnalysisStep(filter_), pipekit_cycle.AnalysisStep)`
+      for every concrete sequential filter shipped by filterax.
+- [ ] Assert the analogous checks for `DynamicsAsForwardModel` and the obs-op
+      (which is structurally identical and needs no wrapper).
+- [ ] Explicitly assert that the bare filter does **not** satisfy
+      `AnalysisStep` (negative test — guards against accidental coupling).
+
+## Definition of Done
+- A pipekit-cycle user can drop a filterax filter into a `Sequential` graph by
+  writing the ~5-line `FilterAsAnalysisStep` wrapper documented in
+  `integrations/pipekit.md`, and the test suite proves the wrapper satisfies
+  the Protocol.
+
+## Relationships
+- Parent epic: FLX-51.
+
+---
+
+# integrations(plumax): worked multi-instrument Tier IV recipe
+Draft ID: `FLX-55B`
+## Problem / Request
+Author the worked-example recipe in `integrations/plumax.md` (already exists)
+into a runnable end-to-end smoke script that exercises `JointObsOperator`,
+`SequentialAssimilation`, `GeoLocalizer`, and the fixed-lag smoother.
+
+## Motivation
+The Tier IV use case is the canonical multi-instrument fusion target. A smoke
+script catches integration regressions before they reach plumax.
+
+## References & Existing Code
+- Design doc / spec: `design_docs/integrations/plumax.md`
+
+## Implementation Steps
+- [ ] Author a synthetic multi-instrument problem in `tests/integration/`.
+- [ ] Run end-to-end: forecast → joint analysis → sequential analysis →
+      fixed-lag smoother → save_state / load_state.
+- [ ] Smoke assertion only (RMSE finite, no NaNs). Numerical correctness lives
+      in the per-component tests.
+
+## Relationships
+- Parent epic: FLX-51.
+- Blocked by FLX-24A, FLX-43A, FLX-46A, FLX-52.
+
+---
+
 # references(zoo): add minimal geo_toolz/xr_assimilate seams and zoo/reference surfaces
 Draft ID: `FLX-56`
 ## Problem / Request

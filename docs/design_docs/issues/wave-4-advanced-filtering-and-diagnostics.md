@@ -226,6 +226,110 @@ covariance diagnosis.
 
 ---
 
+# localization(geo): implement GeoLocalizer with pyproj-built LocalFrame
+Draft ID: `FLX-43A`
+## Problem / Request
+Add geographic-distance localization for atmospheric / oceanic use cases per
+Decision D14.
+
+## Motivation
+The plumax/geostack motivating use case requires Gaspari–Cohn tapering over
+great-circle or projected distance — not grid index. `pyproj` builds the
+`LocalFrame` once outside `jax.jit`; the JIT path is pure JAX.
+
+## References & Existing Code
+- Design doc / spec:
+  `design_docs/features/localization_inflation.md` §A.2.1,
+  `design_docs/decisions.md` (D14),
+  `design_docs/integrations/geostack.md`
+
+## Implementation Steps
+- [ ] Define `LocalFrame` (static metadata: CRS, projection origin, optional
+      pyproj transformer).
+- [ ] Implement `GeoLocalizer(coords, frame, radius_km, taper)`.
+- [ ] Precompute pairwise distances at construction; keep JIT path pure JAX.
+- [ ] Add `pyproj` as a soft optional dependency (extras: `filterax[geo]`).
+- [ ] Test: great-circle distance taper matches Gaspari–Cohn shape; survives
+      `jax.jit` once constructed.
+
+## Definition of Done
+- Users can localize an LETKF analysis using lon/lat coordinates without
+  hand-rolling distance matrices.
+
+## Relationships
+- Parent epic: FLX-39.
+- Blocked by FLX-19.
+
+---
+
+# filters(local-domain): implement LocalEnKF (patcher-LETKF) and AbstractPatcher protocol
+Draft ID: `FLX-43B`
+## Problem / Request
+Add patcher-based localized LETKF and the `AbstractPatcher` extension point
+per Decision D16.
+
+## Motivation
+Continental / basin-scale domains do not fit a full ensemble × full state in
+device memory. The patcher decomposes the domain into overlapping patches;
+LETKF runs per-patch and blends across overlaps.
+
+## References & Existing Code
+- Design doc / spec:
+  `design_docs/features/localization_inflation.md` §A.2.2,
+  `design_docs/decisions.md` (D16)
+- Wave 2 primitives: `create_patches`, `assign_obs_to_patches`,
+  `blend_patches`
+
+## Implementation Steps
+- [ ] Define `AbstractPatcher` Protocol (`patches`, `stitch`).
+- [ ] Implement an in-house `RegularGridPatcher` consuming the Wave 2
+      primitives.
+- [ ] Implement `LocalEnKF` (a.k.a. patcher-LETKF) as a Layer 2 model.
+- [ ] Document migration path to `geotoolz.patch` once that surface
+      stabilizes.
+
+## Definition of Done
+- A user with a domain that exceeds device memory can run patcher-LETKF
+  end-to-end on the in-house patcher.
+
+## Relationships
+- Parent epic: FLX-38.
+- Blocked by FLX-21 and FLX-23.
+
+---
+
+# state-persistence: implement save_state/load_state and serialization tests
+Draft ID: `FLX-46A`
+## Problem / Request
+Ship the filter / process state persistence helpers required by Decision D15.
+
+## Motivation
+The plumax alert-service use case needs warm-started ensembles within a 5 s
+cold-start budget. Filter state must round-trip to disk.
+
+## References & Existing Code
+- Design doc / spec:
+  `design_docs/features/state_persistence.md`,
+  `design_docs/decisions.md` (D15)
+
+## Implementation Steps
+- [ ] Implement `filterax.save_state(path, state)` and
+      `filterax.load_state(path, like)`.
+- [ ] Add a versioned `b"FAX1"` magic-byte header.
+- [ ] Validate that all static fields on state types are JSON-serializable
+      scalars; raise at construction otherwise.
+- [ ] Round-trip tests for `FilterState`, `ProcessState`, `UKIState`,
+      `AnalysisResult`, `FilterConfig`, `ProcessConfig`.
+
+## Definition of Done
+- Filter state survives a process restart with bit-identical particles and a
+  human-readable version mismatch error on schema bumps.
+
+## Relationships
+- Parent epic: FLX-39.
+
+---
+
 # docs/tests: add advanced filter verification and diagnostic workflows
 Draft ID: `FLX-47`
 ## Problem / Request

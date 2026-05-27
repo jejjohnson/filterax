@@ -177,6 +177,18 @@ class AbstractScheduler(eqx.Module):
 
 All protocols are `eqx.Module` subclasses — pytree-compatible, JIT-friendly, serializable.
 
+### Compatibility with `pipekit-cycle`
+
+filterax's protocols are designed to map cleanly onto the three Protocols in `pipekit-cycle` (`ForwardModel`, `ObservationOperator`, `AnalysisStep`) — but the names and signatures differ where DA-domain conventions diverge from pipekit's generic surface. Bridging is **one line of user code per concept**; filterax does not ship aliases or import pipekit.
+
+| filterax abstract | pipekit-cycle Protocol | Bridge |
+|---|---|---|
+| `AbstractDynamics.__call__(state, t0, t1)` | `ForwardModel.step(state, dt)` | User wraps with a `step(state, dt)` method calling `self._dyn(state, 0.0, dt)` |
+| `AbstractObsOperator.__call__(state)` | `ObservationOperator.__call__(state)` | Identical surface — no wrapper needed |
+| `AbstractSequentialFilter.analysis(forecast, obs, obs_op, obs_noise)` | `AnalysisStep.__call__(forecast, obs, *, obs_op, obs_err_cov)` | User wraps with a `__call__(forecast, obs, *, obs_op, obs_err_cov)` method calling `self._filter.analysis(...)` |
+
+The user wrappers are short (under 10 lines each); `@runtime_checkable` makes `isinstance(wrapper, pipekit_cycle.AnalysisStep)` pass at runtime without inheritance. See D11 and `integrations/pipekit.md` §4 for the concrete snippets and rationale.
+
 ---
 
 ## Key Data Types
@@ -235,6 +247,51 @@ Design notes:
 - Ensemble dimension is the leading axis (`N_e, N_x`) for natural `eqx.filter_vmap` over members.
 - `log_likelihood` is optional — only computed when needed for differentiable training.
 - Configuration is `eqx.Module` — serializable, pytree-compatible, JIT-friendly.
+- `particles` is a bare JAX array. Coordinate-aware carriers (`coordax.Array`, `GeoTensor`) are
+  handled via a `CarrierAdapter` outside the core type — see D13 and
+  `integrations/geostack.md`.
+- State types are fully `eqx.tree_serialise_leaves`-compatible — see D15 and
+  `features/state_persistence.md` for the persistence contract.
+
+---
+
+## Carrier Adapter Layer
+
+For consumers that want coordinate-aware ensemble particles (CRS, named dimensions, time coordinates) the core types stay JAX-array only; a `CarrierAdapter` flattens to and unflattens from a plain `(N_e, N_x)` array around analysis calls. The interface lives in `filterax.integrations`:
+
+```python
+class CarrierAdapter(eqx.Module):
+    """Round-trip a coordinate-aware carrier to/from FilterState.particles."""
+
+    @abc.abstractmethod
+    def flatten(self, carrier) -> tuple[Float[Array, "N_e N_x"], "CarrierMeta"]:
+        """Project carrier to a (N_e, N_x) array and a static metadata record."""
+        ...
+
+    @abc.abstractmethod
+    def unflatten(
+        self, particles: Float[Array, "N_e N_x"], meta: "CarrierMeta"
+    ) -> Any:
+        """Reconstruct the original carrier from particles + metadata."""
+        ...
+```
+
+Filters see only `Float[Array, "N_e N_x"]`. The adapter is user-facing convenience; the math layer stays minimal. filterax ships **only** the interface plus a `DictAdapter` reference implementation for `dict[str, Array]` schemas (no optional deps). Coordinate-aware adapters (`CoordaxAdapter`, `GeoTensorAdapter`, …) are downstream-owned — they live in the libraries that own those carriers, not in filterax. See `integrations/geostack.md` for the expected adapter shape.
+
+---
+
+## Serialization Contract
+
+Every state and config type is fully `eqx.tree_serialise_leaves`-compatible (D15). filterax exposes two helpers in Wave 4:
+
+```python
+filterax.save_state(path: str | Path, state: FilterState | ProcessState | UKIState) -> None
+filterax.load_state(path: str | Path, like: FilterState | ProcessState | UKIState) -> FilterState | ProcessState | UKIState
+```
+
+These wrap `eqx.tree_serialise_leaves` / `eqx.tree_deserialise_leaves` with a magic-byte header (`b"FAX1"`) so future schema changes are detectable. All static fields on state types must be JSON-serializable scalars; custom classes in static fields are rejected at construction.
+
+See `features/state_persistence.md` for the full contract, warm-start patterns, and the operational-alert recipe.
 
 ---
 

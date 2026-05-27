@@ -197,3 +197,156 @@ Architecture Decision Records for ekalmX. Each records the context, options cons
 - Existing `enskf_zoo.py` code needs transposition during migration
 - Matrix operations (cross-covariance, Kalman gain) transpose internally where needed
 - Consistent with torchEnKF's convention `(*batch, N_ensem, x_dim)`
+
+---
+
+## D11: pipekit-cycle protocol compatibility — structural only
+
+**Status:** Accepted
+
+**Context:** `pipekit-cycle` defines three `@runtime_checkable` Protocols that overlap with filterax's abstractions:
+
+- `pipekit_cycle.ForwardModel.step(state, dt) -> state` ≈ filterax `AbstractDynamics.__call__(state, t0, t1)`
+- `pipekit_cycle.ObservationOperator.__call__(state) -> obs` + `linearize` ≈ filterax `AbstractObsOperator.__call__`
+- `pipekit_cycle.AnalysisStep.__call__(forecast, obs, *, obs_op, obs_err_cov) -> analysis` ≈ filterax `AbstractSequentialFilter.analysis`
+
+filterax filters need to slot into pipekit `Sequential` / `Graph` / `Cycle` pipelines without forcing pipekit-cycle as a dependency on every filterax user.
+
+**Options:**
+- (A) Inherit — filterax abstracts subclass pipekit-cycle Protocols (requires pipekit import)
+- (B) Structural — same method names/shapes, no import, satisfies Protocols via duck typing
+- (C) Optional integration module — `filterax.integrations.pipekit` re-declares classes as protocol satisfiers
+
+**Decision:** Option B. filterax abstracts have method **shapes** (argument types, return types) that map cleanly onto the pipekit-cycle Protocols, even though method names diverge where DA-domain conventions warrant it (`analysis` vs `__call__`; `(state, t0, t1)` vs `(state, dt)`). Bridging is a one-line user-side wrapper per concept; filterax does not import pipekit and does not ship the wrappers. `@runtime_checkable` then makes `isinstance(wrapper, pipekit_cycle.AnalysisStep)` pass at runtime without inheritance.
+
+This mirrors pipekit's own rule: algorithm libraries do not import pipekit. The same discipline keeps filterax usable on its own and droppable into pipekit graphs without coupling.
+
+**Consequences:**
+- Method shapes on filterax abstracts are chosen with pipekit-cycle bridge clarity in mind (see `integrations/pipekit.md`).
+- filterax filters do **not** themselves satisfy `isinstance(filter, pipekit_cycle.AnalysisStep)` — the wrapper does. Wave 5's compatibility test (FLX-55A) asserts `isinstance(FilterAsAnalysisStep(filter), AnalysisStep)`, not the bare filter.
+- Compatibility is tested from outside filterax (in pipekit-cycle's own test suite, or in a downstream integration test repo). filterax has no pipekit imports.
+- Users who want pipekit's `StatefulOperator` wrapping (e.g., to drive a `Cycle`) write a 5-line wrapper in their own code; filterax does not ship the wrapper.
+- If pipekit-cycle's Protocol signatures change, filterax compatibility may need a one-line wrapper update on the user side. We accept this in exchange for zero coupling.
+
+---
+
+## D12: Multi-instrument fusion — both joint and sequential surfaces
+
+**Status:** Accepted
+
+**Context:** The plumax/geostack motivating use case (Tier IV methane attribution) assimilates observations from TROPOMI, EMIT, and GHGSat at different times, native resolutions, and noise characteristics. The original design's `AbstractObsOperator` is single-instrument.
+
+**Options:**
+- (A) Sequential only — user composes single-instrument analyses in a loop
+- (B) Joint only — `JointObsOperator(ops, noise_covs)` combinator wraps a list as one obs operator
+- (C) Both — sequential wrapper for temporally separated independent overpasses, joint combinator for shared-state simultaneous observations
+
+**Decision:** Option C. Ship both:
+
+- `JointObsOperator(ops: tuple[AbstractObsOperator, ...], noise_covs: tuple[AbstractLinearOperator, ...])` — concatenates outputs of each `op(state)` into one stacked observation vector, returns a block-diagonal noise covariance. One analysis call, correct cross-instrument covariance when noise is block-diagonal.
+- `SequentialAssimilation(filter: AbstractSequentialFilter)` — Layer 2 helper that loops over a list of `(obs, obs_op, obs_noise)` tuples, calling `filter.analysis` once per instrument. Used when overpasses are temporally separated and there is no benefit to a joint update.
+
+**Consequences:**
+- `AbstractObsOperator` stays single-instrument; joint behaviour is composition, not a new protocol.
+- Block-diagonal noise representation lives in `gaussx` (`BlockDiagonalLinearOperator`). filterax does not reimplement.
+- Partial obs masking (e.g., missing pixels in one overpass) handled by per-instrument operators with NaN-aware reduction; filterax provides a `MaskedObsOperator` wrapper as a primitive in Wave 2.
+- Documented in `features/multi_instrument.md`; lands in Wave 2 alongside the foundation filters.
+
+---
+
+## D13: Coordinate-aware carriers via adapter, not core type
+
+**Status:** Accepted
+
+**Context:** Downstream consumers (geostack, plumax) want ensemble particles that carry coordinate metadata (CRS, affine transform, dim names) — `coordax.Array` or `GeoTensor`. The original design's `FilterState.particles: Float[Array, "N_e N_x"]` is a bare JAX array.
+
+**Options:**
+- (A) Adapter pattern — core stays JAX-array only; a `CarrierAdapter` flattens/unflattens coordax↔array around analysis calls
+- (B) PyTree leaves — relax type to allow particles to be any JAX PyTree; primitives gain an internal flatten step
+- (C) Defer
+
+**Decision:** Option A. `FilterState.particles` is `Float[Array, "N_e N_x"]` in the core type. A `CarrierAdapter` interface lives in `filterax.integrations`:
+
+```python
+class CarrierAdapter(eqx.Module):
+    def flatten(self, carrier) -> tuple[Float[Array, "N_e N_x"], CarrierMeta]: ...
+    def unflatten(self, particles: Float[Array, "N_e N_x"], meta: CarrierMeta) -> Carrier: ...
+```
+
+filterax ships **one** reference implementation — `DictAdapter` for `dict[str, Array]` schemas — because it has zero optional dependencies and covers the common mixed-shape state case. Adapters for `coordax.Array`, `GeoTensor`, or other coordinate-aware carriers are **downstream-owned** (geostack, plumax, user code); filterax does not pull `coordax` or `pyproj` for the carrier path.
+
+Filters never see metadata. Adapters are user-facing convenience; the math layer stays minimal.
+
+**Consequences:**
+- Core stays lean, JAX-pure, and free of optional carrier dependencies.
+- Coordinate awareness costs one flatten/unflatten per analysis call — cheap relative to the analysis itself.
+- filterax owns the `CarrierAdapter` interface and the `DictAdapter` reference. Coordinate-aware adapters (e.g. `CoordaxAdapter`, `GeoTensorAdapter`) live in the libraries that own those carriers; `integrations/geostack.md` documents the expected shape so downstream authors can build them consistently.
+- Documented in `integrations/geostack.md`.
+
+---
+
+## D14: Geospatial localization owned by filterax
+
+**Status:** Accepted
+
+**Context:** The plumax Tier IV use case needs Gaspari–Cohn tapering over **geographic distance** (great-circle or projected), not grid indices. This requires:
+
+1. A way to express coordinates of state grid points and observations in a shared frame (`LocalFrame`: CRS + projection origin, built with pyproj — non-JAX, static).
+2. A distance kernel inside `jax.jit` that consumes precomputed pairwise distances and applies a taper.
+
+Geostack already disclaims responsibility for filtering math (master plan §9). pyproj produces static metadata, not JAX-traceable computation.
+
+**Options:**
+- (A) Filterax owns `GeoLocalizer`; consumes pyproj-built `LocalFrame` as static metadata
+- (B) Geostack owns `GeoLocalizer`; filterax stays generic
+- (C) Generic localizer only; users build geographic distance matrices themselves
+
+**Decision:** Option A. filterax adds `GeoLocalizer(coords, frame, radius, taper="gaspari_cohn")` to the localizer catalogue in Wave 4. `coords` are static `(N_x, 2)` lon/lat arrays; `frame` is a `LocalFrame` built once with pyproj (held as static metadata on the localizer, not inside `jax.jit`). Pairwise distances are precomputed at construction; the JIT path is just `taper(distances / radius)`.
+
+**Consequences:**
+- Adds a soft (optional) dependency on `pyproj` for `LocalFrame` construction. The localizer itself is JAX-pure once built; pyproj is not on the analysis path.
+- Distance-based covariance tapering remains filterax's core competency.
+- Documented in `features/localization_inflation.md`; lands in Wave 4.
+- Compatible with patcher-based LETKF (D16): the patcher provides per-patch coordinate slices, `GeoLocalizer` provides the per-patch taper.
+
+---
+
+## D15: Filter state is serializable
+
+**Status:** Accepted
+
+**Context:** Operational consumers (plumax alert service, long forecast cycles) need to checkpoint and restore filter state across process boundaries. The cold-start budget for the alert service is ≤5 s, so warm-started ensembles must round-trip from disk.
+
+**Decision:** `FilterState`, `ProcessState`, `UKIState`, `AnalysisResult`, `FilterConfig`, and `ProcessConfig` are fully `eqx.tree_serialise_leaves`-compatible. Wave 4 adds two thin helpers:
+
+```python
+filterax.save_state(path: str | Path, state: FilterState) -> None
+filterax.load_state(path: str | Path, like: FilterState) -> FilterState
+```
+
+These wrap `eqx.tree_serialise_leaves` / `eqx.tree_deserialise_leaves` with a versioned magic-byte header so future schema changes can be detected.
+
+**Consequences:**
+- All static-field choices on state types must be JSON-serializable scalars (int, str, bool, None). Custom classes in static fields are rejected.
+- `AbstractLinearOperator` fields inside `ProcessState` are serialized by their PyTree structure; structure must be reconstructible by gaussx.
+- Documented in `features/state_persistence.md`; lands in Wave 4.
+
+---
+
+## D16: Patcher-based localized DA lives in filterax
+
+**Status:** Accepted
+
+**Context:** Large spatial domains (continental, basin-scale) cannot fit a full ensemble × full state in device memory. The original ekalmX design includes ~1,379 lines of patch decomposition code as filterax-owned primitives. Geostack has a separate `geotoolz.patch` (incubating) for general-purpose spatial windowing.
+
+**Options:**
+- (A) filterax owns patcher implementation (sampler + stitcher) plus patcher-aware filters
+- (B) filterax consumes `geotoolz.patch` as a dependency; ships only patcher-aware filters
+- (C) Hybrid — filterax ships a minimal in-house patcher; promotes to `geotoolz.patch` consumption once that API stabilizes
+
+**Decision:** Option C. Wave 2 lands `create_patches`, `assign_obs_to_patches`, `blend_patches` as L0 primitives inside filterax (as originally planned). Wave 4 adds `LocalEnKF` / patcher-LETKF as L2 models. Once `geotoolz.patch` stabilizes (post-v0.1), filterax migrates to consuming it via an `AbstractPatcher` protocol; the in-house primitives are kept as a reference implementation and as a fallback for users who don't want a geostack dependency.
+
+**Consequences:**
+- Wave 2/4 deliverables are unchanged.
+- `AbstractPatcher` protocol added to the extension-point set in Wave 4 (mirrors `AbstractLocalizer` / `AbstractInflator`).
+- Documented in `features/localization_inflation.md` (patcher-LETKF section) and `integrations/geostack.md`.

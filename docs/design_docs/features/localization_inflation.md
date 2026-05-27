@@ -55,6 +55,59 @@ grid point. Observations far from the analysis point receive inflated noise and
 contribute less to the update. This is the approach used by the LETKF — each
 grid point sees only local observations with distance-weighted noise inflation.
 
+### A.2.1  Geographic localization
+
+For real-world atmospheric and oceanic applications the distance metric is
+**geographic distance** (great-circle or projected), not grid index. filterax
+ships a `GeoLocalizer` for this case (Decision D14):
+
+```python
+class GeoLocalizer(AbstractLocalizer):
+    """Gaspari-Cohn (or other taper) over geographic distance."""
+
+    coords: Float[Array, "N_x 2"]            # lon/lat of state grid points (static)
+    frame: "LocalFrame" = eqx.field(static=True)  # CRS + projection origin, built with pyproj
+    radius_km: float = eqx.field(static=True)
+    taper: str = eqx.field(static=True, default="gaspari_cohn")
+```
+
+`LocalFrame` is built **once** with `pyproj` (outside `jax.jit`) and held as
+static metadata. Pairwise distances are precomputed at construction. The JIT
+path is just `taper(distances / radius_km)`. `pyproj` is therefore a soft
+optional dependency — the localizer itself remains JAX-pure.
+
+`GeoLocalizer` pairs with patcher-based LETKF (see A.2.2) for large-domain
+assimilation: the patcher slices `coords` per patch; `GeoLocalizer` applies the
+taper inside each patch.
+
+### A.2.2  Patcher-localized LETKF
+
+Continental- or basin-scale domains do not fit a full ensemble × full state in
+device memory. filterax addresses this with patch decomposition (Decision D16):
+
+- Wave 2 L0 primitives: `create_patches`, `assign_obs_to_patches`,
+  `blend_patches`.
+- Wave 4 L2 model: `LocalEnKF` / patcher-LETKF — runs an independent LETKF
+  analysis per patch, blends overlapping regions.
+- Wave 4 extension point: `AbstractPatcher` protocol so future geostack
+  patchers (`geotoolz.patch`) can be plugged in without changing
+  filterax-side code.
+
+```python
+class AbstractPatcher(eqx.Module):
+    """Decompose a spatial domain into overlapping patches and stitch back."""
+
+    @abc.abstractmethod
+    def patches(self, state) -> Iterable["Patch"]: ...
+
+    @abc.abstractmethod
+    def stitch(self, patches: Iterable["Patch"], shape) -> Array: ...
+```
+
+filterax ships an in-house implementation in Wave 2; it migrates to
+consuming `geotoolz.patch` (still incubating in geostack) once that surface
+stabilizes.
+
 ### A.3  Gap Catalog
 
 ---

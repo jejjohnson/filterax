@@ -37,6 +37,31 @@ ekalmX provides all three modes in a single JAX/Equinox library, with shared ens
 
 ---
 
+## Motivating Downstream Use Case
+
+The concrete pressure on filterax's design comes from a multi-instrument operational pipeline: **methane plume attribution from satellite observations** (the `plumax` + `geostack` stack).
+
+A Tier IV attribution event fuses observations from heterogeneous satellites — TROPOMI (24 h global revisit), EMIT (ISS cadence, hyperspectral), GHGSat (tasked, high-resolution) — into a joint posterior over source rates, source positions, wind, background concentrations, and per-instrument biases. The state vector mixes order-10 dynamical parameters with order-10⁴ gridded transport-model fields; observations arrive at native resolutions with different noise characteristics, averaging kernels, and overpass times.
+
+Concrete pressure this puts on filterax:
+
+| Requirement | Design response |
+|-------------|-----------------|
+| Heterogeneous, time-staggered multi-instrument obs | `JointObsOperator` + `SequentialAssimilation` (D12, `features/multi_instrument.md`) |
+| Geographic-distance localization (not grid-index) | `GeoLocalizer` + pyproj-built `LocalFrame` (D14, `features/localization_inflation.md`) |
+| Large domains that don't fit in device memory | Patcher-LETKF, `AbstractPatcher` protocol (D16) |
+| Coordinate-aware particles (CRS, dims, time) | `CarrierAdapter` for `coordax.Array` / `GeoTensor` (D13, `integrations/geostack.md`) |
+| ≤5 s cold-start for alert service | Pickleable filter state, `save_state` / `load_state` (D15, `features/state_persistence.md`) |
+| Multi-day post-hoc event reconstruction | Fixed-lag + RTS smoothers prioritized (D8, Wave 5) |
+| Differentiable RTM in observation operator | Differentiable-by-construction (D9, `features/differentiable_da.md`) |
+| Slot into pipekit `Cycle` / `Graph` pipelines | Structural Protocol satisfaction (D11, `integrations/pipekit.md`) |
+
+filterax does not implement plumax or geostack. It implements the statistical machinery they need, with care to leave clean integration seams.
+
+See `integrations/plumax.md` for the worked API sketch.
+
+---
+
 ## Design Principles
 
 1. **Equinox-native** — All components are `eqx.Module` pytrees. No mutable state, no side effects. Fully compatible with `jax.jit`, `jax.grad`, `eqx.filter_vmap`, and the equinox ecosystem (optimistix, diffrax, lineax, gaussx).
