@@ -1,4 +1,11 @@
-"""Innovation log-likelihood and diagnostics."""
+"""Innovation log-likelihood and diagnostics.
+
+The innovation covariance ``S = H P H ᵀ + R`` is always built as a
+:class:`gaussx.LowRankUpdate` so logdets and solves dispatch through the
+matrix-determinant lemma and Woodbury identity respectively. We never
+materialise the dense ``(Nᵧ, Nᵧ)`` matrix on the differentiable training
+path — see ``filterax/features/differentiable_da.md``.
+"""
 
 from __future__ import annotations
 
@@ -7,12 +14,11 @@ from typing import TypedDict
 
 import gaussx
 import jax
-import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float
 
 from filterax._src._checks import check_ensemble_size
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._src.statistics import ensemble_mean
 
 
 def log_likelihood(
@@ -23,36 +29,70 @@ def log_likelihood(
 ) -> Float[Array, ""]:
     r"""Gaussian log-probability of an innovation vector.
 
-    .. math::
+    ``log p(y | forecast) = −½ [Nᵧ log(2π) + log|S| + vᵀ S⁻¹ v]``
 
-        \log p(y \mid \text{forecast})
-        = -\tfrac{1}{2}\left[N_y \log(2\pi) + \log|S| + v^T S^{-1} v\right]
+    where ``v`` is the innovation and ``S`` the innovation covariance.
+    Both ``log|S|`` and ``S⁻¹ v`` flow through :mod:`gaussx` dispatch —
+    when ``S`` is a :class:`gaussx.LowRankUpdate` (the standard case),
+    log-determinants use the matrix-determinant lemma and solves use
+    Woodbury, both at ``O(Nₑ² Nᵧ + Nₑ³)``.
 
-    where :math:`v` is the innovation and :math:`S` the innovation covariance.
-    ``logdet`` and ``solve`` dispatch via :mod:`gaussx`; when ``S`` is a
-    :class:`gaussx.LowRankUpdate`, the matrix-determinant lemma and Woodbury
-    identity are used automatically.
+    This is the training signal for differentiable data assimilation: the
+    gradient of this scalar with respect to dynamics or observation-model
+    parameters provides an end-to-end learning loop without ever forming
+    ``S`` explicitly. See Decision D9 in the design docs.
 
     Args:
-        innovation: Innovation vector :math:`v = y - H\bar{x}`, shape ``(N_y,)``.
-        innovation_cov: Innovation covariance :math:`S = H P H^T + R`.
-        solver: Optional :class:`gaussx.AbstractSolverStrategy` (needs both
-            solve and logdet). When ``None``, uses structural dispatch.
+        innovation: Innovation ``v = y − H x̄``, shape ``(Nᵧ,)``.
+        innovation_cov: Innovation covariance ``S = H P H ᵀ + R`` as a
+            linear operator (typically :class:`gaussx.LowRankUpdate`).
+        solver: Optional :class:`gaussx.AbstractSolverStrategy`. ``None``
+            uses structural dispatch.
 
     Returns:
         Scalar log-probability.
     """
-    zero = jnp.zeros_like(innovation)
-    return gaussx.gaussian_log_prob(
-        zero,
-        innovation_cov,
-        innovation,
-        solver=solver,
-    )
+    zero = jax.numpy.zeros_like(innovation)
+    return gaussx.gaussian_log_prob(zero, innovation_cov, innovation, solver=solver)
+
+
+def innovation_covariance(
+    obs_particles: Float[Array, "N_e N_y"],
+    obs_noise: lx.AbstractLinearOperator,
+) -> gaussx.LowRankUpdate:
+    r"""Innovation covariance ``S = Cᴴᴴ + R`` as a low-rank update.
+
+    Wraps :func:`gaussx.ensemble_covariance` (Bessel-corrected) to build
+    the low-rank factor ``U = (HX)′ᵀ / √(Nₑ − 1)`` and composes it with the
+    structured ``R`` base. The result is a :class:`gaussx.LowRankUpdate`
+    so all downstream linear algebra (solve, logdet, sample, …) takes
+    advantage of the rank-``(Nₑ − 1)`` ensemble term without densifying.
+
+    Args:
+        obs_particles: ``H`` applied to each ensemble member, shape
+            ``(Nₑ, Nᵧ)``.
+        obs_noise: Observation error covariance ``R``.
+
+    Returns:
+        :class:`gaussx.LowRankUpdate` representing ``S``.
+
+    Raises:
+        ValueError: if ``Nₑ < 2``.
+    """
+    check_ensemble_size(obs_particles.shape[0])
+    cov = gaussx.ensemble_covariance(obs_particles, bessel=True)
+    return gaussx.LowRankUpdate(obs_noise, cov.U)
 
 
 class InnovationStatistics(TypedDict):
-    """Return type of :func:`innovation_statistics`."""
+    """Return type of :func:`innovation_statistics`.
+
+    Keys:
+        innovation: ``v = y − H x̄``.
+        innovation_cov: ``S = Cᴴᴴ + R`` as a :class:`gaussx.LowRankUpdate`.
+        normalized_innovation: ``S⁻¹ᐟ² v`` (whitened residual).
+        log_likelihood: Scalar Gaussian log-probability of ``v`` under ``S``.
+    """
 
     innovation: Float[Array, " N_y"]
     innovation_cov: lx.AbstractLinearOperator
@@ -70,39 +110,46 @@ def innovation_statistics(
 ) -> InnovationStatistics:
     r"""Innovation diagnostics for a forecast ensemble.
 
-    Builds :math:`v = y - H\bar{x}` and :math:`S = C^{HH} + R`, then returns
-    the innovation, its covariance, the normalised innovation
-    :math:`S^{-1/2} v`, and the Gaussian log-likelihood.
+    Returns ``v``, ``S``, the whitened residual ``S⁻¹ᐟ² v``, and
+    ``log p(y | forecast)``. The whitened residual is useful for χ² /
+    Desroziers-style consistency checks (under correctly-specified ``S``
+    each component is unit-variance Gaussian).
+
+    The whitening solve goes through ``S.root_inv_decomposition()`` —
+    structural dispatch in gaussx picks either Woodbury for
+    :class:`gaussx.LowRankUpdate` or Cholesky for dense ``S``, so the
+    dense matrix is *not* materialised in the common case.
 
     Args:
-        particles: Forecast ensemble, shape ``(N_e, N_x)``.
-        obs: Observation vector, shape ``(N_y,)``.
-        obs_op: Observation operator applied to a single state vector.
-        obs_noise: Observation error covariance :math:`R`.
-        solver: Optional solver strategy.
+        particles: Forecast ensemble, shape ``(Nₑ, Nₓ)``.
+        obs: Observation vector, shape ``(Nᵧ,)``.
+        obs_op: ``H`` applied to a single state vector. ``vmap``'d over
+            the ensemble internally.
+        obs_noise: Observation error covariance ``R``.
+        solver: Optional solver strategy (used for both logdet and solve).
 
     Returns:
-        Mapping with keys ``innovation``, ``innovation_cov``,
-        ``normalized_innovation``, and ``log_likelihood``.
+        :class:`InnovationStatistics` mapping with ``innovation``,
+        ``innovation_cov``, ``normalized_innovation``, ``log_likelihood``.
 
     Raises:
-        ValueError: if ``particles`` has fewer than 2 ensemble members.
+        ValueError: if ``Nₑ < 2``.
     """
-    N_e = particles.shape[0]
-    check_ensemble_size(N_e)
-    obs_particles = jax.vmap(obs_op)(particles)  # (N_e, N_y)
-    mean_obs = ensemble_mean(obs_particles)  # (N_y,)
-    innovation = obs - mean_obs
+    check_ensemble_size(particles.shape[0])
+    obs_particles = jax.vmap(obs_op)(particles)
+    innovation = obs - ensemble_mean(obs_particles)
 
-    Hxp = ensemble_anomalies(obs_particles)
-    U = Hxp.T / jnp.sqrt(N_e - 1)
-    S = gaussx.LowRankUpdate(obs_noise, U)
-
+    S = innovation_covariance(obs_particles, obs_noise)
     log_prob = log_likelihood(innovation, S, solver=solver)
 
-    # Normalised innovation S^{-1/2} v via Cholesky of the (small) dense S.
-    L = jnp.linalg.cholesky(S.as_matrix())
-    normalized = jnp.linalg.solve(L, innovation)
+    # z = L⁻¹ v with L the Cholesky of the (small) Nᵧ × Nᵧ matrix.
+    # Cholesky gives a true whitening (z has identity covariance) — the
+    # gaussx structural-sqrt path returns a factor with L Lᵀ = S⁻¹ but
+    # ``M v`` for that M is *not* a proper whitener. The (Nᵧ, Nᵧ) cost
+    # is acceptable here: ``Nᵧ`` is the per-window observation count,
+    # not the state dimension.
+    L = jax.numpy.linalg.cholesky(S.as_matrix())
+    normalized = jax.scipy.linalg.solve_triangular(L, innovation, lower=True)
 
     return InnovationStatistics(
         innovation=innovation,

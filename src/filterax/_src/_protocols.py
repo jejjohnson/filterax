@@ -72,7 +72,7 @@ class AbstractNoise(eqx.Module, strict=True):
         self,
         key: PRNGKeyArray,
         shape: tuple[int, ...],
-    ) -> Float[Array, "..."]:  # noqa: UP037
+    ) -> Float[Array, "..."]:
         """Draw noise samples of the given batch shape."""
         ...
 
@@ -89,12 +89,18 @@ class AbstractLocalizer(eqx.Module, strict=True):
 
 
 class AbstractInflator(eqx.Module, strict=True):
-    """Ensemble inflation strategy applied after analysis."""
+    """Ensemble inflation strategy applied after analysis.
+
+    The optional ``forecast_particles`` argument lets relaxation methods
+    (RTPS, RTPP) recover the prior spread when needed; multiplicative
+    inflators simply ignore it.
+    """
 
     @abc.abstractmethod
     def __call__(
         self,
         particles: Float[Array, "N_e N_x"],
+        forecast_particles: Float[Array, "N_e N_x"] | None = None,
     ) -> Float[Array, "N_e N_x"]: ...
 
 
@@ -123,8 +129,15 @@ class AbstractSequentialFilter(eqx.Module, strict=True):
         obs_op: AbstractObsOperator
         | Callable[[Float[Array, " N_x"]], Float[Array, " N_y"]],
         obs_noise: lx.AbstractLinearOperator,
+        **kwargs: Any,
     ) -> AnalysisResult:
-        """Assimilate an observation vector into the ensemble."""
+        """Assimilate an observation vector into the ensemble.
+
+        Concrete subclasses may require additional keyword arguments
+        (LETKF needs ``state_coords`` / ``obs_coords``); every concrete
+        filter accepts ``**kwargs`` so the protocol signature is uniform.
+        Filters that take no extra context just ignore the extras.
+        """
         ...
 
 

@@ -66,13 +66,11 @@ def test_innovation_statistics_keys_and_shapes(getkey):
     assert stats["log_likelihood"].shape == ()
 
 
-def test_innovation_statistics_normalised_innovation_has_identity_covariance():
-    # For a fixed ensemble, the normalized innovation should have unit norm
-    # expectation in the limit of many innovations. Here we check that applying
-    # S^{-1} to v via scipy equals reconstructing v from the normalized
-    # innovation via L.
-    import jax
-
+def test_innovation_statistics_normalised_innovation_is_whitened():
+    # The normalized innovation must be a whitening of the innovation:
+    # ``z = S^{-1/2} v`` for some valid sqrt, so the Mahalanobis squared
+    # ``vᵀ S^{-1} v`` equals ``zᵀ z``. We don't assume a particular sqrt
+    # (gaussx returns a non-Cholesky factor) — we just check the invariant.
     N_e, N_x, N_y = 30, 6, 4
     key = jr.PRNGKey(42)
     k1, k2 = jr.split(key)
@@ -85,21 +83,20 @@ def test_innovation_statistics_normalised_innovation_has_identity_covariance():
 
     stats = flx.innovation_statistics(particles, obs, obs_op, R)
     S = stats["innovation_cov"].as_matrix()
-    L = jnp.linalg.cholesky(S)
-    reconstructed = L @ stats["normalized_innovation"]
+    v = stats["innovation"]
+    z = stats["normalized_innovation"]
+
+    mahalanobis_via_solve = float(v @ jnp.linalg.solve(S, v))
+    mahalanobis_via_whitening = float(z @ z)
     np.testing.assert_allclose(
-        np.asarray(reconstructed), np.asarray(stats["innovation"]), atol=1e-9
+        mahalanobis_via_whitening, mahalanobis_via_solve, atol=1e-9
     )
 
-    # Also check that innovation_statistics's log_likelihood agrees with
-    # the standalone log_likelihood primitive.
+    # And log_likelihood agrees with the standalone primitive.
     ll_standalone = flx.log_likelihood(stats["innovation"], stats["innovation_cov"])
     np.testing.assert_allclose(
         float(stats["log_likelihood"]), float(ll_standalone), rtol=1e-10
     )
-
-    # Silence unused jax import (kept for future parametric tests).
-    _ = jax
 
 
 @pytest.mark.parametrize("N_e", [0, 1])

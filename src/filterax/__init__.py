@@ -1,5 +1,6 @@
 """filterax — differentiable ensemble Kalman filters and processes for JAX."""
 
+from filterax import filters as filters
 from filterax._src._protocols import (
     AbstractDynamics as AbstractDynamics,
     AbstractInflator as AbstractInflator,
@@ -12,6 +13,7 @@ from filterax._src._protocols import (
 )
 from filterax._src._types import (
     AnalysisResult as AnalysisResult,
+    AssimilationResult as AssimilationResult,
     FilterConfig as FilterConfig,
     FilterState as FilterState,
     ProcessConfig as ProcessConfig,
@@ -19,10 +21,36 @@ from filterax._src._types import (
     UKIState as UKIState,
 )
 from filterax._src.gain import kalman_gain as kalman_gain
+from filterax._src.inflation import (
+    inflate_multiplicative as inflate_multiplicative,
+    inflate_rtpp as inflate_rtpp,
+    inflate_rtps as inflate_rtps,
+)
+from filterax._src.inflators import (
+    RTPP as RTPP,
+    RTPS as RTPS,
+    MultiplicativeInflator as MultiplicativeInflator,
+)
 from filterax._src.likelihood import (
     InnovationStatistics as InnovationStatistics,
+    innovation_covariance as innovation_covariance,
     innovation_statistics as innovation_statistics,
     log_likelihood as log_likelihood,
+)
+from filterax._src.localization import (
+    gaspari_cohn as gaspari_cohn,
+    gaussian_taper as gaussian_taper,
+    hard_cutoff as hard_cutoff,
+    localize as localize,
+)
+from filterax._src.models import (
+    ETKF as ETKF,
+    LETKF as LETKF,
+    EnSRF as EnSRF,
+    StochasticEnKF as StochasticEnKF,
+)
+from filterax._src.perturbations import (
+    perturbed_observations as perturbed_observations,
 )
 from filterax._src.statistics import (
     cross_covariance as cross_covariance,
