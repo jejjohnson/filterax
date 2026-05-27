@@ -198,13 +198,18 @@ def test_enks_t_equals_one_is_identity(getkey):
     )
 
 
-def test_enks_smoothing_result_particles_is_first_smoothed(getkey):
-    """``particles == smoothed_history[0]`` so callers can chain into a
-    follow-up forecast without re-indexing."""
+def test_enks_smoothing_result_particles_is_terminal(getkey):
+    """``particles == smoothed_history[-1]`` matches the
+    :class:`AssimilationResult.particles` convention (terminal ensemble
+    for chaining into a follow-up forecast). For backward smoothers the
+    terminal smoothed ensemble equals the filter's last analysis."""
     _, forecast_hist, analysis_hist = _toy_filter_result(getkey)
     smoothed = flx.EnKS().smooth(forecast_hist, analysis_hist)
     np.testing.assert_array_equal(
-        np.asarray(smoothed.particles), np.asarray(smoothed.smoothed_history[0])
+        np.asarray(smoothed.particles), np.asarray(smoothed.smoothed_history[-1])
+    )
+    np.testing.assert_array_equal(
+        np.asarray(smoothed.particles), np.asarray(analysis_hist[-1])
     )
 
 
@@ -273,6 +278,32 @@ def test_fixed_lag_partial_window_differs_from_enks(getkey):
 def test_fixed_lag_rejects_negative_lag():
     with pytest.raises(ValueError, match="lag must be a non-negative int"):
         flx.FixedLagSmoother(lag=-1)
+
+
+def test_fixed_lag_t_equals_one_with_positive_lag(getkey):
+    """T==1 + lag>0 has no real backward window. The effective lag must
+    clamp to ``T-1 == 0`` and return the analysis unchanged — earlier
+    versions indexed ``forecast_history[1]`` and crashed."""
+    N_e, N_x = 12, 3
+    analysis = jr.normal(getkey(), (1, N_e, N_x))
+    forecast = jr.normal(getkey(), (1, N_e, N_x))
+    out = flx.FixedLagSmoother(lag=5).smooth(forecast, analysis)
+    np.testing.assert_array_equal(
+        np.asarray(out.smoothed_history), np.asarray(analysis)
+    )
+    np.testing.assert_array_equal(np.asarray(out.particles), np.asarray(analysis[-1]))
+
+
+def test_fixed_lag_huge_lag_matches_enks_without_extra_work(getkey):
+    """``lag >> T-1`` is clamped to ``T-1`` and still matches EnKS."""
+    _, forecast_hist, analysis_hist = _toy_filter_result(getkey, T=4)
+    enks = flx.EnKS().smooth(forecast_hist, analysis_hist)
+    fl = flx.FixedLagSmoother(lag=1000).smooth(forecast_hist, analysis_hist)
+    np.testing.assert_allclose(
+        np.asarray(fl.smoothed_history),
+        np.asarray(enks.smoothed_history),
+        atol=1e-10,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────

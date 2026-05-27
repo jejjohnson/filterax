@@ -30,17 +30,23 @@ import einx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float
+from jaxtyping import Array, Float, Int
 
 from filterax._src._checks import check_ensemble_size
 from filterax._src._types import SmoothingResult
 
 
-# Relative eigenvalue threshold for the rank-deficient pseudoinverse of
-# ``F Fᵀ``. The matrix is PSD with one structurally-zero eigenvalue
-# (anomalies sum to zero), so any λ below ``_RCOND × λ_max`` is treated
-# as numerical noise from that null direction.
-_RCOND: float = 1e-10
+def _pinv_threshold(eigvals: Float[Array, " N_e"]) -> Float[Array, ""]:
+    """Numpy-style relative cutoff for the rank-deficient PSD pseudoinverse.
+
+    Matches numpy's default ``rcond = max(M.shape) * eps``: eigenvalues
+    below ``size × eps × λ_max`` are treated as null modes. Picking up
+    the dtype's epsilon means a float32 ensemble where many off-mean
+    directions are roundoff-positive doesn't accidentally invert them
+    (and the float64 threshold stays as tight as before).
+    """
+    eps = jnp.finfo(eigvals.dtype).eps
+    return jnp.maximum(eigvals[-1], 0.0) * eigvals.shape[0] * eps
 
 
 def _smoother_step(
@@ -59,8 +65,8 @@ def _smoother_step(
     where ``A = X^a_t − x̄^a_t``, ``F = X^f_{t+1} − x̄^f_{t+1}``, and
     ``D = X^s_{t+1} − X^f_{t+1}`` are arranged with rows as members. The
     pseudoinverse is computed via :func:`jax.numpy.linalg.eigh` on the
-    symmetrised ``F Fᵀ`` with a relative threshold to discard the
-    rank-deficient null direction.
+    symmetrised ``F Fᵀ`` with a dtype-aware relative threshold to
+    discard the rank-deficient null direction.
     """
     # Anomaly matrices share the analysis / forecast row layout.
     a_mean = einx.mean("e x -> x", analysis_t)
@@ -76,7 +82,7 @@ def _smoother_step(
     M = 0.5 * (M + jnp.swapaxes(M, -1, -2))
     eigvals, eigvecs = jnp.linalg.eigh(M)
     # eigh returns eigvals in ascending order; eigvals[-1] is the largest.
-    threshold = _RCOND * jnp.maximum(eigvals[-1], 0.0)
+    threshold = _pinv_threshold(eigvals)
     inv_lambda = jnp.where(eigvals > threshold, 1.0 / eigvals, 0.0)
 
     # B = D Fᵀ in ensemble space.
@@ -105,7 +111,7 @@ def _enks_backward(
     init = analysis_history[-1]
 
     def step(
-        carry: Float[Array, "N_e N_x"], idx: Float[Array, ""]
+        carry: Float[Array, "N_e N_x"], idx: Int[Array, ""]
     ) -> tuple[Float[Array, "N_e N_x"], Float[Array, "N_e N_x"]]:
         smoothed_t = _smoother_step(
             carry,
@@ -177,11 +183,13 @@ class EnKS(eqx.Module, strict=True):
 
         Returns:
             :class:`SmoothingResult` with ``smoothed_history[t] = X^s_t``
-            and ``particles = X^s_0``.
+            and ``particles = X^s_{T-1}`` — the terminal ensemble that
+            chains into a follow-up forecast, matching the
+            ``AssimilationResult.particles`` convention.
         """
         _validate_history(analysis_history, forecast_history)
         smoothed = _enks_backward(analysis_history, forecast_history)
-        return SmoothingResult(particles=smoothed[0], smoothed_history=smoothed)
+        return SmoothingResult(particles=smoothed[-1], smoothed_history=smoothed)
 
 
 class EnsembleRTS(eqx.Module, strict=True):
@@ -206,7 +214,7 @@ class EnsembleRTS(eqx.Module, strict=True):
         """Run the backward RTS pass — see :meth:`EnKS.smooth`."""
         _validate_history(analysis_history, forecast_history)
         smoothed = _enks_backward(analysis_history, forecast_history)
-        return SmoothingResult(particles=smoothed[0], smoothed_history=smoothed)
+        return SmoothingResult(particles=smoothed[-1], smoothed_history=smoothed)
 
 
 class FixedLagSmoother(eqx.Module, strict=True):
@@ -252,21 +260,24 @@ class FixedLagSmoother(eqx.Module, strict=True):
         """
         _validate_history(analysis_history, forecast_history)
         T = analysis_history.shape[0]
-        lag = self.lag
+        # Effective lag: clamp at ``T - 1`` (max usable lookahead) so a
+        # large user-supplied ``lag`` does no extra work and the
+        # ``T == 1, lag > 0`` case can never index ``forecast_history[1]``.
+        lag_eff = min(self.lag, max(T - 1, 0))
 
-        if lag == 0:
+        if lag_eff == 0:
             return SmoothingResult(
-                particles=analysis_history[0],
+                particles=analysis_history[-1],
                 smoothed_history=analysis_history,
             )
 
-        def smooth_one_anchor(s: Float[Array, ""]) -> Float[Array, "N_e N_x"]:
-            """Smoothed estimate at position ``s`` using lookahead ≤ ``lag``."""
-            end = jnp.minimum(s + lag, T - 1)
+        def smooth_one_anchor(s: Int[Array, ""]) -> Float[Array, "N_e N_x"]:
+            """Smoothed estimate at position ``s`` using lookahead ≤ ``lag_eff``."""
+            end = jnp.minimum(s + lag_eff, T - 1)
             init = analysis_history[end]
 
             def step(
-                carry: Float[Array, "N_e N_x"], k: Float[Array, ""]
+                carry: Float[Array, "N_e N_x"], k: Int[Array, ""]
             ) -> tuple[Float[Array, "N_e N_x"], None]:
                 # k counts backward steps from the window end (0 = first step).
                 # The nominal index processed at this step is `end - 1 - k`.
@@ -280,8 +291,8 @@ class FixedLagSmoother(eqx.Module, strict=True):
                 next_carry = jnp.where(valid, candidate, carry)
                 return next_carry, None
 
-            final, _ = jax.lax.scan(step, init, jnp.arange(lag))
+            final, _ = jax.lax.scan(step, init, jnp.arange(lag_eff))
             return final
 
         smoothed = jax.vmap(smooth_one_anchor)(jnp.arange(T))
-        return SmoothingResult(particles=smoothed[0], smoothed_history=smoothed)
+        return SmoothingResult(particles=smoothed[-1], smoothed_history=smoothed)
