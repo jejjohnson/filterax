@@ -93,7 +93,9 @@ class AbstractInflator(eqx.Module, strict=True):
 
     The optional ``forecast_particles`` argument lets relaxation methods
     (RTPS, RTPP) recover the prior spread when needed; multiplicative
-    inflators simply ignore it.
+    inflators simply ignore it. The ``**kwargs`` slot is reserved for
+    extension parameters supplied by the L2 run loop (e.g. ``step=``
+    for stochastic inflators that need a fresh per-cycle PRNG key).
     """
 
     @abc.abstractmethod
@@ -101,6 +103,7 @@ class AbstractInflator(eqx.Module, strict=True):
         self,
         particles: Float[Array, "N_e N_x"],
         forecast_particles: Float[Array, "N_e N_x"] | None = None,
+        **kwargs: Any,
     ) -> Float[Array, "N_e N_x"]: ...
 
 
