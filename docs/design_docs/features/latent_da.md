@@ -178,13 +178,18 @@ class LiftedObs(AbstractObsOperator):
 
     Maps  z ↦ y  via  z ─psi→ x ─H→ y.  Satisfies AbstractObsOperator
     so it slots into ETKF, EnSRF, LETKF, EnKS without changes.
+
+    The ``decoder`` field is expected to satisfy
+    ``pipekit_cycle.Decoder`` — i.e. expose a ``.decode(z)`` method.
+    A full ``LatentMap`` works directly because it is a subtype of
+    ``Decoder``; a bare encoder/decoder pair likewise.
     """
 
-    decoder: Any                              # Decoder (structural)
+    decoder: Any                              # Decoder (structural; has .decode)
     inner: AbstractObsOperator                # x-space H
 
     def __call__(self, latent):
-        return self.inner(self.decoder(latent))
+        return self.inner(self.decoder.decode(latent))
 ```
 
 ### 4.3  `EncodedDynamics`
