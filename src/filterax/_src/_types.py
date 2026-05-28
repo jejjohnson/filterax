@@ -66,6 +66,30 @@ class AssimilationResult(eqx.Module, strict=True):
     log_likelihoods: Float[Array, " T"] | None = None
 
 
+class LatentAssimilationResult(eqx.Module, strict=True):
+    """Output of a latent-space L2 assimilation loop.
+
+    Mirrors :class:`AssimilationResult` for the ``x``-space view
+    (``particles`` / ``forecast_history`` / ``analysis_history``)
+    while carrying the latent ensembles alongside. The ``_z`` fields
+    are the *primary* representation — the ``x``-space fields are
+    decoded views surfaced for ergonomics and for chaining into the
+    existing smoothers and diagnostics.
+
+    Identical-axis convention to :class:`AssimilationResult`:
+    histories stack along a leading ``T`` axis, ``particles`` is the
+    terminal ensemble for follow-up forecasts.
+    """
+
+    particles: Float[Array, "N_e N_x"]
+    forecast_history: Float[Array, "T N_e N_x"]
+    analysis_history: Float[Array, "T N_e N_x"]
+    log_likelihoods: Float[Array, " T"] | None
+    particles_z: Float[Array, "N_e N_z"]
+    forecast_history_z: Float[Array, "T N_e N_z"]
+    analysis_history_z: Float[Array, "T N_e N_z"]
+
+
 class SmoothingResult(eqx.Module, strict=True):
     """Output of a backward-pass ensemble smoother.
 
