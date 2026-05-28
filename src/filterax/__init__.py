@@ -1,6 +1,7 @@
 """filterax — differentiable ensemble Kalman filters and processes for JAX."""
 
 from filterax import (
+    differentiable as differentiable,
     filters as filters,
     optax as optax,
     processes as processes,
