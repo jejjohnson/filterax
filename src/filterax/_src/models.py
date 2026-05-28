@@ -20,6 +20,7 @@ NaN so callers can index by window without re-aligning.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from typing import Any
 
 import equinox as eqx
 import jax.numpy as jnp
@@ -33,7 +34,17 @@ from filterax._src._protocols import (
     AbstractObsOperator,
     AbstractSequentialFilter,
 )
-from filterax._src._types import AssimilationResult, FilterConfig
+from filterax._src._types import (
+    AssimilationResult,
+    FilterConfig,
+    LatentAssimilationResult,
+)
+from filterax._src.latent import (
+    LiftedObs,
+    _stack_decode,
+    decode_ensemble,
+    latent_ensemble,
+)
 from filterax._src.sequential import (
     ETKF as _ETKFFilter,
     LETKF as _LETKFFilter,
@@ -282,3 +293,161 @@ class LETKF(eqx.Module, strict=True):
                 "obs_coords": obs_coords,
             },
         )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Latent-space L2 wrappers (D17)
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _wrap_latent_result(
+    latent_map: Any,
+    result_z: AssimilationResult,
+) -> LatentAssimilationResult:
+    """Decode the z-space histories on a vanilla ``AssimilationResult``.
+
+    Used by :class:`LatentETKF` / :class:`LatentLETKF` to surface the
+    decoded ``x``-space view alongside the latent representations.
+    """
+    particles_x = decode_ensemble(latent_map.decode, result_z.particles)
+    forecast_x = _stack_decode(latent_map.decode, result_z.forecast_history)
+    analysis_x = _stack_decode(latent_map.decode, result_z.analysis_history)
+    return LatentAssimilationResult(
+        particles=particles_x,
+        forecast_history=forecast_x,
+        analysis_history=analysis_x,
+        log_likelihoods=result_z.log_likelihoods,
+        particles_z=result_z.particles,
+        forecast_history_z=result_z.forecast_history,
+        analysis_history_z=result_z.analysis_history,
+    )
+
+
+class LatentETKF(eqx.Module, strict=True):
+    r"""ETKF analysis applied to a latent-space ensemble (D17).
+
+    Thin composition over the existing :class:`ETKF` Layer-1 step:
+    encode the initial ensemble (when supplied in ``x``-space), run
+    the standard forecast → ETKF → optional inflation cycle on the
+    latent ensemble using ``LiftedObs(decoder, x_obs_op)`` as the
+    observation operator, then decode the histories back to
+    ``x``-space alongside the latent representations.
+
+    The ensemble math is unchanged — the wrapper exists for ergonomics
+    and for compile-time correctness (it would be hard to accidentally
+    feed an ``x``-space ensemble into a latent-space analysis step
+    once the user builds a ``LatentETKF``).
+
+    Attributes:
+        latent_map: Object exposing ``.encode`` and ``.decode``.
+            Typically a :class:`pipekit_cycle.LatentMap`-shaped autoencoder
+            or :func:`identity_latent_map` for regression tests.
+        dynamics: Latent-space dynamics — usually a
+            :class:`LatentDynamics` or :class:`EncodedDynamics`.
+        obs_op: ``x``-space observation operator. Lifted internally
+            via :class:`LiftedObs`.
+        inflator: Optional deterministic inflator applied in latent
+            space.
+        config: Reserved :class:`FilterConfig`.
+    """
+
+    latent_map: Any
+    dynamics: AbstractDynamics
+    obs_op: AbstractObsOperator
+    inflator: AbstractInflator | None = None
+    config: FilterConfig | None = None
+
+    def assimilate(
+        self,
+        init_ensemble: Float[Array, "N_e N_d"],
+        observations: Sequence[tuple[Float[Array, " N_y"], float | Float[Array, ""]]],
+        obs_noise: lx.AbstractLinearOperator,
+        t0: float | Float[Array, ""] = 0.0,
+        *,
+        in_x_space: bool = True,
+    ) -> LatentAssimilationResult:
+        """Run forecast → ETKF analysis → optional inflation in latent space.
+
+        Args:
+            init_ensemble: Prior ensemble. Shape ``(Nₑ, Nₓ)`` when
+                ``in_x_space=True`` (default); ``(Nₑ, N_z)`` when the
+                caller already encoded.
+            observations: Sequence of ``(y_t, t)`` pairs in
+                ``x``-space coordinates.
+            obs_noise: Observation error covariance ``R`` (operates in
+                ``y``-space, untouched).
+            t0: Starting time for the first forecast window.
+            in_x_space: Encode the initial ensemble first. ``False``
+                lets the caller skip the round-trip when their initial
+                ensemble already lives in ``z``-space.
+
+        Returns:
+            :class:`LatentAssimilationResult` carrying both the
+            latent and decoded ``x``-space ensembles.
+        """
+        z0 = (
+            latent_ensemble(self.latent_map.encode, init_ensemble)
+            if in_x_space
+            else init_ensemble
+        )
+        result_z = _run_loop(
+            lambda _step: _ETKFFilter(),
+            self.dynamics,
+            LiftedObs(decoder=self.latent_map, inner=self.obs_op),
+            self.inflator,
+            z0,
+            observations,
+            obs_noise,
+            t0,
+        )
+        return _wrap_latent_result(self.latent_map, result_z)
+
+
+class LatentLETKF(eqx.Module, strict=True):
+    r"""Local ETKF in latent space (D17).
+
+    Sister of :class:`LatentETKF` over :class:`LETKF`. v0.1 implements
+    option (a) of `latent_da.md` §9.2 — *no* localization in latent
+    space — because the latent dimensions of a typical autoencoder are
+    global modes without an intrinsic notion of locality.
+    Pseudo-localization-via-mode-coords (option c) is deferred.
+
+    For the no-localization case, this class is provided for API
+    parity with :class:`LatentETKF`: it gives users a ``LatentLETKF``
+    name that they can wire into pipekit alongside ``LatentETKF``
+    without having to fall back to ``LatentETKF`` themselves. The
+    body is identical to :class:`LatentETKF`.
+    """
+
+    latent_map: Any
+    dynamics: AbstractDynamics
+    obs_op: AbstractObsOperator
+    inflator: AbstractInflator | None = None
+    config: FilterConfig | None = None
+
+    def assimilate(
+        self,
+        init_ensemble: Float[Array, "N_e N_d"],
+        observations: Sequence[tuple[Float[Array, " N_y"], float | Float[Array, ""]]],
+        obs_noise: lx.AbstractLinearOperator,
+        t0: float | Float[Array, ""] = 0.0,
+        *,
+        in_x_space: bool = True,
+    ) -> LatentAssimilationResult:
+        """Run forecast → ETKF analysis (no localization) → inflation in z-space."""
+        z0 = (
+            latent_ensemble(self.latent_map.encode, init_ensemble)
+            if in_x_space
+            else init_ensemble
+        )
+        result_z = _run_loop(
+            lambda _step: _ETKFFilter(),
+            self.dynamics,
+            LiftedObs(decoder=self.latent_map, inner=self.obs_op),
+            self.inflator,
+            z0,
+            observations,
+            obs_noise,
+            t0,
+        )
+        return _wrap_latent_result(self.latent_map, result_z)

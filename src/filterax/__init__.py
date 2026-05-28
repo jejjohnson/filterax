@@ -23,6 +23,7 @@ from filterax._src._types import (
     AssimilationResult as AssimilationResult,
     FilterConfig as FilterConfig,
     FilterState as FilterState,
+    LatentAssimilationResult as LatentAssimilationResult,
     ProcessConfig as ProcessConfig,
     ProcessState as ProcessState,
     SmoothingResult as SmoothingResult,
@@ -46,6 +47,15 @@ from filterax._src.inflators import (
     AdditiveInflator as AdditiveInflator,
     MultiplicativeInflator as MultiplicativeInflator,
 )
+from filterax._src.latent import (
+    EncodedDynamics as EncodedDynamics,
+    IdentityLatentMap as IdentityLatentMap,
+    LatentDynamics as LatentDynamics,
+    LiftedObs as LiftedObs,
+    decode_ensemble as decode_ensemble,
+    identity_latent_map as identity_latent_map,
+    latent_ensemble as latent_ensemble,
+)
 from filterax._src.likelihood import (
     InnovationStatistics as InnovationStatistics,
     innovation_covariance as innovation_covariance,
@@ -64,6 +74,8 @@ from filterax._src.models import (
     ETKF as ETKF,
     LETKF as LETKF,
     EnSRF as EnSRF,
+    LatentETKF as LatentETKF,
+    LatentLETKF as LatentLETKF,
     StochasticEnKF as StochasticEnKF,
 )
 from filterax._src.perturbations import (
