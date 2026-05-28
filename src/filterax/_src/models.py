@@ -40,6 +40,7 @@ from filterax._src._types import (
     LatentAssimilationResult,
 )
 from filterax._src.latent import (
+    LatentDynamics,
     LiftedObs,
     _stack_decode,
     decode_ensemble,
@@ -300,6 +301,22 @@ class LETKF(eqx.Module, strict=True):
 # ──────────────────────────────────────────────────────────────────────
 
 
+def _coerce_latent_dynamics(d: Any) -> AbstractDynamics:
+    """Auto-wrap a structural ``LatentForwardModel`` as an ``AbstractDynamics``.
+
+    The design doc advertises both the wrapped form (any
+    :class:`AbstractDynamics` — typically :class:`LatentDynamics` or
+    :class:`EncodedDynamics`) and the raw structural form (any object
+    with ``.step(z, dt) → z``). The L2 wrappers feed the dynamics
+    into :func:`_forecast`, which calls ``dynamics(state, t0, t1)`` —
+    so a raw ``.step``-only object would raise at trace time. We wrap
+    here so users following either contract get the same ergonomics.
+    """
+    if isinstance(d, AbstractDynamics):
+        return d
+    return LatentDynamics(inner=d)
+
+
 def _wrap_latent_result(
     latent_map: Any,
     result_z: AssimilationResult,
@@ -342,8 +359,12 @@ class LatentETKF(eqx.Module, strict=True):
         latent_map: Object exposing ``.encode`` and ``.decode``.
             Typically a :class:`pipekit_cycle.LatentMap`-shaped autoencoder
             or :func:`identity_latent_map` for regression tests.
-        dynamics: Latent-space dynamics — usually a
-            :class:`LatentDynamics` or :class:`EncodedDynamics`.
+        dynamics: Latent-space dynamics — either an
+            :class:`AbstractDynamics` (typically :class:`LatentDynamics`
+            or :class:`EncodedDynamics`) or a structural
+            ``LatentForwardModel`` exposing ``.step(z, dt) → z``. Raw
+            ``.step``-only objects are auto-wrapped in
+            :class:`LatentDynamics` at construction.
         obs_op: ``x``-space observation operator. Lifted internally
             via :class:`LiftedObs`.
         inflator: Optional deterministic inflator applied in latent
@@ -354,8 +375,22 @@ class LatentETKF(eqx.Module, strict=True):
     latent_map: Any
     dynamics: AbstractDynamics
     obs_op: AbstractObsOperator
-    inflator: AbstractInflator | None = None
-    config: FilterConfig | None = None
+    inflator: AbstractInflator | None
+    config: FilterConfig | None
+
+    def __init__(
+        self,
+        latent_map: Any,
+        dynamics: Any,
+        obs_op: AbstractObsOperator,
+        inflator: AbstractInflator | None = None,
+        config: FilterConfig | None = None,
+    ):
+        self.latent_map = latent_map
+        self.dynamics = _coerce_latent_dynamics(dynamics)
+        self.obs_op = obs_op
+        self.inflator = inflator
+        self.config = config
 
     def assimilate(
         self,
@@ -417,13 +452,32 @@ class LatentLETKF(eqx.Module, strict=True):
     name that they can wire into pipekit alongside ``LatentETKF``
     without having to fall back to ``LatentETKF`` themselves. The
     body is identical to :class:`LatentETKF`.
+
+    Like :class:`LatentETKF`, ``dynamics`` may be either an
+    :class:`AbstractDynamics` or a raw structural ``LatentForwardModel``
+    (``.step(z, dt) → z``); the latter is auto-wrapped in
+    :class:`LatentDynamics` at construction.
     """
 
     latent_map: Any
     dynamics: AbstractDynamics
     obs_op: AbstractObsOperator
-    inflator: AbstractInflator | None = None
-    config: FilterConfig | None = None
+    inflator: AbstractInflator | None
+    config: FilterConfig | None
+
+    def __init__(
+        self,
+        latent_map: Any,
+        dynamics: Any,
+        obs_op: AbstractObsOperator,
+        inflator: AbstractInflator | None = None,
+        config: FilterConfig | None = None,
+    ):
+        self.latent_map = latent_map
+        self.dynamics = _coerce_latent_dynamics(dynamics)
+        self.obs_op = obs_op
+        self.inflator = inflator
+        self.config = config
 
     def assimilate(
         self,

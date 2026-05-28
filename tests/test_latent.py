@@ -336,6 +336,43 @@ def test_lifted_obs_satisfies_obs_operator_protocol():
     assert isinstance(enc_dyn, flx.AbstractDynamics)
 
 
+def test_latent_etkf_auto_wraps_raw_latent_forward_model(getkey):
+    # The design doc advertises the structural ``LatentForwardModel`` —
+    # ``.step(z, dt) → z`` only. The L2 wrappers must auto-wrap so a raw
+    # ``.step``-only object does not fail at trace time inside
+    # ``_forecast`` (which calls ``dynamics(state, t0, t1)``).
+    particles, obs_op, R, obs_seq = _make_obs_problem(getkey)
+    N_x = particles.shape[1]
+    lm = flx.identity_latent_map(dim=N_x)
+    raw = _LinearLatentForward(A=jnp.eye(N_x))
+
+    filt = flx.LatentETKF(latent_map=lm, dynamics=raw, obs_op=obs_op)
+    assert isinstance(filt.dynamics, flx.LatentDynamics)
+    assert filt.dynamics.inner is raw
+
+    out = filt.assimilate(particles, obs_seq, R)
+    assert out.particles.shape == particles.shape
+    assert bool(jnp.all(jnp.isfinite(out.particles)))
+
+    # An already-wrapped AbstractDynamics is passed through unchanged.
+    wrapped = flx.LatentDynamics(inner=raw)
+    filt_wrapped = flx.LatentETKF(latent_map=lm, dynamics=wrapped, obs_op=obs_op)
+    assert filt_wrapped.dynamics is wrapped
+
+
+def test_latent_letkf_auto_wraps_raw_latent_forward_model(getkey):
+    particles, obs_op, R, obs_seq = _make_obs_problem(getkey)
+    N_x = particles.shape[1]
+    lm = flx.identity_latent_map(dim=N_x)
+    raw = _LinearLatentForward(A=jnp.eye(N_x))
+
+    filt = flx.LatentLETKF(latent_map=lm, dynamics=raw, obs_op=obs_op)
+    assert isinstance(filt.dynamics, flx.LatentDynamics)
+    out = filt.assimilate(particles, obs_seq, R)
+    assert out.particles.shape == particles.shape
+    assert bool(jnp.all(jnp.isfinite(out.particles)))
+
+
 def test_latent_etkf_grad_skips_non_trainable_codec_fields(getkey):
     # ``identity_latent_map`` carries only a static ``int`` field, so
     # ``eqx.filter_grad`` should treat it as having no trainable leaves.
