@@ -368,6 +368,20 @@ This reduces the backward pass from $O(T)$ sequential steps to $O(1)$
 per time step (parallelizable), at the cost of ignoring cross-time
 gradient interactions.
 
+**Shipped** as `filterax.differentiable.road_enkf_loss_and_grad`
+(with the `road_enkf_grad_step` optax-update convenience wrapper);
+the code below is the algorithm sketch the implementation realises.
+
+```python
+from filterax.differentiable import road_enkf_loss_and_grad
+
+loss, dynamics_grad = road_enkf_loss_and_grad(
+    dynamics, init_ensemble, observations, obs_times, R, obs_op,
+)
+```
+
+Internally:
+
 ```python
 def road_enkf_gradient(dynamics, y_obs, x0_ens, H, R):
     """ROAD-EnKF: local gradients, no full unrolling."""
