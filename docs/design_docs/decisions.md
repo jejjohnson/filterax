@@ -350,3 +350,65 @@ These wrap `eqx.tree_serialise_leaves` / `eqx.tree_deserialise_leaves` with a ve
 - Wave 2/4 deliverables are unchanged.
 - `AbstractPatcher` protocol added to the extension-point set in Wave 4 (mirrors `AbstractLocalizer` / `AbstractInflator`).
 - Documented in `features/localization_inflation.md` (patcher-LETKF section) and `integrations/geostack.md`.
+
+---
+
+## D17: Latent ensemble DA via composition + dedicated wrappers
+
+**Status:** Accepted (v0.1, design only — implementation lands with the
+`pipekit_cycle.latent` foundation).
+
+**Context:** Latent data assimilation (Peyron 2021, Cheng 2023) runs
+the EnKF analysis on a low-dimensional latent ensemble $\{z^{(i)}\}$
+obtained from an autoencoder $(\varphi, \psi)$. The wins are
+(a) cheaper Kalman gain ($O(N_z^3)$ vs $O(N_y^3)$ when $N_z < N_y$),
+(b) smaller backprop tape, (c) implicit smoothness regularisation from
+$\psi$. Filterax's core ensemble math is dimension-agnostic, so latent
+filtering should *not* require new analysis-step classes — only
+ergonomic glue.
+
+**Options.**
+
+(A) Add new abstract protocols `AbstractLatentFilter` and
+    `AbstractLatentDynamics`; reimplement ETKF/LETKF in z-space.
+(B) Compose existing `AbstractDynamics` / `AbstractObsOperator` with
+    thin adapter classes; add Layer-2 wrappers (`LatentETKF`,
+    `LatentLETKF`) that pre-bind those adapters.
+(C) Document the pattern but ship no code — let users write the
+    glue inline.
+
+**Decision:** Option B.
+
+**Rationale.**
+
+* The ensemble math in `statistics.py`, `gain.py`, `localization.py`,
+  `inflation.py` is dimension-agnostic. Re-implementing it as
+  "z-versions" (Option A) would duplicate code without changing the
+  math.
+* Option C (no code) leaves every project to reinvent the same five
+  adapter classes. The ergonomics matter — `LatentETKF(latent_map,
+  dynamics, obs_op)` in one line is the difference between latent DA
+  being a research curiosity and being a default offering.
+* `pipekit_cycle.LatentMap` (new) gives a substrate-neutral name for
+  the AE; consuming it structurally preserves D11 (no pipekit import
+  in filterax core).
+
+**Consequences.**
+
+* New Layer-1 components: `LatentDynamics`, `LiftedObs`,
+  `EncodedDynamics` in `filterax/_src/latent.py`.
+* New Layer-2 wrappers: `LatentETKF`, `LatentLETKF` in
+  `filterax/_src/models.py`.
+* New Layer-0 helpers: `latent_ensemble`, `decode_ensemble`,
+  `identity_latent_map`.
+* No new abstract protocols; the existing `AbstractDynamics`,
+  `AbstractObsOperator`, `AbstractSequentialFilter` cover everything.
+* D11 (structural pipekit-cycle compatibility) extends transparently:
+  `pipekit_cycle.LatentMap` and `LatentForwardModel` are consumed
+  structurally; the optional `pytest.importorskip("pipekit_cycle")`
+  compat suite gains a `test_latent_pipekit_compat.py` module.
+* Localization in latent space is offered with a documented caveat —
+  latent dimensions are global modes by default, so the default is
+  "no localization"; mode-coordinate localization is marked
+  experimental in v0.1.
+* Documented in `features/latent_da.md`.
