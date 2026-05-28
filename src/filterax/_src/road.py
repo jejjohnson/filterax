@@ -174,9 +174,7 @@ def road_enkf_loss_and_grad(
             dynamics, ensemble, t_prev, t_now, obs_t
         )
         new_total_loss = total_loss + loss_t
-        new_total_grad = jax.tree.map(
-            lambda acc, g: acc + g, total_grad, grad_t
-        )
+        new_total_grad = jax.tree.map(lambda acc, g: acc + g, total_grad, grad_t)
         new_ensemble = jax.lax.stop_gradient(analysis_particles)
         return (new_ensemble, new_total_loss, new_total_grad, t_now), None
 
