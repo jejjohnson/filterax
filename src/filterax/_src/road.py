@@ -113,8 +113,6 @@ def road_enkf_loss_and_grad(
             f"got {observations.shape[0]} and {obs_times.shape[0]}."
         )
 
-    T = int(observations.shape[0])
-
     def local_step(
         dyn: AbstractDynamics,
         ensemble: Float[Array, "N_e N_x"],
@@ -155,29 +153,37 @@ def road_enkf_loss_and_grad(
     # integer/bool array leaves (indices, masks, PRNG-key metadata)
     # rather than seeding zero "gradients" optax would then try to
     # apply to them.
-    total_grad: PyTree = jax.tree.map(
+    total_grad_seed: PyTree = jax.tree.map(
         lambda leaf: jnp.zeros_like(leaf) if eqx.is_inexact_array(leaf) else None,
         eqx.filter(dynamics, eqx.is_inexact_array),
     )
-    total_loss = jnp.asarray(0.0, dtype=init_ensemble.dtype)
-    ensemble = init_ensemble
-    t_prev = t0_arr
+    loss_seed = jnp.asarray(0.0, dtype=init_ensemble.dtype)
 
-    # Python loop — each iteration carries its own short backward-pass
-    # tape; ``stop_gradient`` between iterations is what keeps memory
-    # at ``O(Nₑ · Nₓ)`` regardless of ``T``.
-    for t in range(T):
-        t_now = obs_times[t]
+    # ``jax.lax.scan`` over the observation history. Each iteration runs
+    # ``filter_value_and_grad`` on the per-step local loss; the resulting
+    # gradient accumulates into a carry leaf of the same dynamics-shaped
+    # PyTree. ``stop_gradient`` on the analysis particles between
+    # iterations stops any reverse-mode tape from spanning steps — so the
+    # backward-pass memory stays ``O(Nₑ · Nₓ)`` and, equally important,
+    # the *forward* JIT trace stays ``O(1)`` in ``T`` (the loop body is
+    # traced once and ``lax.scan`` carries it).
+    def scan_step(carry, inputs):
+        ensemble, total_loss, total_grad, t_prev = carry
+        obs_t, t_now = inputs
         (loss_t, analysis_particles), grad_t = grad_step(
-            dynamics, ensemble, t_prev, t_now, observations[t]
+            dynamics, ensemble, t_prev, t_now, obs_t
         )
-        total_loss = total_loss + loss_t
-        total_grad = jax.tree.map(
-            lambda acc, g: acc if g is None else acc + g, total_grad, grad_t
+        new_total_loss = total_loss + loss_t
+        new_total_grad = jax.tree.map(
+            lambda acc, g: acc + g, total_grad, grad_t
         )
-        ensemble = jax.lax.stop_gradient(analysis_particles)
-        t_prev = t_now
+        new_ensemble = jax.lax.stop_gradient(analysis_particles)
+        return (new_ensemble, new_total_loss, new_total_grad, t_now), None
 
+    init_carry = (init_ensemble, loss_seed, total_grad_seed, t0_arr)
+    (_, total_loss, total_grad, _), _ = jax.lax.scan(
+        scan_step, init_carry, (observations, obs_times)
+    )
     return total_loss, total_grad
 
 
@@ -207,7 +213,18 @@ def road_enkf_grad_step(
         dynamics: Forward model to update.
         optimizer: Any ``optax.GradientTransformation``
             (``optax.adam(1e-3)``, ``optax.chain(...)``, …).
-        opt_state: Optimizer state produced by ``optimizer.init(dynamics)``.
+        opt_state: Optimizer state. Initialise with the *inexact*
+            (gradient-eligible) leaves only — matches what the gradient
+            update will write to::
+
+                opt_state = optimizer.init(
+                    eqx.filter(dynamics, eqx.is_inexact_array)
+                )
+
+            Filtering on ``eqx.is_array`` instead would let optax try
+            to write float updates onto integer / boolean metadata
+            (indices, masks, …) and either fail or silently corrupt
+            those fields.
         init_ensemble: Prior ensemble ``(Nₑ, Nₓ)``.
         observations: Stacked observation history ``(T, Nᵧ)``.
         obs_times: Stacked timestamps ``(T,)``.

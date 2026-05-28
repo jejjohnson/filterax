@@ -262,11 +262,13 @@ def test_road_jit_compiles(getkey):
 
 
 def test_road_long_horizon_compiles(getkey):
-    """ROAD's ``O(1)``-per-step backward-pass tape lets a long ``T``
-    compile that would be unwieldy under full-tape backprop. Smoke check
-    at ``T = 30``."""
+    """ROAD's per-step ``O(Nₑ · Nₓ)`` backward-pass tape plus the
+    ``lax.scan`` body keep both compile time and runtime memory
+    ``O(1)`` in ``T``. Smoke-check at ``T = 200`` — the Python-loop
+    predecessor of this implementation would have unrolled the JIT
+    trace to ``O(T · single_step_size)``."""
     particles, _, _, obs_op, R = _setup(getkey, T=4)
-    T = 30
+    T = 200
     obs = jr.normal(getkey(), (T, 2))
     times = jnp.arange(1.0, T + 1.0)
     dyn = _LinearDynamics(M=jnp.eye(particles.shape[1]))
