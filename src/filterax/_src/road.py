@@ -148,12 +148,16 @@ def road_enkf_loss_and_grad(
     t0_arr = t0_arr.astype(time_dtype)
     obs_times = obs_times.astype(time_dtype)
 
-    # Seed the gradient accumulator with the right pytree shape (zeros over
-    # array leaves of ``dynamics``; non-array leaves stay as-is and are
-    # ignored by ``filter_value_and_grad``).
+    # Seed the gradient accumulator with the right pytree shape — zeros
+    # over *inexact* array leaves (float / complex) of ``dynamics``.
+    # ``eqx.filter_value_and_grad`` only ever produces gradients for
+    # inexact leaves, so we use ``eqx.is_inexact_array`` here to skip
+    # integer/bool array leaves (indices, masks, PRNG-key metadata)
+    # rather than seeding zero "gradients" optax would then try to
+    # apply to them.
     total_grad: PyTree = jax.tree.map(
-        lambda leaf: jnp.zeros_like(leaf) if eqx.is_array(leaf) else None,
-        eqx.filter(dynamics, eqx.is_array),
+        lambda leaf: jnp.zeros_like(leaf) if eqx.is_inexact_array(leaf) else None,
+        eqx.filter(dynamics, eqx.is_inexact_array),
     )
     total_loss = jnp.asarray(0.0, dtype=init_ensemble.dtype)
     ensemble = init_ensemble
@@ -231,10 +235,14 @@ def road_enkf_grad_step(
         t0=t0,
         **analysis_extra,
     )
-    # Pass only the array leaves of ``dynamics`` to optax (matches what
-    # ``optimizer.init(eqx.filter(dynamics, eqx.is_array))`` consumes; otherwise
-    # optax's static type for ``params`` rejects the bare ``eqx.Module``).
-    params = eqx.filter(dynamics, eqx.is_array)
+    # Pass only the *inexact* (gradient-eligible) array leaves of
+    # ``dynamics`` to optax — matches the ``eqx.is_inexact_array`` filter
+    # used to seed the gradient accumulator in
+    # ``road_enkf_loss_and_grad`` and the convention callers should use
+    # when constructing ``opt_state = optimizer.init(eqx.filter(dynamics,
+    # eqx.is_inexact_array))``. Filtering on ``eqx.is_array`` instead
+    # would let optax try to write updates onto integer / bool leaves.
+    params = eqx.filter(dynamics, eqx.is_inexact_array)
     updates, new_opt_state = optimizer.update(grads, opt_state, params)
     new_dynamics = eqx.apply_updates(dynamics, updates)
     return new_dynamics, new_opt_state, loss

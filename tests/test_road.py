@@ -169,7 +169,7 @@ def test_road_grad_step_with_optax_optimizer():
 
     dyn = _LinearDynamics(M=1.1 * jnp.eye(N_x))
     optimizer = optax.adam(0.05)
-    opt_state = optimizer.init(eqx.filter(dyn, eqx.is_array))
+    opt_state = optimizer.init(eqx.filter(dyn, eqx.is_inexact_array))
 
     losses = []
     for _ in range(5):
@@ -178,6 +178,45 @@ def test_road_grad_step_with_optax_optimizer():
         )
         losses.append(float(loss))
     assert losses[-1] < losses[0]
+
+
+def test_road_skips_integer_array_leaves():
+    """Regression for the gradient-accumulator predicate: a dynamics
+    module carrying an integer index leaf alongside a trainable float
+    matrix must produce a ``None`` slot for the integer leaf so optax
+    can't try to write float updates onto it."""
+
+    class _IndexedDynamics(flx.AbstractDynamics):
+        M: jnp.ndarray  # trainable
+        obs_indices: jnp.ndarray  # non-trainable int metadata
+
+        def __call__(self, state, t0, t1):
+            # `obs_indices` is carried but never differentiated.
+            return self.M @ state
+
+    N_e, N_x, N_y, T = 12, 3, 2, 3
+    particles = jr.normal(jr.PRNGKey(4), (N_e, N_x))
+    obs = jr.normal(jr.PRNGKey(5), (T, N_y))
+    times = jnp.arange(1.0, T + 1.0)
+    H = jnp.eye(N_y, N_x)
+    obs_op = _LinearObs(H=H)
+    R = lx.DiagonalLinearOperator(jnp.full((N_y,), 0.1))
+    dyn = _IndexedDynamics(M=jnp.eye(N_x), obs_indices=jnp.arange(N_y, dtype=jnp.int32))
+    _, grads = flx.differentiable.road_enkf_loss_and_grad(
+        dyn, particles, obs, times, R, obs_op
+    )
+    assert grads.M is not None
+    assert grads.obs_indices is None
+    # And the full optimizer-update path doesn't choke on the int leaf.
+    optimizer = optax.adam(0.01)
+    opt_state = optimizer.init(eqx.filter(dyn, eqx.is_inexact_array))
+    new_dyn, _, _ = flx.differentiable.road_enkf_grad_step(
+        dyn, optimizer, opt_state, particles, obs, times, R, obs_op
+    )
+    # Integer field stayed untouched.
+    np.testing.assert_array_equal(
+        np.asarray(new_dyn.obs_indices), np.asarray(dyn.obs_indices)
+    )
 
 
 def test_road_grad_step_with_optax_chain():
@@ -193,7 +232,7 @@ def test_road_grad_step_with_optax_chain():
 
     dyn = _LinearDynamics(M=jnp.eye(2))
     optimizer = optax.chain(optax.clip_by_global_norm(1.0), optax.adam(0.01))
-    opt_state = optimizer.init(eqx.filter(dyn, eqx.is_array))
+    opt_state = optimizer.init(eqx.filter(dyn, eqx.is_inexact_array))
 
     dyn, opt_state, loss = flx.differentiable.road_enkf_grad_step(
         dyn, optimizer, opt_state, particles, obs, times, R, obs_op
