@@ -23,6 +23,7 @@ References: Gaspari & Cohn (1999); Houtekamer & Mitchell (2001).
 
 from __future__ import annotations
 
+import gaussx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
@@ -50,10 +51,9 @@ def gaspari_cohn(
     * **Positive definite** — the gold standard for covariance
       localization in operational NWP and ocean DA.
 
-    The ``2/(3 z)`` term is only evaluated on the far branch ``z > 1``,
-    but :func:`jax.numpy.where` evaluates both arms unconditionally —
-    we guard ``z`` away from zero so the unused branch doesn't return
-    ``inf`` and contaminate the gradient.
+    Delegates to :func:`gaussx.gaspari_cohn`, which parameterises by
+    the compact-support radius ``c = 2 r`` and guards the ``2/(3 z)``
+    far-branch term so reverse-mode gradients stay finite at ``d = 0``.
 
     Args:
         distances: Non-negative distance array, any shape.
@@ -63,26 +63,20 @@ def gaspari_cohn(
     Returns:
         Taper weights in ``[0, 1]`` with the same shape as ``distances``.
 
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import gaspari_cohn
+        >>> d = jnp.array([0.0, 1.0, 2.0, 3.0])
+        >>> w = gaspari_cohn(d, radius=1.0)
+        >>> w[0], w[-1]  # full weight at zero distance, zero beyond 2r
+        (Array(1., dtype=float32), Array(0., dtype=float32))
+
     Reference:
         Gaspari, G. & Cohn, S. E. (1999). *Construction of correlation
         functions in two and three dimensions.* Q. J. R. Meteorol. Soc.,
         125, 723–757.
     """
-    z = distances / radius
-    z_safe = jnp.where(z > 0, z, 1.0)
-
-    near = -0.25 * z**5 + 0.5 * z**4 + (5.0 / 8.0) * z**3 - (5.0 / 3.0) * z**2 + 1.0
-    far = (
-        (1.0 / 12.0) * z**5
-        - 0.5 * z**4
-        + (5.0 / 8.0) * z**3
-        + (5.0 / 3.0) * z**2
-        - 5.0 * z
-        + 4.0
-        - (2.0 / 3.0) / z_safe
-    )
-    out = jnp.where(z <= 1.0, near, jnp.where(z <= 2.0, far, 0.0))
-    return jnp.where(z > 2.0, 0.0, out)
+    return gaussx.gaspari_cohn(distances, 2.0 * radius)
 
 
 def gaussian_taper(
