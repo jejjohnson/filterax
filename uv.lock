@@ -590,7 +590,7 @@ requires-dist = [
     { name = "einops", specifier = ">=0.8" },
     { name = "einx", specifier = ">=0.4.3" },
     { name = "equinox", specifier = ">=0.13.8" },
-    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=a66bab1" },
+    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=cd6264c" },
     { name = "jax", specifier = ">=0.10" },
     { name = "jaxlib", specifier = ">=0.10" },
     { name = "jaxtyping", specifier = ">=0.3" },
@@ -670,10 +670,10 @@ wheels = [
 
 [[package]]
 name = "gaussx"
-version = "0.0.15"
-source = { git = "https://github.com/jejjohnson/gaussx?rev=a66bab1#a66bab1904d5cbb7dd5ef89cafcef9a9a3455896" }
+version = "0.0.18"
+source = { git = "https://github.com/jejjohnson/gaussx?rev=cd6264c#cd6264c92d32f433515d3efb06a0672a02280339" }
 dependencies = [
-    { name = "einops" },
+    { name = "einx" },
     { name = "equinox" },
     { name = "jax" },
     { name = "jaxlib" },
@@ -1149,11 +1149,11 @@ wheels = [
 
 [[package]]
 name = "matfree"
-version = "0.5.5"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/07/20/7daab1915d09f3618c089db9cf9d645c3da245eeb6236a7281b4759713fe/matfree-0.5.5.tar.gz", hash = "sha256:c478e0ddee7323ec0144fff558459d384a7b9283fd55fd56fc6876bd9701c55b", size = 55624, upload-time = "2025-12-02T09:01:34.401Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/e4/3bdc4b7f2bfd92e94c9bf10508fbf718fb33cea5e7ed6fc8cd08bf22f7dd/matfree-0.6.0.tar.gz", hash = "sha256:223551cd767e1ec9c272bc0cf624676b74f2ef5198ededa5d13152cd2e26876c", size = 68021, upload-time = "2026-06-09T11:08:00.773Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/57/1d8c13471272eee62970c9e84e4dbf5dba1278d415b8c2923e4247289574/matfree-0.5.5-py3-none-any.whl", hash = "sha256:9ed7c079ec85c902df6d2c36664faa1b50069284a88ff16f8d55f1f4ba2393d0", size = 34657, upload-time = "2025-12-02T09:01:33.119Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/cd/001cebc8ff1862dfc5713ba6db9b7d3780a5f5d14cee605e45503f09979a/matfree-0.6.0-py3-none-any.whl", hash = "sha256:14743d6fb3118e6eff8d205f57ab16316d834b22d16226b914809007b80e9cf5", size = 41666, upload-time = "2026-06-09T11:07:59.531Z" },
 ]
 
 [[package]]
