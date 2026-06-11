@@ -4,6 +4,7 @@ from filterax import (
     differentiable as differentiable,
     filters as filters,
     optax as optax,
+    pipekit as pipekit,
     processes as processes,
     smoothers as smoothers,
     utils as utils,
