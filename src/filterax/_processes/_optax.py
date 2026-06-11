@@ -34,18 +34,18 @@ import lineax as lx
 import optax
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._protocols import AbstractScheduler
-from filterax._src._types import ProcessState, UKIState
-from filterax._src.processes import (
+from filterax._processes._processes import (
     _eki_delta,
     _safe_inv_dt,
     sigma_points,
 )
-from filterax._src.schedulers import (
+from filterax._processes._schedulers import (
     DataMisfitController,
     EKSStableScheduler,
     FixedScheduler,
 )
+from filterax._protocols import AbstractScheduler
+from filterax._types import ProcessState, UKIState
 
 
 ForwardFn = Callable[[Float[Array, " N_p"]], Float[Array, " N_d"]]

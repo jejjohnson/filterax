@@ -42,10 +42,10 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src._protocols import AbstractProcess, AbstractScheduler
-from filterax._src._types import ProcessState, UKIState
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._checks import check_ensemble_size
+from filterax._primitives._statistics import ensemble_anomalies, ensemble_mean
+from filterax._protocols import AbstractProcess, AbstractScheduler
+from filterax._types import ProcessState, UKIState
 
 
 # ──────────────────────────────────────────────────────────────────────

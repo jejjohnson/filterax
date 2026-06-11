@@ -14,7 +14,7 @@ with gradient-based optimisers, etc. See
 examples.
 """
 
-from filterax._src.optax_processes import (
+from filterax._processes._optax import (
     EKIOptaxState as EKIOptaxState,
     EKSOptaxState as EKSOptaxState,
     UKIOptaxState as UKIOptaxState,

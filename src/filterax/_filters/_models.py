@@ -28,29 +28,29 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._protocols import (
-    AbstractDynamics,
-    AbstractInflator,
-    AbstractObsOperator,
-    AbstractSequentialFilter,
-)
-from filterax._src._types import (
-    AssimilationResult,
-    FilterConfig,
-    LatentAssimilationResult,
-)
-from filterax._src.latent import (
+from filterax._filters._latent import (
     LatentDynamics,
     LiftedObs,
     _stack_decode,
     decode_ensemble,
     latent_ensemble,
 )
-from filterax._src.sequential import (
+from filterax._filters._sequential import (
     ETKF as _ETKFFilter,
     LETKF as _LETKFFilter,
     EnSRF as _EnSRFFilter,
     StochasticEnKF as _StochasticEnKFFilter,
+)
+from filterax._protocols import (
+    AbstractDynamics,
+    AbstractInflator,
+    AbstractObsOperator,
+    AbstractSequentialFilter,
+)
+from filterax._types import (
+    AssimilationResult,
+    FilterConfig,
+    LatentAssimilationResult,
 )
 
 

@@ -6,7 +6,7 @@ stacked ``forecast_history`` / ``analysis_history`` produced by an
 :class:`filterax.AssimilationResult`.
 """
 
-from filterax._src.smoothers import (
+from filterax._smoothers import (
     IES as IES,
     EnKS as EnKS,
     EnsembleRTS as EnsembleRTS,

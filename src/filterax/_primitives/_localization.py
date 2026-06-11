@@ -27,7 +27,7 @@ import gaussx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from filterax._src._checks import check_ensemble_size
+from filterax._checks import check_ensemble_size
 
 
 def gaspari_cohn(

@@ -24,7 +24,7 @@ import einx
 import gaussx
 from jaxtyping import Array, Float
 
-from filterax._src._checks import check_ensemble_size
+from filterax._checks import check_ensemble_size
 
 
 def ensemble_mean(

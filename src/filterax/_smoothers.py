@@ -37,10 +37,10 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, Int, PRNGKeyArray
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src._types import AnalysisResult, SmoothingResult
-from filterax._src.perturbations import perturbed_observations
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._checks import check_ensemble_size
+from filterax._primitives._perturbations import perturbed_observations
+from filterax._primitives._statistics import ensemble_anomalies, ensemble_mean
+from filterax._types import AnalysisResult, SmoothingResult
 
 
 def _pinv_threshold(eigvals: Float[Array, " N_e"]) -> Float[Array, ""]:

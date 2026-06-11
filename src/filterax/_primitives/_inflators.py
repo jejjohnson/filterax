@@ -21,13 +21,13 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._protocols import AbstractInflator
-from filterax._src.inflation import (
+from filterax._primitives._inflation import (
     inflate_additive,
     inflate_multiplicative,
     inflate_rtpp,
     inflate_rtps,
 )
+from filterax._protocols import AbstractInflator
 
 
 class MultiplicativeInflator(AbstractInflator, strict=True):

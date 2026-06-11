@@ -11,7 +11,7 @@ classic trio (multiplicative, RTPS, RTPP) delegates to the gaussx
 ensemble-DA primitives; the advanced primitives (additive, adaptive,
 Ledoit-Wolf) are filterax-specific. The
 :class:`filterax.AbstractInflator` wrappers in
-``filterax._src.inflators`` lift them to module form for slotting into
+``filterax._primitives._inflators`` lift them to module form for slotting into
 L2 assimilation loops.
 """
 
@@ -22,7 +22,7 @@ import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._checks import check_ensemble_size
+from filterax._checks import check_ensemble_size
 
 
 def inflate_multiplicative(
@@ -191,7 +191,7 @@ def inflate_additive(
         A comparison of different approaches.* Mon. Wea. Rev., 133,
         3132-3147.
     """
-    from filterax._src.perturbations import perturbed_observations
+    from filterax._primitives._perturbations import perturbed_observations
 
     N_e = particles.shape[0]
     # Sample N_e draws from 𝒩(0, Q_add).

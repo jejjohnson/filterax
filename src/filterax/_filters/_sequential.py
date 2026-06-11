@@ -7,7 +7,7 @@ covariance. The forecast and inflation steps live at Layer 2
 (``filterax.models``).
 
 All four filters share the same ensemble-statistics primitives from
-:mod:`filterax._src.statistics` and the Bessel-corrected gaussx Kalman-gain
+:mod:`filterax._primitives._statistics` and the Bessel-corrected gaussx Kalman-gain
 recipe; they differ only in *how the ensemble is updated* given those
 statistics.
 
@@ -40,17 +40,17 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src._protocols import (
+from filterax._checks import check_ensemble_size
+from filterax._primitives._gain import kalman_gain
+from filterax._primitives._likelihood import innovation_covariance, log_likelihood
+from filterax._primitives._localization import gaspari_cohn
+from filterax._primitives._perturbations import perturbed_observations
+from filterax._primitives._statistics import ensemble_anomalies, ensemble_mean
+from filterax._protocols import (
     AbstractObsOperator,
     AbstractSequentialFilter,
 )
-from filterax._src._types import AnalysisResult
-from filterax._src.gain import kalman_gain
-from filterax._src.likelihood import innovation_covariance, log_likelihood
-from filterax._src.localization import gaspari_cohn
-from filterax._src.perturbations import perturbed_observations
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._types import AnalysisResult
 
 
 ObsCallable = Callable[[Float[Array, " N_x"]], Float[Array, " N_y"]]

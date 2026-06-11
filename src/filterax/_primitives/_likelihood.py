@@ -17,8 +17,8 @@ import jax
 import lineax as lx
 from jaxtyping import Array, Float
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src.statistics import ensemble_mean
+from filterax._checks import check_ensemble_size
+from filterax._primitives._statistics import ensemble_mean
 
 
 def log_likelihood(

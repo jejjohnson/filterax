@@ -1,6 +1,6 @@
 """Layer-1 sequential filter components.
 
-Re-exports the L1 filter classes from ``filterax._src.sequential`` so the
+Re-exports the L1 filter classes from ``filterax._filters._sequential`` so the
 canonical ``filterax.filters.ETKF()`` access path matches the design docs.
 
 Wave 4 additions:
@@ -8,15 +8,15 @@ Wave 4 additions:
 * :class:`EnSRF_Serial` — scalar serial sqrt updates
 * :class:`ESTKF` — error-subspace transform
 * :class:`SquareRootKF` — parametric Cholesky filter (lives in
-  ``filterax._src.parametric`` for namespacing; re-exported here for
+  ``filterax._filters._parametric`` for namespacing; re-exported here for
   convenience).
 """
 
-from filterax._src.parametric import (
+from filterax._filters._parametric import (
     SquareRootFilterResult as SquareRootFilterResult,
     SquareRootKF as SquareRootKF,
 )
-from filterax._src.sequential import (
+from filterax._filters._sequential import (
     ESTKF as ESTKF,
     ETKF as ETKF,
     LETKF as LETKF,

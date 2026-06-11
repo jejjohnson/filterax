@@ -1,13 +1,13 @@
 """Diagnostic and utility primitives.
 
 Re-exports the ensemble-DA diagnostics from
-:mod:`filterax._src.diagnostics` so users can do
+:mod:`filterax._diagnostics` so users can do
 ``filterax.utils.rmse_vs_truth(...)``. See the module for
 selection guidance (per-cycle health checks, calibration assessment,
 a-posteriori covariance diagnosis, and the CRPS proper scoring rule).
 """
 
-from filterax._src.diagnostics import (
+from filterax._diagnostics import (
     chi2_consistency as chi2_consistency,
     chi2_normalized as chi2_normalized,
     crps_ensemble as crps_ensemble,

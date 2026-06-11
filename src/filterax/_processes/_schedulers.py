@@ -22,8 +22,8 @@ import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from filterax._src._protocols import AbstractScheduler
-from filterax._src._types import ProcessState
+from filterax._protocols import AbstractScheduler
+from filterax._types import ProcessState
 
 
 class FixedScheduler(AbstractScheduler, strict=True):
