@@ -155,6 +155,27 @@ def eki(
         ``optax.GradientTransformation`` whose ``update`` advances the
         ensemble and returns the per-step mean delta as the optax
         update.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> import optax
+        >>> from filterax import FixedScheduler
+        >>> from filterax.optax import eki
+        >>> G = jnp.array([[1.0, 0.5], [-0.3, 1.2]])
+        >>> transform = eki(
+        ...     forward_fn=lambda theta: G @ theta,
+        ...     obs=jnp.array([0.5, 0.9]),
+        ...     noise_cov=lx.DiagonalLinearOperator(0.1 * jnp.ones(2)),
+        ...     n_ensemble=8,
+        ...     scheduler=FixedScheduler(dt=1.0),
+        ... )
+        >>> params = jnp.zeros(2)
+        >>> state = transform.init(params)
+        >>> updates, state = transform.update(None, state, params)
+        >>> params = optax.apply_updates(params, updates)
+        >>> params.shape
+        (2,)
     """
     sched = scheduler if scheduler is not None else DataMisfitController()
     base_key = jr.PRNGKey(key) if isinstance(key, int) else key

@@ -173,6 +173,16 @@ class EnKS(eqx.Module, strict=True):
     :class:`AssimilationResult`.
 
     Complexity: ``O(T (Nₑ² Nₓ + Nₑ³))`` for the whole backward pass.
+
+    Example:
+        >>> import jax
+        >>> from filterax import EnKS
+        >>> k1, k2 = jax.random.split(jax.random.key(0))
+        >>> forecast = jax.random.normal(k1, (3, 4, 2))  # (T, N_e, N_x)
+        >>> analysis = jax.random.normal(k2, (3, 4, 2))
+        >>> result = EnKS().smooth(forecast, analysis)
+        >>> result.smoothed_history.shape
+        (3, 4, 2)
     """
 
     def smooth(

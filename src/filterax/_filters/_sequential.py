@@ -158,6 +158,20 @@ class StochasticEnKF(AbstractSequentialFilter, strict=True):
     Attributes:
         key: Default PRNG key used when no ``key`` is supplied in the
             ``analysis`` kwargs.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import jax.random as jr
+        >>> import lineax as lx
+        >>> from filterax.filters import StochasticEnKF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> filt = StochasticEnKF(key=jr.key(0))
+        >>> result = filt.analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R, key=jr.key(1)
+        ... )
+        >>> result.particles.shape
+        (3, 2)
     """
 
     key: PRNGKeyArray
@@ -235,6 +249,18 @@ class ETKF(AbstractSequentialFilter, strict=True):
 
     Complexity ``O(Nₑ² Nᵧ + Nₑ³)`` per analysis — the inner solve is
     routed through gaussx so structured ``R`` does not densify.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import ETKF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = ETKF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R
+        ... )
+        >>> result.particles.shape
+        (3, 2)
     """
 
     def analysis(
@@ -312,6 +338,18 @@ class EnSRF(AbstractSequentialFilter, strict=True):
     is more idiomatic for your domain.
 
     Complexity matches ETKF: ``O(Nₑ² Nᵧ + Nₑ³)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import EnSRF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = EnSRF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R
+        ... )
+        >>> result.particles.shape
+        (3, 2)
     """
 
     def analysis(
@@ -391,6 +429,26 @@ class LETKF(AbstractSequentialFilter, strict=True):
         taper_fn: Distance-to-weight function with signature
             ``(distances, radius) -> weights``. Defaults to
             :func:`filterax.gaspari_cohn`.
+
+    Example:
+        >>> import jax
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import LETKF
+        >>> particles = jax.random.normal(jax.random.key(0), (4, 3))
+        >>> state_coords = jnp.arange(3.0)[:, None]  # 1-D grid
+        >>> obs_coords = jnp.array([[0.0], [2.0]])
+        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(2))
+        >>> result = LETKF(radius=1.5).analysis(
+        ...     particles,
+        ...     jnp.array([0.1, -0.2]),
+        ...     lambda x: x[::2],  # observe grid points 0 and 2
+        ...     R,
+        ...     state_coords=state_coords,
+        ...     obs_coords=obs_coords,
+        ... )
+        >>> result.particles.shape
+        (4, 3)
     """
 
     radius: float = eqx.field(static=True)

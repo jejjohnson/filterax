@@ -149,6 +149,18 @@ class ETKF(eqx.Module, strict=True):
             :class:`filterax.RTPS`, :class:`filterax.MultiplicativeInflator`).
         config: Optional :class:`FilterConfig` reserved for future
             static configuration (ensemble size, diagnostics toggle, …).
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import ETKF
+        >>> model = ETKF(dynamics=lambda x, t0, t1: x, obs_op=lambda x: x)
+        >>> init = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs = [(jnp.array([0.5, 0.5]), 1.0), (jnp.array([0.6, 0.4]), 2.0)]
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = model.assimilate(init, obs, R)
+        >>> result.particles.shape, result.analysis_history.shape
+        ((3, 2), (2, 3, 2))
     """
 
     dynamics: AbstractDynamics

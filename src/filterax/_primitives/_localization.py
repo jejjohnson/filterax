@@ -96,6 +96,12 @@ def gaussian_taper(
 
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import gaussian_taper
+        >>> gaussian_taper(jnp.array([0.0, 1.0]), radius=1.0)
+        Array([1.        , 0.60653067], dtype=float32)
     """
     return jnp.exp(-(distances**2) / (2.0 * radius**2))
 
@@ -118,6 +124,12 @@ def hard_cutoff(
     Returns:
         Indicator weights (``0.0`` or ``1.0``) with the same shape as
         ``distances``, same dtype.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import hard_cutoff
+        >>> hard_cutoff(jnp.array([0.5, 1.0, 1.5]), radius=1.0)
+        Array([1., 1., 0.], dtype=float32)
     """
     return jnp.where(distances <= radius, 1.0, 0.0).astype(distances.dtype)
 
@@ -140,6 +152,15 @@ def localize(
 
     Returns:
         Localized matrix of shape ``(M, N)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import localize
+        >>> cov = jnp.array([[1.0, 0.5], [0.5, 1.0]])
+        >>> taper = jnp.array([[1.0, 0.0], [0.0, 1.0]])
+        >>> localize(cov, taper)  # off-diagonal entries suppressed
+        Array([[1., 0.],
+               [0., 1.]], dtype=float32)
     """
     return cov * taper
 
@@ -172,6 +193,12 @@ def soar_taper(
 
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import soar_taper
+        >>> soar_taper(jnp.array([0.0, 1.0]), radius=1.0)
+        Array([1.       , 0.7357589], dtype=float32)
 
     Reference:
         Thiebaux, H. J. & Pedder, M. A. (1987). *Spatial Objective
@@ -222,6 +249,17 @@ def adaptive_localization(
     Raises:
         ValueError: if ``Nₑ < 3`` (the ``√(Nₑ − 2)`` noise floor is
             undefined for the smallest ensembles).
+
+    Example:
+        >>> import jax
+        >>> from filterax import adaptive_localization
+        >>> state = jax.random.normal(jax.random.key(0), (20, 2))
+        >>> obs_p = state[:, :1]  # obs perfectly correlated with dim 0
+        >>> w = adaptive_localization(state, obs_p)
+        >>> w.shape
+        (2, 1)
+        >>> w[0, 0]  # significant correlation kept at unit weight
+        Array(1., dtype=float32)
 
     Reference:
         Anderson, J. L. (2007). *Exploring the need for localization

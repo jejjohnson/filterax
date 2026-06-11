@@ -35,6 +35,12 @@ class FixedScheduler(AbstractScheduler, strict=True):
 
     Attributes:
         dt: Positive scalar step size.
+
+    Example:
+        >>> from filterax import FixedScheduler
+        >>> sched = FixedScheduler(dt=0.5)
+        >>> float(sched.get_dt(state=None))  # constant, ignores the state
+        0.5
     """
 
     dt: float = eqx.field(static=True)

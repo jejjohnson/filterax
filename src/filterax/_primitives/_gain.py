@@ -47,6 +47,17 @@ def kalman_gain(
 
     Raises:
         ValueError: if ``Nₑ < 2``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import kalman_gain
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs_particles = particles[:, :1]  # H observes the first component
+        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
+        >>> kalman_gain(particles, obs_particles, R)
+        Array([[0.6666666],
+               [0.       ]], dtype=float32)
     """
     check_ensemble_size(particles.shape[0])
     return gaussx.ensemble_kalman_gain(

@@ -47,6 +47,17 @@ def perturbed_observations(
     Returns:
         Perturbed observation matrix of shape ``(Nₑ, Nᵧ)``.
 
+    Example:
+        >>> import jax
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import perturbed_observations
+        >>> obs = jnp.array([1.0, 2.0])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> y_pert = perturbed_observations(jax.random.key(0), obs, R, 4)
+        >>> y_pert.shape
+        (4, 2)
+
     Reference:
         Burgers, G., van Leeuwen, P. J., & Evensen, G. (1998). *Analysis
         scheme in the ensemble Kalman filter.* Mon. Wea. Rev., 126,

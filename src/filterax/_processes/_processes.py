@@ -157,6 +157,23 @@ class EKI(AbstractProcess, strict=True):
         scheduler: Step-size strategy. Use
             :class:`~filterax.DataMisfitController` for the standard
             adaptive recipe.
+
+    Example:
+        >>> import jax
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import FixedScheduler
+        >>> from filterax.processes import EKI
+        >>> G = jnp.array([[1.0, 0.5], [-0.3, 1.2]])
+        >>> obs = jnp.array([0.5, 0.9])
+        >>> noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> eki = EKI(scheduler=FixedScheduler(dt=1.0))
+        >>> particles = jax.random.normal(jax.random.key(0), (4, 2))
+        >>> state = eki.init(particles, obs, noise)
+        >>> evals = jax.vmap(lambda theta: G @ theta)(state.particles)
+        >>> state = eki.update(state, evals)
+        >>> state.particles.shape, int(state.step)
+        ((4, 2), 1)
     """
 
     scheduler: AbstractScheduler
