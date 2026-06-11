@@ -22,8 +22,8 @@ import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from filterax._src._protocols import AbstractScheduler
-from filterax._src._types import ProcessState
+from filterax._protocols import AbstractScheduler
+from filterax._types import ProcessState
 
 
 class FixedScheduler(AbstractScheduler, strict=True):
@@ -35,6 +35,12 @@ class FixedScheduler(AbstractScheduler, strict=True):
 
     Attributes:
         dt: Positive scalar step size.
+
+    Example:
+        >>> from filterax import FixedScheduler
+        >>> sched = FixedScheduler(dt=0.5)
+        >>> float(sched.get_dt(state=None))  # constant, ignores the state
+        0.5
     """
 
     dt: float = eqx.field(static=True)

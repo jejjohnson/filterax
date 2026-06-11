@@ -7,7 +7,7 @@ covariance. The forecast and inflation steps live at Layer 2
 (``filterax.models``).
 
 All four filters share the same ensemble-statistics primitives from
-:mod:`filterax._src.statistics` and the Bessel-corrected gaussx Kalman-gain
+:mod:`filterax._primitives._statistics` and the Bessel-corrected gaussx Kalman-gain
 recipe; they differ only in *how the ensemble is updated* given those
 statistics.
 
@@ -40,17 +40,17 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src._protocols import (
+from filterax._checks import check_ensemble_size
+from filterax._primitives._gain import kalman_gain
+from filterax._primitives._likelihood import innovation_covariance, log_likelihood
+from filterax._primitives._localization import gaspari_cohn
+from filterax._primitives._perturbations import perturbed_observations
+from filterax._primitives._statistics import ensemble_anomalies, ensemble_mean
+from filterax._protocols import (
     AbstractObsOperator,
     AbstractSequentialFilter,
 )
-from filterax._src._types import AnalysisResult
-from filterax._src.gain import kalman_gain
-from filterax._src.likelihood import innovation_covariance, log_likelihood
-from filterax._src.localization import gaspari_cohn
-from filterax._src.perturbations import perturbed_observations
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._types import AnalysisResult
 
 
 ObsCallable = Callable[[Float[Array, " N_x"]], Float[Array, " N_y"]]
@@ -158,6 +158,20 @@ class StochasticEnKF(AbstractSequentialFilter, strict=True):
     Attributes:
         key: Default PRNG key used when no ``key`` is supplied in the
             ``analysis`` kwargs.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import jax.random as jr
+        >>> import lineax as lx
+        >>> from filterax.filters import StochasticEnKF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> filt = StochasticEnKF(key=jr.key(0))
+        >>> result = filt.analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R, key=jr.key(1)
+        ... )
+        >>> result.particles.shape
+        (3, 2)
     """
 
     key: PRNGKeyArray
@@ -235,6 +249,18 @@ class ETKF(AbstractSequentialFilter, strict=True):
 
     Complexity ``O(Nₑ² Nᵧ + Nₑ³)`` per analysis — the inner solve is
     routed through gaussx so structured ``R`` does not densify.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import ETKF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = ETKF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R
+        ... )
+        >>> result.particles.shape
+        (3, 2)
     """
 
     def analysis(
@@ -312,6 +338,18 @@ class EnSRF(AbstractSequentialFilter, strict=True):
     is more idiomatic for your domain.
 
     Complexity matches ETKF: ``O(Nₑ² Nᵧ + Nₑ³)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import EnSRF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = EnSRF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R
+        ... )
+        >>> result.particles.shape
+        (3, 2)
     """
 
     def analysis(
@@ -391,6 +429,26 @@ class LETKF(AbstractSequentialFilter, strict=True):
         taper_fn: Distance-to-weight function with signature
             ``(distances, radius) -> weights``. Defaults to
             :func:`filterax.gaspari_cohn`.
+
+    Example:
+        >>> import jax
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import LETKF
+        >>> particles = jax.random.normal(jax.random.key(0), (4, 3))
+        >>> state_coords = jnp.arange(3.0)[:, None]  # 1-D grid
+        >>> obs_coords = jnp.array([[0.0], [2.0]])
+        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(2))
+        >>> result = LETKF(radius=1.5).analysis(
+        ...     particles,
+        ...     jnp.array([0.1, -0.2]),
+        ...     lambda x: x[::2],  # observe grid points 0 and 2
+        ...     R,
+        ...     state_coords=state_coords,
+        ...     obs_coords=obs_coords,
+        ... )
+        >>> result.particles.shape
+        (4, 3)
     """
 
     radius: float = eqx.field(static=True)

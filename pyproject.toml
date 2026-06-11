@@ -29,7 +29,7 @@ dependencies = [
     "einops>=0.8",
     "einx>=0.4.3",
     "equinox>=0.13.8",
-    "gaussx @ git+https://github.com/jejjohnson/gaussx@a66bab1",
+    "gaussx @ git+https://github.com/jejjohnson/gaussx@cd6264c",
     "jax>=0.10",
     "jaxlib>=0.10",
     "jaxtyping>=0.3",

@@ -37,10 +37,10 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, Int, PRNGKeyArray
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src._types import AnalysisResult, SmoothingResult
-from filterax._src.perturbations import perturbed_observations
-from filterax._src.statistics import ensemble_anomalies, ensemble_mean
+from filterax._checks import check_ensemble_size
+from filterax._primitives._perturbations import perturbed_observations
+from filterax._primitives._statistics import ensemble_anomalies, ensemble_mean
+from filterax._types import AnalysisResult, SmoothingResult
 
 
 def _pinv_threshold(eigvals: Float[Array, " N_e"]) -> Float[Array, ""]:
@@ -173,6 +173,16 @@ class EnKS(eqx.Module, strict=True):
     :class:`AssimilationResult`.
 
     Complexity: ``O(T (Nₑ² Nₓ + Nₑ³))`` for the whole backward pass.
+
+    Example:
+        >>> import jax
+        >>> from filterax import EnKS
+        >>> k1, k2 = jax.random.split(jax.random.key(0))
+        >>> forecast = jax.random.normal(k1, (3, 4, 2))  # (T, N_e, N_x)
+        >>> analysis = jax.random.normal(k2, (3, 4, 2))
+        >>> result = EnKS().smooth(forecast, analysis)
+        >>> result.smoothed_history.shape
+        (3, 4, 2)
     """
 
     def smooth(

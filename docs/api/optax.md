@@ -3,13 +3,16 @@
 EKI, EKS, and UKI are exposed as `optax.GradientTransformation` pairs
 so you can mix derivative-free ensemble updates with the rest of the
 optax ecosystem (schedules, gradient clipping, hybrid pipelines with
-gradient-based optimisers, …).
+gradient-based optimisers, …). The three constructors live in
+`filterax.optax`.
 
-Three constructors live in `filterax.optax`:
+## Constructors
 
-::: filterax.optax.eki
-::: filterax.optax.eks
-::: filterax.optax.uki
+::: filterax.optax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [eki, eks, uki]
 
 ## Contract
 
@@ -106,6 +109,8 @@ through `update`. Inspect them directly for the full ensemble
 (EKI / EKS) or parametric belief (UKI) — useful for diagnostics and
 posterior sampling.
 
-::: filterax.optax.EKIOptaxState
-::: filterax.optax.EKSOptaxState
-::: filterax.optax.UKIOptaxState
+::: filterax.optax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [EKIOptaxState, EKSOptaxState, UKIOptaxState]

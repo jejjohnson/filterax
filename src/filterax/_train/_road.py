@@ -28,7 +28,7 @@ References
 * Chen, Y., Huang, D. Z. & Stuart, A. M. (2023). *ROAD-EnKF:
   Reduced-Order Autodiff Ensemble Kalman Filters.*
   https://github.com/ymchen0/ROAD-EnKF
-* :mod:`filterax._src.differentiable` — companion full-backprop loop.
+* :mod:`filterax._train._differentiable` — companion full-backprop loop.
 * ``design_docs/features/differentiable_da.md`` §6.D — algorithm
   derivation in the project's vocabulary.
 """
@@ -44,13 +44,13 @@ import lineax as lx
 import optax
 from jaxtyping import Array, Float, PyTree
 
-from filterax._src._protocols import (
+from filterax._protocols import (
     AbstractDynamics,
     AbstractInflator,
     AbstractObsOperator,
     AbstractSequentialFilter,
 )
-from filterax._src.differentiable import _forecast, _reject_stochastic_components
+from filterax._train._differentiable import _forecast, _reject_stochastic_components
 
 
 def road_enkf_loss_and_grad(
@@ -103,7 +103,7 @@ def road_enkf_loss_and_grad(
     """
     # Use a deterministic default filter; import here to avoid circular import.
     if filter_ is None:
-        from filterax._src.sequential import ETKF
+        from filterax._filters._sequential import ETKF
 
         filter_ = ETKF()
     _reject_stochastic_components(filter_, inflator)

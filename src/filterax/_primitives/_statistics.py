@@ -24,7 +24,7 @@ import einx
 import gaussx
 from jaxtyping import Array, Float
 
-from filterax._src._checks import check_ensemble_size
+from filterax._checks import check_ensemble_size
 
 
 def ensemble_mean(
@@ -39,6 +39,13 @@ def ensemble_mean(
 
     Returns:
         Mean vector of shape ``(Nₓ,)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import ensemble_mean
+        >>> ens = jnp.array([[0.0, 1.0], [2.0, 3.0]])
+        >>> ensemble_mean(ens)
+        Array([1., 2.], dtype=float32)
     """
     return einx.mean("e x -> x", particles)
 
@@ -58,6 +65,14 @@ def ensemble_anomalies(
 
     Returns:
         Centred anomaly matrix of shape ``(Nₑ, Nₓ)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import ensemble_anomalies
+        >>> ens = jnp.array([[0.0, 1.0], [2.0, 3.0]])
+        >>> ensemble_anomalies(ens)  # rows sum to zero
+        Array([[-1., -1.],
+               [ 1.,  1.]], dtype=float32)
     """
     mean = ensemble_mean(particles)
     return einx.subtract("e x, x -> e x", particles, mean)
@@ -86,6 +101,17 @@ def ensemble_covariance(
 
     Raises:
         ValueError: if ``Nₑ < 2`` (the Bessel divisor is undefined).
+
+    Example:
+        >>> import gaussx
+        >>> import jax.numpy as jnp
+        >>> from filterax import ensemble_covariance
+        >>> ens = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
+        >>> P = ensemble_covariance(ens)
+        >>> isinstance(P, gaussx.LowRankUpdate)
+        True
+        >>> P.as_matrix().shape
+        (2, 2)
     """
     check_ensemble_size(particles.shape[0])
     return gaussx.ensemble_covariance(particles, bessel=True)
@@ -114,6 +140,15 @@ def cross_covariance(
 
     Raises:
         ValueError: if ``Nₑ < 2``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import cross_covariance
+        >>> particles = jnp.array([[0.0, 0.0], [2.0, 2.0]])
+        >>> obs_particles = jnp.array([[0.0], [1.0]])
+        >>> cross_covariance(particles, obs_particles)
+        Array([[1.],
+               [1.]], dtype=float32)
     """
     check_ensemble_size(particles.shape[0])
     return gaussx.ensemble_cross_covariance(particles, obs_particles, bessel=True)

@@ -111,7 +111,7 @@ class FilterConfig(eqx.Module, strict=True):
 
     ``localizer`` and ``inflator`` are forward-referenced through their
     abstract base classes to avoid a circular import with
-    :mod:`filterax._src._protocols`.
+    :mod:`filterax._protocols`.
     """
 
     n_ensemble: int = eqx.field(static=True)
@@ -131,7 +131,7 @@ class ProcessConfig(eqx.Module, strict=True):
     The ``scheduler`` field is forward-referenced through
     :class:`equinox.Module` to avoid a circular import with the L1
     protocols; concrete subclasses live in
-    :mod:`filterax._src.schedulers`.
+    :mod:`filterax._processes._schedulers`.
     """
 
     scheduler: eqx.Module

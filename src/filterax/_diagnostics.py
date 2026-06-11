@@ -56,6 +56,13 @@ def ensemble_spread(
     Returns:
         Per-variable standard deviation of shape ``(Nₓ,)``.
 
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax.utils import ensemble_spread
+        >>> ens = jnp.array([[0.0, 0.0], [2.0, 4.0]])
+        >>> ensemble_spread(ens)
+        Array([1.4142135, 2.828427 ], dtype=float32)
+
     Reference:
         Whitaker, J. S. & Loughe, A. F. (1998). *The Relationship
         between Ensemble Spread and Ensemble Mean Skill.* Mon. Wea.
@@ -81,6 +88,12 @@ def rmse_vs_truth(
     Only available in twin / OSSE experiments where ``x_true`` is
     known. Track over time to detect filter divergence (RMSE growing
     without bound).
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax.utils import rmse_vs_truth
+        >>> rmse_vs_truth(jnp.array([1.0, 2.0]), jnp.array([0.0, 2.0]))
+        Array(0.70710677, dtype=float32)
     """
     diff = ensemble_mean_ - x_true
     return jnp.sqrt(jnp.mean(diff * diff))
@@ -210,6 +223,14 @@ def rank_histogram(
 
     Returns:
         ``(Nₑ + 1,)`` integer counts.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax.utils import rank_histogram
+        >>> ens = jnp.array([[[0.0], [1.0]], [[0.0], [1.0]]])  # (T, N_e, N_x)
+        >>> truth = jnp.array([[0.5], [2.0]])
+        >>> rank_histogram(ens, truth)
+        Array([0, 1, 1], dtype=int32)
 
     Reference:
         Hamill, T. M. (2001). *Interpretation of Rank Histograms for
@@ -348,6 +369,12 @@ def crps_ensemble(
 
     Returns:
         Scalar CRPS.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax.utils import crps_ensemble
+        >>> crps_ensemble(jnp.array([0.0, 1.0]), jnp.array(0.5))
+        Array(0.25, dtype=float32)
 
     Reference:
         Gneiting, T. & Raftery, A. E. (2007). *Strictly Proper

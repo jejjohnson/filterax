@@ -33,9 +33,20 @@ plugins:
         python:
           paths: [src]
           options:
+            preload_modules: [gaussx]
             docstring_style: google
+            docstring_section_style: table
             show_source: true
             show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            heading_level: 3
+            show_signature_annotations: true
+            signature_crossrefs: true
+            merge_init_into_class: false
+            filters: ["!^_"]
   - mkdocs-jupyter:
       execute: false
       ignore_h1_titles: true
@@ -43,14 +54,20 @@ plugins:
 nav:
   - Home: index.md
   - API Reference:
-      - Overview: api/reference.md
-      - Primitives (Layer 0): api/primitives.md
-      - Processes (Wave 3): api/processes.md
+      - Overview: api/index.md
+      - Protocols & Types: api/protocols.md
+      - Primitives: api/primitives.md
+      - Localization: api/localization.md
+      - Inflation: api/inflation.md
+      - Filters: api/filters.md
+      - Advanced filters: api/filters_advanced.md
+      - Smoothers: api/smoothers.md
+      - Processes: api/processes.md
       - Schedulers: api/schedulers.md
       - optax integration: api/optax.md
-      - Advanced filters (Wave 4): api/filters_advanced.md
-      - Inflation: api/inflation.md
+      - Differentiable training: api/differentiable.md
       - Diagnostics: api/diagnostics.md
+      - pipekit integration: api/pipekit.md
   - Contributing: contributing.md
   - Changelog: CHANGELOG.md
 

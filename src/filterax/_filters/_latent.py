@@ -25,7 +25,7 @@ Layer
 * Layer 1: :class:`LatentDynamics`, :class:`LiftedObs`,
   :class:`EncodedDynamics`.
 * Layer 2: :class:`filterax.LatentETKF`, :class:`filterax.LatentLETKF`
-  (in :mod:`filterax._src.models`).
+  (in :mod:`filterax._filters._models`).
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
-from filterax._src._protocols import (
+from filterax._protocols import (
     AbstractDynamics,
     AbstractObsOperator,
 )

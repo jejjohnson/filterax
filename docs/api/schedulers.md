@@ -3,7 +3,8 @@
 Each EKP iteration is parameterised by an artificial-time step
 `Δtₙ ∈ ℝ₊`. The scheduler picks `Δtₙ` from the current
 [`ProcessState`][filterax.ProcessState] — either constant, misfit-adaptive,
-or stability-controlled for the EKS Langevin SDE.
+or stability-controlled for the EKS Langevin SDE. All implement
+[`AbstractScheduler`][filterax.AbstractScheduler].
 
 By convention `algo_time = Σₙ Δtₙ`. Schedulers that drive convergence
 arrange for `algo_time → 1`; the Layer-2 run loops break out when
@@ -19,7 +20,8 @@ arrange for `algo_time → 1`; the Layer-2 run loops break out when
 
 ## Reference
 
-::: filterax.FixedScheduler
-::: filterax.DataMisfitController
-::: filterax.EKSStableScheduler
-::: filterax.AbstractScheduler
+::: filterax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [FixedScheduler, DataMisfitController, EKSStableScheduler]

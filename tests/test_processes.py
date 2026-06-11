@@ -260,7 +260,7 @@ def test_teki_pulls_ensemble_toward_prior_mean():
 
 
 def test_sigma_points_reconstruct_mean_and_covariance():
-    from filterax._src.processes import sigma_points
+    from filterax._processes._processes import sigma_points
 
     mean = jnp.asarray([1.0, -2.0, 0.5])
     Sigma_dense = jnp.asarray([[2.0, 0.3, 0.1], [0.3, 1.5, -0.2], [0.1, -0.2, 1.0]])

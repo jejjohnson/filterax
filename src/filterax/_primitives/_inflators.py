@@ -21,13 +21,13 @@ import jax.random as jr
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._protocols import AbstractInflator
-from filterax._src.inflation import (
+from filterax._primitives._inflation import (
     inflate_additive,
     inflate_multiplicative,
     inflate_rtpp,
     inflate_rtps,
 )
+from filterax._protocols import AbstractInflator
 
 
 class MultiplicativeInflator(AbstractInflator, strict=True):
@@ -38,6 +38,14 @@ class MultiplicativeInflator(AbstractInflator, strict=True):
     Attributes:
         factor: Inflation factor :math:`\lambda > 0`; values in
             ``[1.01, 1.10]`` are typical.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import MultiplicativeInflator
+        >>> inflator = MultiplicativeInflator(factor=2.0)
+        >>> inflator(jnp.array([[0.0], [2.0]]))  # mean 1 preserved
+        Array([[-1.],
+               [ 3.]], dtype=float32)
     """
 
     factor: float = eqx.field(static=True)
@@ -61,6 +69,16 @@ class RTPS(AbstractInflator, strict=True):
     Attributes:
         alpha: Relaxation coefficient in ``[0, 1]``. ``0`` keeps the
             analysis spread; ``1`` restores the forecast spread.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import RTPS
+        >>> inflator = RTPS(alpha=1.0)
+        >>> forecast = jnp.array([[-2.0], [2.0]])
+        >>> analysis = jnp.array([[-1.0], [1.0]])
+        >>> inflator(analysis, forecast)  # full prior spread restored
+        Array([[-2.],
+               [ 2.]], dtype=float32)
     """
 
     alpha: float = eqx.field(static=True)
@@ -83,6 +101,16 @@ class RTPP(AbstractInflator, strict=True):
 
     Attributes:
         alpha: Relaxation coefficient in ``[0, 1]``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import RTPP
+        >>> inflator = RTPP(alpha=0.5)
+        >>> forecast = jnp.array([[-2.0], [2.0]])
+        >>> analysis = jnp.array([[-1.0], [1.0]])
+        >>> inflator(analysis, forecast)  # blend anomalies
+        Array([[-1.5],
+               [ 1.5]], dtype=float32)
     """
 
     alpha: float = eqx.field(static=True)
@@ -117,6 +145,21 @@ class AdditiveInflator(AbstractInflator, strict=True):
         noise_cov: Model-error covariance ``Q_add``.
         base_key: PRNG key seed; folded against the per-call ``step``
             (or used as-is when no step / key is supplied).
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import jax.random as jr
+        >>> import lineax as lx
+        >>> from filterax import AdditiveInflator
+        >>> inflator = AdditiveInflator(
+        ...     noise_cov=lx.DiagonalLinearOperator(0.1 * jnp.ones(2)),
+        ...     base_key=jr.key(0),
+        ... )
+        >>> out = inflator(jnp.zeros((4, 2)), step=0)
+        >>> out.shape
+        (4, 2)
+        >>> bool(jnp.allclose(out.mean(axis=0), 0.0, atol=1e-6))  # mean kept
+        True
     """
 
     noise_cov: lx.AbstractLinearOperator

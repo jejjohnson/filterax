@@ -23,10 +23,61 @@ References: Gaspari & Cohn (1999); Houtekamer & Mitchell (2001).
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
+import gaussx
 import jax.numpy as jnp
+from gaussx import (
+    euclidean_distance as euclidean_distance,
+    haversine_distance as haversine_distance,
+)
 from jaxtyping import Array, Float
 
-from filterax._src._checks import check_ensemble_size
+from filterax._checks import check_ensemble_size
+
+
+def localization_matrix(
+    coords_a: Float[Array, "N_a D"],
+    coords_b: Float[Array, "N_b D"],
+    radius: float,
+    *,
+    metric: Callable[
+        [Float[Array, "N_a D"], Float[Array, "N_b D"]], Float[Array, "N_a N_b"]
+    ] = euclidean_distance,
+) -> Float[Array, "N_a N_b"]:
+    r"""Pairwise Gaspari-Cohn taper matrix ``ρᵢⱼ = ρ(d(aᵢ, bⱼ); r)``.
+
+    Builds the dense localization matrix consumed by
+    :func:`filterax.localize` and :func:`filterax.localized_kalman_gain`
+    directly from coordinates, fusing the distance computation with the
+    taper. Delegates to :func:`gaussx.localization_matrix` using
+    filterax's half-width convention (compact support at ``2 r``), so
+    ``localization_matrix(a, b, r)`` matches
+    ``gaspari_cohn(metric(a, b), r)`` entry for entry.
+
+    Args:
+        coords_a: First coordinate set, shape ``(N_a, D)``.
+        coords_b: Second coordinate set, shape ``(N_b, D)``.
+        radius: Positive localization half-width ``r``; weights vanish
+            beyond distance ``2 r``.
+        metric: Pairwise distance function
+            ``(coords_a, coords_b) -> (N_a, N_b)``. Defaults to
+            :func:`filterax.euclidean_distance`; pass
+            :func:`filterax.haversine_distance` for spherical
+            (lat, lon)-in-radians grids.
+
+    Returns:
+        Taper matrix in ``[0, 1]`` of shape ``(N_a, N_b)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import localization_matrix
+        >>> grid = jnp.arange(3.0)[:, None]  # three points on a line
+        >>> rho = localization_matrix(grid, grid, radius=1.0)
+        >>> rho.shape, float(rho[0, 0]), float(rho[0, 2])
+        ((3, 3), 1.0, 0.0)
+    """
+    return gaussx.localization_matrix(coords_a, coords_b, 2.0 * radius, metric=metric)
 
 
 def gaspari_cohn(
@@ -50,10 +101,9 @@ def gaspari_cohn(
     * **Positive definite** — the gold standard for covariance
       localization in operational NWP and ocean DA.
 
-    The ``2/(3 z)`` term is only evaluated on the far branch ``z > 1``,
-    but :func:`jax.numpy.where` evaluates both arms unconditionally —
-    we guard ``z`` away from zero so the unused branch doesn't return
-    ``inf`` and contaminate the gradient.
+    Delegates to :func:`gaussx.gaspari_cohn`, which parameterises by
+    the compact-support radius ``c = 2 r`` and guards the ``2/(3 z)``
+    far-branch term so reverse-mode gradients stay finite at ``d = 0``.
 
     Args:
         distances: Non-negative distance array, any shape.
@@ -63,26 +113,20 @@ def gaspari_cohn(
     Returns:
         Taper weights in ``[0, 1]`` with the same shape as ``distances``.
 
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import gaspari_cohn
+        >>> d = jnp.array([0.0, 1.0, 2.0, 3.0])
+        >>> w = gaspari_cohn(d, radius=1.0)
+        >>> w[0], w[-1]  # full weight at zero distance, zero beyond 2r
+        (Array(1., dtype=float32), Array(0., dtype=float32))
+
     Reference:
         Gaspari, G. & Cohn, S. E. (1999). *Construction of correlation
         functions in two and three dimensions.* Q. J. R. Meteorol. Soc.,
         125, 723–757.
     """
-    z = distances / radius
-    z_safe = jnp.where(z > 0, z, 1.0)
-
-    near = -0.25 * z**5 + 0.5 * z**4 + (5.0 / 8.0) * z**3 - (5.0 / 3.0) * z**2 + 1.0
-    far = (
-        (1.0 / 12.0) * z**5
-        - 0.5 * z**4
-        + (5.0 / 8.0) * z**3
-        + (5.0 / 3.0) * z**2
-        - 5.0 * z
-        + 4.0
-        - (2.0 / 3.0) / z_safe
-    )
-    out = jnp.where(z <= 1.0, near, jnp.where(z <= 2.0, far, 0.0))
-    return jnp.where(z > 2.0, 0.0, out)
+    return gaussx.gaspari_cohn(distances, 2.0 * radius)
 
 
 def gaussian_taper(
@@ -102,6 +146,12 @@ def gaussian_taper(
 
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import gaussian_taper
+        >>> gaussian_taper(jnp.array([0.0, 1.0]), radius=1.0)
+        Array([1.        , 0.60653067], dtype=float32)
     """
     return jnp.exp(-(distances**2) / (2.0 * radius**2))
 
@@ -124,6 +174,12 @@ def hard_cutoff(
     Returns:
         Indicator weights (``0.0`` or ``1.0``) with the same shape as
         ``distances``, same dtype.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import hard_cutoff
+        >>> hard_cutoff(jnp.array([0.5, 1.0, 1.5]), radius=1.0)
+        Array([1., 1., 0.], dtype=float32)
     """
     return jnp.where(distances <= radius, 1.0, 0.0).astype(distances.dtype)
 
@@ -146,6 +202,15 @@ def localize(
 
     Returns:
         Localized matrix of shape ``(M, N)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import localize
+        >>> cov = jnp.array([[1.0, 0.5], [0.5, 1.0]])
+        >>> taper = jnp.array([[1.0, 0.0], [0.0, 1.0]])
+        >>> localize(cov, taper)  # off-diagonal entries suppressed
+        Array([[1., 0.],
+               [0., 1.]], dtype=float32)
     """
     return cov * taper
 
@@ -178,6 +243,12 @@ def soar_taper(
 
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import soar_taper
+        >>> soar_taper(jnp.array([0.0, 1.0]), radius=1.0)
+        Array([1.       , 0.7357589], dtype=float32)
 
     Reference:
         Thiebaux, H. J. & Pedder, M. A. (1987). *Spatial Objective
@@ -228,6 +299,17 @@ def adaptive_localization(
     Raises:
         ValueError: if ``Nₑ < 3`` (the ``√(Nₑ − 2)`` noise floor is
             undefined for the smallest ensembles).
+
+    Example:
+        >>> import jax
+        >>> from filterax import adaptive_localization
+        >>> state = jax.random.normal(jax.random.key(0), (20, 2))
+        >>> obs_p = state[:, :1]  # obs perfectly correlated with dim 0
+        >>> w = adaptive_localization(state, obs_p)
+        >>> w.shape
+        (2, 1)
+        >>> w[0, 0]  # significant correlation kept at unit weight
+        Array(1., dtype=float32)
 
     Reference:
         Anderson, J. L. (2007). *Exploring the need for localization

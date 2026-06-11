@@ -56,7 +56,7 @@ P = flx.ensemble_covariance(particles)     # gaussx.LowRankUpdate
 
 ## Links
 
-- [API Reference](api/reference.md) · [Primitives](api/primitives.md)
+- [API Reference](api/index.md) · [Primitives](api/primitives.md)
 - [Design docs](design_docs/README.md)
 - [Contributing](contributing.md)
 - [Changelog](CHANGELOG.md)

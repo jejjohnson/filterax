@@ -60,3 +60,32 @@ def test_localize_schur_product():
     np.testing.assert_allclose(
         np.asarray(flx.localize(cov, taper)), np.asarray(cov) * 0.5
     )
+
+
+class TestLocalizationMatrix:
+    """localization_matrix + the re-exported gaussx distance metrics."""
+
+    def test_matches_gaspari_cohn_on_pairwise_distances(self):
+        from filterax import euclidean_distance, gaspari_cohn, localization_matrix
+
+        coords = jnp.linspace(0.0, 3.0, 5)[:, None]
+        rho = localization_matrix(coords, coords, radius=1.0)
+        expected = gaspari_cohn(euclidean_distance(coords, coords), radius=1.0)
+        assert jnp.allclose(rho, expected)
+
+    def test_unit_diagonal_and_compact_support(self):
+        from filterax import localization_matrix
+
+        coords = jnp.arange(4.0)[:, None]
+        rho = localization_matrix(coords, coords, radius=1.0)
+        assert jnp.allclose(jnp.diag(rho), 1.0)
+        # |d| >= 2r is exactly zero (points 0 and 3 are 3 apart).
+        assert rho[0, 3] == 0.0
+
+    def test_haversine_metric_antipodal(self):
+        from filterax import haversine_distance
+
+        pole_n = jnp.array([[jnp.pi / 2, 0.0]])
+        pole_s = jnp.array([[-jnp.pi / 2, 0.0]])
+        d = haversine_distance(pole_n, pole_s, radius=1.0)
+        assert jnp.allclose(d, jnp.pi, atol=1e-6)

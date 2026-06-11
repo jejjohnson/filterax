@@ -16,10 +16,10 @@ and the stochastic ``AdditiveInflator`` at call time — see
 ``design_docs/features/differentiable_da.md`` §5.2 / §5.5.
 """
 
-from filterax._src.differentiable import (
+from filterax._train._differentiable import (
     differentiable_assimilate as differentiable_assimilate,
 )
-from filterax._src.road import (
+from filterax._train._road import (
     road_enkf_grad_step as road_enkf_grad_step,
     road_enkf_loss_and_grad as road_enkf_loss_and_grad,
 )

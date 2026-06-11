@@ -56,3 +56,39 @@ def test_kalman_gain_zero_ensemble_spread_gives_zero_gain(getkey):
     R = lx.DiagonalLinearOperator(jnp.ones(N_y))
     K = flx.kalman_gain(particles, obs_particles, R)
     np.testing.assert_allclose(np.asarray(K), 0.0, atol=1e-9)
+
+
+class TestLocalizedKalmanGain:
+    def test_all_ones_taper_matches_unlocalized(self):
+        from filterax import kalman_gain, localized_kalman_gain
+
+        particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.5], [0.5, 2.0]])
+        obs_particles = particles[:, :1]
+        R = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
+        rho_xy = jnp.ones((2, 1))
+        rho_yy = jnp.ones((1, 1))
+        K_loc = localized_kalman_gain(particles, obs_particles, R, rho_xy, rho_yy)
+        assert jnp.allclose(K_loc, kalman_gain(particles, obs_particles, R), atol=1e-6)
+
+    def test_zero_taper_suppresses_gain(self):
+        from filterax import localized_kalman_gain
+
+        particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.5]])
+        obs_particles = particles[:, :1]
+        R = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
+        K = localized_kalman_gain(
+            particles, obs_particles, R, jnp.zeros((2, 1)), jnp.ones((1, 1))
+        )
+        assert jnp.allclose(K, 0.0)
+
+    def test_too_small_ensemble_raises(self):
+        from filterax import localized_kalman_gain
+
+        with pytest.raises(ValueError):
+            localized_kalman_gain(
+                jnp.ones((1, 2)),
+                jnp.ones((1, 1)),
+                lx.DiagonalLinearOperator(jnp.ones(1)),
+                jnp.ones((2, 1)),
+                jnp.ones((1, 1)),
+            )

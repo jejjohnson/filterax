@@ -17,8 +17,8 @@ import jax
 import lineax as lx
 from jaxtyping import Array, Float
 
-from filterax._src._checks import check_ensemble_size
-from filterax._src.statistics import ensemble_mean
+from filterax._checks import check_ensemble_size
+from filterax._primitives._statistics import ensemble_mean
 
 
 def log_likelihood(
@@ -51,6 +51,15 @@ def log_likelihood(
 
     Returns:
         Scalar log-probability.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import log_likelihood
+        >>> innovation = jnp.array([0.5, -0.5])
+        >>> S = lx.DiagonalLinearOperator(jnp.ones(2))
+        >>> log_likelihood(innovation, S)
+        Array(-2.087877, dtype=float32)
     """
     zero = jax.numpy.zeros_like(innovation)
     return gaussx.gaussian_log_prob(zero, innovation_cov, innovation, solver=solver)
@@ -78,6 +87,16 @@ def innovation_covariance(
 
     Raises:
         ValueError: if ``Nₑ < 2``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import innovation_covariance
+        >>> obs_particles = jnp.array([[0.0], [1.0]])  # Cᴴᴴ = 0.5
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(1))
+        >>> S = innovation_covariance(obs_particles, R)
+        >>> S.as_matrix()  # 0.5 + 0.1
+        Array([[0.6]], dtype=float32)
     """
     check_ensemble_size(obs_particles.shape[0])
     cov = gaussx.ensemble_covariance(obs_particles, bessel=True)
@@ -134,6 +153,19 @@ def innovation_statistics(
 
     Raises:
         ValueError: if ``Nₑ < 2``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import innovation_statistics
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0]])
+        >>> obs = jnp.array([0.5])
+        >>> R = lx.DiagonalLinearOperator(jnp.ones(1))
+        >>> stats = innovation_statistics(particles, obs, lambda x: x[:1], R)
+        >>> stats["innovation"]  # y − H x̄ = 0.5 − 0.5
+        Array([0.], dtype=float32)
+        >>> stats["log_likelihood"]
+        Array(-1.1216711, dtype=float32)
     """
     check_ensemble_size(particles.shape[0])
     obs_particles = jax.vmap(obs_op)(particles)

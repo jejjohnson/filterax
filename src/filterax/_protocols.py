@@ -21,7 +21,7 @@ import equinox as eqx
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._types import AnalysisResult, ProcessState
+from filterax._types import AnalysisResult, ProcessState
 
 
 class AbstractDynamics(eqx.Module, strict=True):

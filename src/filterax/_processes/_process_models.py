@@ -2,7 +2,7 @@
 
 Compose a forward model with a Layer-1 process (:class:`EKI`,
 :class:`EKS_Process`, :class:`UKI`, …) and a scheduler into a single
-``run`` call. Mirrors :mod:`filterax._src.models` for the sequential
+``run`` call. Mirrors :mod:`filterax._filters._models` for the sequential
 filters.
 
 The ``run`` loop iterates until either ``n_iterations`` steps elapse or
@@ -20,18 +20,18 @@ import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
-from filterax._src._protocols import AbstractScheduler
-from filterax._src._types import ProcessConfig, ProcessState, UKIState
-from filterax._src.processes import (
+from filterax._processes._processes import (
     EKI as _EKI,
     UKI as _UKI,
     EKS_Process as _EKS,
 )
-from filterax._src.schedulers import (
+from filterax._processes._schedulers import (
     DataMisfitController,
     EKSStableScheduler,
     FixedScheduler,
 )
+from filterax._protocols import AbstractScheduler
+from filterax._types import ProcessConfig, ProcessState, UKIState
 
 
 ForwardFn = Callable[[Float[Array, " N_p"]], Float[Array, " N_d"]]
@@ -157,7 +157,7 @@ class EKI(eqx.Module, strict=True):
     r"""Ensemble Kalman Inversion — full ``init → update`` run loop.
 
     Composes a :class:`forward_fn` (the simulator) with a Layer-1
-    :class:`~filterax._src.processes.EKI` and a scheduler. Returns the
+    :class:`~filterax._processes._processes.EKI` and a scheduler. Returns the
     final parameter ensemble plus per-iteration history.
 
     Attributes:
@@ -201,7 +201,7 @@ class EKS(eqx.Module, strict=True):
 
     Like :class:`EKI` but produces approximate posterior samples (the
     ensemble does *not* collapse). Uses
-    :class:`~filterax._src.processes.EKS_Process` with
+    :class:`~filterax._processes._processes.EKS_Process` with
     :class:`EKSStableScheduler` by default; runs the full
     ``n_iterations`` (no algo-time termination — burn-in + sampling).
 
@@ -257,7 +257,7 @@ class UKI(eqx.Module, strict=True):
         scheduler: Step-size strategy. Ignored when ``config`` is
             provided.
         alpha, beta, kappa: Unscented tuning parameters; see
-            :func:`~filterax._src.processes.sigma_points`.
+            :func:`~filterax._processes._processes.sigma_points`.
         config: Optional :class:`ProcessConfig`. When provided, **both**
             its ``scheduler`` and ``n_iterations`` fields take precedence
             over the module-level ``scheduler`` and the ``50``-iteration
@@ -289,7 +289,7 @@ class UKI(eqx.Module, strict=True):
         state = process.init_parametric(init_mean, init_cov, self.obs, self.noise_cov)
         # Drive the loop in parametric form for clarity; sample-point
         # evaluation happens once per iteration.
-        from filterax._src.processes import sigma_points
+        from filterax._processes._processes import sigma_points
 
         algo_time = jnp.asarray(0.0)
         algo_times: list[Float[Array, ""]] = []
@@ -338,7 +338,7 @@ class UKI(eqx.Module, strict=True):
 
 
 # Re-exports used by filterax.__init__ — keep here for symmetry with the
-# L2 filter wrappers in :mod:`filterax._src.models`.
+# L2 filter wrappers in :mod:`filterax._filters._models`.
 __all__ = ["EKI", "EKS", "UKI", "ProcessResult"]
 
 # ``_`` markers below silence the unused-import warnings for symbols

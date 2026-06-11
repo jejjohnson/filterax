@@ -39,13 +39,13 @@ import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float
 
-from filterax._src._protocols import (
+from filterax._protocols import (
     AbstractDynamics,
     AbstractInflator,
     AbstractObsOperator,
     AbstractSequentialFilter,
 )
-from filterax._src._types import AssimilationResult
+from filterax._types import AssimilationResult
 
 
 def _forecast(
@@ -65,10 +65,10 @@ def _reject_stochastic_components(
     """Refuse filter / inflator flavours whose gradients are non-smooth.
 
     Deferred imports avoid a module-level cycle with
-    :mod:`filterax._src.sequential` and :mod:`filterax._src.inflators`.
+    :mod:`filterax._filters._sequential` and :mod:`filterax._primitives._inflators`.
     """
-    from filterax._src.inflators import AdditiveInflator
-    from filterax._src.sequential import ETKF_Livings, StochasticEnKF
+    from filterax._filters._sequential import ETKF_Livings, StochasticEnKF
+    from filterax._primitives._inflators import AdditiveInflator
 
     if isinstance(filter_, (StochasticEnKF, ETKF_Livings)):
         raise ValueError(
@@ -137,6 +137,26 @@ def differentiable_assimilate(
         :class:`AssimilationResult` with the same fields as
         ``L2.assimilate(...)``. ``log_likelihoods`` is always populated
         because every deterministic filter returns one.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> import filterax as flx
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> observations = jnp.array([[0.5], [0.4]])  # (T, N_y) = (2, 1)
+        >>> obs_times = jnp.array([1.0, 2.0])
+        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(1))
+        >>> result = flx.differentiable_assimilate(
+        ...     flx.filters.ETKF(),
+        ...     lambda x, t0, t1: x,  # identity dynamics
+        ...     lambda x: x[:1],  # observe the first component
+        ...     particles,
+        ...     observations,
+        ...     obs_times,
+        ...     R,
+        ... )
+        >>> result.analysis_history.shape, result.log_likelihoods.shape
+        ((2, 3, 2), (2,))
     """
     _reject_stochastic_components(filter_, inflator)
     if observations.shape[0] != obs_times.shape[0]:

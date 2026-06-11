@@ -14,6 +14,15 @@ localization-side-effect sources. Two flavours of primitive:
   an inflated ensemble. Neither is an `AbstractInflator`, so they are
   driven from custom loops rather than dropped into L2 models.
 
+The classic trio of functional primitives —
+[`inflate_multiplicative`][filterax.inflate_multiplicative],
+[`inflate_rtps`][filterax.inflate_rtps],
+[`inflate_rtpp`][filterax.inflate_rtpp] — delegates to the corresponding
+[gaussx](https://jejjohnson.github.io/gaussx/) primitives
+(`gaussx.inflate_multiplicative`, `gaussx.inflate_rtps`,
+`gaussx.inflate_rtpp`); filterax adds the EnKF-flavoured conventions and the
+inflator classes on top.
+
 ## Picking an inflator
 
 | Method | Mean-preserving? | Tunable | Use when |
@@ -25,23 +34,27 @@ localization-side-effect sources. Two flavours of primitive:
 | [`inflate_adaptive`][filterax.inflate_adaptive] | (Anderson 2009 prior update) | `prior (μ_λ, σ²_λ)` | Self-tuning multiplicative inflation; carry posterior across cycles |
 | [`ledoit_wolf_shrinkage`][filterax.ledoit_wolf_shrinkage] | n/a (returns covariance) | none (analytic optimum) | Regularise the rank-deficient sample covariance when ``Nₑ ≪ Nₓ`` |
 
-## Reference
+## Inflator classes
 
-### Multiplicative + relaxation
+Drop-in [`AbstractInflator`][filterax.AbstractInflator] implementations,
+accepted by every Layer-2 assimilation loop via its `inflator=` argument.
 
-::: filterax.MultiplicativeInflator
-::: filterax.RTPS
-::: filterax.RTPP
-::: filterax.inflate_multiplicative
-::: filterax.inflate_rtps
-::: filterax.inflate_rtpp
+::: filterax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [MultiplicativeInflator, RTPS, RTPP, AdditiveInflator]
 
-### Wave 4 additions
+## Functional primitives
 
-::: filterax.AdditiveInflator
-::: filterax.inflate_additive
-::: filterax.inflate_adaptive
-::: filterax.ledoit_wolf_shrinkage
+The pure functions underneath the classes, plus the two helpers
+(`inflate_adaptive`, `ledoit_wolf_shrinkage`) that have no class form.
+
+::: filterax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [inflate_multiplicative, inflate_rtps, inflate_rtpp, inflate_additive, inflate_adaptive, ledoit_wolf_shrinkage]
 
 ## Composition pattern
 
