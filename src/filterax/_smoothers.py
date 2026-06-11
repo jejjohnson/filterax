@@ -64,10 +64,16 @@ def _smoother_step(
     r"""One backward smoother step.
 
     Applies the per-member update
-    ``X^s_t[j] = X^a_t[j] + G_t (X^s_{t+1}[j] - X^f_{t+1}[j])`` using the
-    ensemble-space factorisation
 
-    ``G_t (X^s_{t+1} - X^f_{t+1}) = D Fᵀ (F Fᵀ)⁺ A``
+    $$
+    X^s_t[j] = X^a_t[j] + G_t \big(X^s_{t+1}[j] - X^f_{t+1}[j]\big)
+    $$
+
+    using the ensemble-space factorisation
+
+    $$
+    G_t \big(X^s_{t+1} - X^f_{t+1}\big) = D F^{\top} (F F^{\top})^{+} A
+    $$
 
     where ``A = X^a_t − x̄^a_t``, ``F = X^f_{t+1} − x̄^f_{t+1}``, and
     ``D = X^s_{t+1} − X^f_{t+1}`` are arranged with rows as members. The
@@ -162,7 +168,10 @@ class EnKS(eqx.Module, strict=True):
     smoother gain at step ``t`` is the sample cross-covariance times the
     pseudoinverse of the sample forecast covariance,
 
-    ``G_t = (Nₑ − 1)⁻¹ A_tᵀ F_{t+1} · ((Nₑ − 1)⁻¹ F_{t+1}ᵀ F_{t+1})⁺``,
+    $$
+    G_t = (N_e - 1)^{-1} A_t^{\top} F_{t+1}
+        \cdot \big((N_e - 1)^{-1} F_{t+1}^{\top} F_{t+1}\big)^{+},
+    $$
 
     factored through the ``Nₑ × Nₑ`` Gram matrix ``F Fᵀ`` so the dense
     ``Nₓ × Nₓ`` forecast covariance is never materialised.
@@ -174,7 +183,7 @@ class EnKS(eqx.Module, strict=True):
 
     Complexity: ``O(T (Nₑ² Nₓ + Nₑ³))`` for the whole backward pass.
 
-    Example:
+    Examples:
         >>> import jax
         >>> from filterax import EnKS
         >>> k1, k2 = jax.random.split(jax.random.key(0))
@@ -324,12 +333,22 @@ def _sqrt_smoother_step(
 
     Decomposes the update into:
 
-    * **Mean** — ``m^s_t = m^a_t + G_t (m^s_{t+1} - m^f_{t+1})`` via the
-      dual ensemble form ``G_t v = A_tᵀ (F Fᵀ)⁺ F v``.
-    * **Perturbations** — apply a symmetric square-root transform in
-      ensemble space ``W = Λ^{1/2}`` with
-      ``Λ = I + K_e (Dᵀ D − Fᵀ F) K_eᵀ`` and
-      ``K_e = (F Fᵀ)⁺ F``. New anomalies = ``Wᵀ A_t``.
+    * **Mean** — via the dual ensemble form:
+
+      $$
+      m^s_t = m^a_t + G_t \big(m^s_{t+1} - m^f_{t+1}\big), \qquad
+      G_t v = A_t^{\top} (F F^{\top})^{+} F v
+      $$
+
+    * **Perturbations** — apply a symmetric square-root transform
+      ``W = Λ^{1/2}`` in ensemble space, with
+
+      $$
+      \Lambda = I + K_e \big(D^{\top} D - F^{\top} F\big) K_e^{\top},
+      \qquad K_e = (F F^{\top})^{+} F.
+      $$
+
+      New anomalies = ``Wᵀ A_t``.
 
     Negative eigenvalues of ``Λ`` (sample-noise artefacts when the
     smoother reduces variance) are clamped to zero before the sqrt.
@@ -414,7 +433,10 @@ class EnsembleSqrtSmoother(eqx.Module, strict=True):
     perturbation half applied through a *symmetric square root* of the
     ensemble-space cov-update transform
 
-    ``Λ = I + K_e (Dᵀ D − Fᵀ F) K_eᵀ,    K_e = (F Fᵀ)⁺ F``.
+    $$
+    \Lambda = I + K_e \big(D^{\top} D - F^{\top} F\big) K_e^{\top}, \qquad
+    K_e = (F F^{\top})^{+} F.
+    $$
 
     This avoids accumulating cross-member coupling across many backward
     steps — the same reason :class:`ETKF` uses a symmetric square-root
@@ -455,7 +477,10 @@ def _ies_step(
 ) -> Float[Array, "J N_p"]:
     r"""One Chen-Oliver IES iteration.
 
-    ``θ_{i+1}^j = (1 − α) θ_i^j + α [θ_0^j + K_i (y + ε^j − G(θ_i^j))]``
+    $$
+    \theta_{i+1}^j = (1 - \alpha)\, \theta_i^j + \alpha \big[\theta_0^j
+        + K_i \big(y + \epsilon^j - G(\theta_i^j)\big)\big]
+    $$
 
     where ``K_i = C^{θG}_i (C^{GG}_i + Γ_y)⁻¹`` is the sample-cov gain
     at the current iterate. With ``α = 1`` this is the pure
@@ -489,7 +514,10 @@ class IES(eqx.Module, strict=True):
     Standalone iterative ensemble method that solves an inverse problem
     in a single window of observations. At each iteration:
 
-    ``θ_{i+1}^j = (1 − α) θ_i^j + α [θ_0^j + K_i (y + ε^j − G(θ_i^j))]``
+    $$
+    \theta_{i+1}^j = (1 - \alpha)\, \theta_i^j + \alpha \big[\theta_0^j
+        + K_i \big(y + \epsilon^j - G(\theta_i^j)\big)\big]
+    $$
 
     The anchor to ``θ_0^j`` (the *initial* ensemble member) is what
     distinguishes IES from :class:`~filterax.EKI`'s drift-style

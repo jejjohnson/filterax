@@ -36,7 +36,7 @@ class FixedScheduler(AbstractScheduler, strict=True):
     Attributes:
         dt: Positive scalar step size.
 
-    Example:
+    Examples:
         >>> from filterax import FixedScheduler
         >>> sched = FixedScheduler(dt=0.5)
         >>> float(sched.get_dt(state=None))  # constant, ignores the state
@@ -57,11 +57,16 @@ class DataMisfitController(AbstractScheduler, strict=True):
     a uniform fraction of the total artificial-time interval ``[0, 1]``.
     The recipe:
 
-    ``Δtₙ = min(target_misfit / Φₙ, 1 − algo_timeₙ)``
+    $$
+    \Delta t_n = \min\big(\text{target\_misfit} / \Phi_n,\;
+        1 - \text{algo\_time}_n\big)
+    $$
 
     with the per-step misfit norm
 
-    ``Φₙ = J⁻¹ Σⱼ ‖y − G(θ⁽ʲ⁾)‖²_{Γ⁻¹}``
+    $$
+    \Phi_n = J^{-1} \sum_{j} \big\| y - G(\theta^{(j)}) \big\|^2_{\Gamma^{-1}}
+    $$
 
     computed in observation space — ``state.noise_cov`` carries ``Γ``
     itself, and we apply ``Γ⁻¹`` internally via :func:`gaussx.solve_rows`
@@ -105,7 +110,10 @@ class EKSStableScheduler(AbstractScheduler, strict=True):
     ``Cᶿᶿ`` (Garbuno-Inigo et al. 2020 §5). We clip ``Δt`` so the
     drift term is bounded:
 
-    ``Δtₙ = min(max_dt, target / ‖Cᶿᶿₙ‖₂)``
+    $$
+    \Delta t_n = \min\big(\text{max\_dt},\;
+        \text{target} / \|C^{\theta\theta}_n\|_2\big)
+    $$
 
     We bound the spectral norm via the Frobenius norm of the
     ``Nₑ × Nₑ`` Gram of the anomalies — ``‖A‖₂ ≤ ‖A‖_F`` for any

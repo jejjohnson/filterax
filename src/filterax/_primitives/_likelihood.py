@@ -29,7 +29,11 @@ def log_likelihood(
 ) -> Float[Array, ""]:
     r"""Gaussian log-probability of an innovation vector.
 
-    ``log p(y | forecast) = −½ [Nᵧ log(2π) + log|S| + vᵀ S⁻¹ v]``
+    $$
+    \log p(y \mid \text{forecast}) = -\tfrac{1}{2} \left[
+        N_{y} \log(2\pi) + \log\lvert S \rvert + v^{\top} S^{-1} v
+    \right],
+    $$
 
     where ``v`` is the innovation and ``S`` the innovation covariance.
     Both ``log|S|`` and ``S⁻¹ v`` flow through :mod:`gaussx` dispatch —
@@ -52,7 +56,7 @@ def log_likelihood(
     Returns:
         Scalar log-probability.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import log_likelihood
@@ -88,7 +92,7 @@ def innovation_covariance(
     Raises:
         ValueError: if ``Nₑ < 2``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import innovation_covariance
@@ -154,7 +158,7 @@ def innovation_statistics(
     Raises:
         ValueError: if ``Nₑ < 2``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import innovation_statistics

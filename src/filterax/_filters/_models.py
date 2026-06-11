@@ -150,7 +150,7 @@ class ETKF(eqx.Module, strict=True):
         config: Optional :class:`FilterConfig` reserved for future
             static configuration (ensemble size, diagnostics toggle, …).
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import ETKF

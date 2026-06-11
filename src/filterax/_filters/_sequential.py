@@ -70,7 +70,13 @@ def _etkf_inner_spectrum(
 ) -> tuple[Float[Array, " N_y"], Float[Array, "K N_y"]]:
     r"""Rank-``Nᵧ`` spectrum of the inner product ``Y′ R⁻¹ Y′ᵀ``.
 
-    ``Y′ R⁻¹ Y′ᵀ = U_y diag(λ_i) U_yᵀ`` with ``U_y ∈ ℝ^{K × Nᵧ}`` an
+    The decomposition
+
+    $$
+    Y' R^{-1} Y'^{\top} = U_y \,\mathrm{diag}(\lambda_i)\, U_y^{\top}
+    $$
+
+    holds with ``U_y ∈ ℝ^{K × Nᵧ}`` an
     orthonormal basis for the column span of ``Y′`` (the only directions
     where the outer product has non-trivial action). The remaining
     ``K − Nᵧ`` eigenvalues are all zero; they correspond to a degenerate
@@ -120,7 +126,10 @@ def _apply_ctilde_func(
 ) -> Float[Array, "K ..."]:
     r"""Apply ``g(C̃)`` to ``v`` via the rank-``Nᵧ`` correction form.
 
-    ``g(C̃) = g_base · I + U_y diag(g_diff) U_yᵀ``
+    $$
+    g(\tilde{C}) = g_{\mathrm{base}} \cdot I
+        + U_y \,\mathrm{diag}(g_{\mathrm{diff}})\, U_y^{\top}
+    $$
 
     with ``g_diff[i] = g((Nₑ − 1) + λ_i) − g_base`` and
     ``g_base = g(Nₑ − 1)``. The caller supplies the precomputed
@@ -142,7 +151,10 @@ class StochasticEnKF(AbstractSequentialFilter, strict=True):
     Perturbed-observation update — each member sees an independent draw
     from the observation noise:
 
-    ``ε⁽ʲ⁾ ~ 𝒩(0, R),  x⁽ʲ⁾_a = x⁽ʲ⁾_f + K (y + ε⁽ʲ⁾ − H x⁽ʲ⁾_f)``
+    $$
+    \epsilon^{(j)} \sim \mathcal{N}(0, R), \qquad
+    x^{(j)}_a = x^{(j)}_f + K \big(y + \epsilon^{(j)} - H x^{(j)}_f\big)
+    $$
 
     Simple and robust; the perturbations introduce extra Monte Carlo
     variance whose magnitude scales as ``1/√Nₑ``.
@@ -159,7 +171,7 @@ class StochasticEnKF(AbstractSequentialFilter, strict=True):
         key: Default PRNG key used when no ``key`` is supplied in the
             ``analysis`` kwargs.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import jax.random as jr
         >>> import lineax as lx
@@ -236,12 +248,19 @@ class ETKF(AbstractSequentialFilter, strict=True):
     ``Nₑ``-dimensional ensemble subspace. Define the transform precision
     in the ensemble space and its symmetric inverse square root:
 
-    ``C̃ = (Nₑ − 1) I + Y′ R⁻¹ Y′ᵀ``
-    ``T = C̃⁻¹,  Wₐ = √((Nₑ − 1) T)``
+    $$
+    \tilde{C} = (N_e - 1) I + Y' R^{-1} Y'^{\top}, \qquad
+    T = \tilde{C}^{-1}, \qquad
+    W_a = \sqrt{(N_e - 1)\, T}
+    $$
 
     Mean and perturbation weights:
 
-    ``w̄ₐ = T Y′ R⁻¹ v,   X_a = x̄ 𝟙ᵀ + X′ᵀ (w̄ₐ 𝟙ᵀ + Wₐ)``
+    $$
+    \bar{w}_a = T\, Y' R^{-1} v, \qquad
+    X_a = \bar{x} \mathbf{1}^{\top}
+        + X'^{\top} \big(\bar{w}_a \mathbf{1}^{\top} + W_a\big)
+    $$
 
     The eigendecomposition is taken on the symmetrised ``C̃`` with a
     positive eigenvalue floor to keep the square root well-defined under
@@ -250,7 +269,7 @@ class ETKF(AbstractSequentialFilter, strict=True):
     Complexity ``O(Nₑ² Nᵧ + Nₑ³)`` per analysis — the inner solve is
     routed through gaussx so structured ``R`` does not densify.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax.filters import ETKF
@@ -339,7 +358,7 @@ class EnSRF(AbstractSequentialFilter, strict=True):
 
     Complexity matches ETKF: ``O(Nₑ² Nᵧ + Nₑ³)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax.filters import EnSRF
@@ -430,7 +449,7 @@ class LETKF(AbstractSequentialFilter, strict=True):
             ``(distances, radius) -> weights``. Defaults to
             :func:`filterax.gaspari_cohn`.
 
-    Example:
+    Examples:
         >>> import jax
         >>> import jax.numpy as jnp
         >>> import lineax as lx
@@ -571,7 +590,9 @@ def _mean_preserving_rotation(
     complement of ``𝟙``, draw a random rotation ``Q ∈ O(Nₑ−1)`` via
     the QR-of-Gaussian construction, and lift back to ``Nₑ`` space:
 
-    ``Θ = (1/Nₑ) 𝟙 𝟙ᵀ + V Q Vᵀ``
+    $$
+    \Theta = \tfrac{1}{N_e} \mathbf{1} \mathbf{1}^{\top} + V Q V^{\top}
+    $$
 
     By construction ``Θ 𝟙 = 𝟙`` (the constant vector is the +1
     eigenvector) and ``Θᵀ Θ = I`` (the orthogonal complement is
@@ -611,7 +632,10 @@ class ETKF_Livings(AbstractSequentialFilter, strict=True):
     al. break this symmetry by composing with a random orthogonal
     matrix:
 
-    ``W_a^{rot} = W_a · Θ,    Θ ∈ O(Nₑ),  Θ 𝟙 = 𝟙``
+    $$
+    W_a^{\mathrm{rot}} = W_a\, \Theta, \qquad
+    \Theta \in O(N_e), \quad \Theta \mathbf{1} = \mathbf{1}
+    $$
 
     The mean-preserving constraint ``Θ 𝟙 = 𝟙`` keeps the analysis
     mean and the rank-deficiency-against-𝟙 property; the random factor
@@ -690,13 +714,15 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
     Processes observations **one at a time** with the classical W&H
     scalar reduced-gain formula:
 
-    ``K_k = Cˣᴴₖ / (Cᴴₖᴴₖ + R_kk)``
-
-    ``x̄_a^{(k)} = x̄_a^{(k−1)} + K_k (y_k − H_k x̄_a^{(k−1)})``
-
-    ``α_k = 1 / (1 + √(R_kk / (Cᴴₖᴴₖ + R_kk)))``
-
-    ``X′_a^{(k)} = X′_a^{(k−1)} − α_k K_k (H_k X′_a^{(k−1)})``
+    $$
+    \begin{aligned}
+    K_k &= C^{x H_k} \big/ \big(C^{H_k H_k} + R_{kk}\big) \\
+    \bar{x}_a^{(k)} &= \bar{x}_a^{(k-1)}
+        + K_k \big(y_k - H_k \bar{x}_a^{(k-1)}\big) \\
+    \alpha_k &= 1 \Big/ \Big(1 + \sqrt{R_{kk} / (C^{H_k H_k} + R_{kk})}\Big) \\
+    X'^{(k)}_a &= X'^{(k-1)}_a - \alpha_k K_k \big(H_k X'^{(k-1)}_a\big)
+    \end{aligned}
+    $$
 
     No matrix inversion is required — each scalar update is an inner
     product. Cost ``O(Nₑ Nₓ Nᵧ)`` total. Requires **diagonal** ``R``
@@ -776,17 +802,29 @@ class ESTKF(AbstractSequentialFilter, strict=True):
 
     Reduced anomalies and transform precision:
 
-    ``X̃ = Lᵀ X′ ∈ ℝ^{(Nₑ−1) × Nₓ},   Ỹ = Lᵀ Y′ ∈ ℝ^{(Nₑ−1) × Nᵧ}``
+    $$
+    \tilde{X} = L^{\top} X' \in \mathbb{R}^{(N_e-1) \times N_x}, \qquad
+    \tilde{Y} = L^{\top} Y' \in \mathbb{R}^{(N_e-1) \times N_y}
+    $$
 
-    ``A = (Nₑ − 1) I + Ỹ R⁻¹ Ỹᵀ ∈ ℝ^{(Nₑ−1) × (Nₑ−1)}``
+    $$
+    A = (N_e - 1) I + \tilde{Y} R^{-1} \tilde{Y}^{\top}
+        \in \mathbb{R}^{(N_e-1) \times (N_e-1)}
+    $$
 
     Eigendecompose ``A = U Λ Uᵀ``:
 
-    ``w̃ = U Λ⁻¹ Uᵀ Ỹ R⁻¹ d,   W̃ = U √((Nₑ − 1) Λ⁻¹) Uᵀ``
+    $$
+    \tilde{w} = U \Lambda^{-1} U^{\top} \tilde{Y} R^{-1} d, \qquad
+    \tilde{W} = U \sqrt{(N_e - 1) \Lambda^{-1}}\, U^{\top}
+    $$
 
     Lift back to the full ensemble:
 
-    ``x̄_a = x̄_f + w̃ᵀ X̃,   X_a = x̄_a 𝟙ᵀ + L W̃ X̃``
+    $$
+    \bar{x}_a = \bar{x}_f + \tilde{w}^{\top} \tilde{X}, \qquad
+    X_a = \bar{x}_a \mathbf{1}^{\top} + L \tilde{W} \tilde{X}
+    $$
 
     Mean-preserving by construction; PSD analysis covariance;
     eigendecomposition is ``(Nₑ − 1)³`` rather than ``Nₑ³``.

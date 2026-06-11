@@ -28,8 +28,12 @@ class SquareRootKF(eqx.Module, strict=True):
 
     Propagates a Gaussian belief through a linear-Gaussian model:
 
-    ``xₙ = Φ xₙ₋₁ + wₙ,  wₙ ~ 𝒩(0, Q)``
-    ``yₙ = H xₙ + vₙ,    vₙ ~ 𝒩(0, R)``
+    $$
+    \begin{aligned}
+    x_n &= \Phi x_{n-1} + w_n, & w_n &\sim \mathcal{N}(0, Q) \\
+    y_n &= H x_n + v_n, & v_n &\sim \mathcal{N}(0, R)
+    \end{aligned}
+    $$
 
     The forecast and analysis steps are both rewritten in *square-root*
     form on the Cholesky factor ``S`` of ``P`` so the covariance stays

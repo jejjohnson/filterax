@@ -1,4 +1,4 @@
-"""ROAD-EnKF — reduced-order autodifferentiable EnKF (Wave 5.B+).
+r"""ROAD-EnKF — reduced-order autodifferentiable EnKF (Wave 5.B+).
 
 Memory-efficient gradient strategy for training through the filter on
 long observation horizons. Where :func:`differentiable_assimilate` keeps
@@ -10,7 +10,11 @@ ROAD-EnKF takes the **local-gradient** approach:
    *with* gradient enabled, getting a local gradient
    ``∇_θ L_t``.
 2. Sum the local gradients across all steps:
-   ``∇_θ L ≈ Σ_t ∇_θ L_t``.
+
+   $$
+   \nabla_\theta L \approx \sum_t \nabla_\theta L_t.
+   $$
+
 3. Advance the ensemble between steps with :func:`jax.lax.stop_gradient`
    so no autodiff tape spans more than one filter cycle.
 

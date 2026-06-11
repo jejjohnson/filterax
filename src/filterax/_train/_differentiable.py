@@ -138,7 +138,7 @@ def differentiable_assimilate(
         ``L2.assimilate(...)``. ``log_likelihoods`` is always populated
         because every deterministic filter returns one.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> import filterax as flx
