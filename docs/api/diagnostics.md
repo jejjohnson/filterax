@@ -48,35 +48,34 @@ Run after a complete experiment (100+ cycles) to diagnose mis-specified
 |---|---|
 | [`crps_ensemble`][filterax.utils.crps_ensemble], [`crps_ensemble_batch`][filterax.utils.crps_ensemble_batch] | Continuous Ranked Probability Score (lower is better; proper scoring rule) |
 
-## Reference
+## Per-cycle reference
 
-### Per-cycle
+::: filterax.utils
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [ensemble_spread, rms_spread, innovation, normalized_innovation, chi2_consistency, chi2_normalized, effective_ensemble_size, weight_entropy]
 
-::: filterax.utils.ensemble_spread
-::: filterax.utils.rms_spread
-::: filterax.utils.innovation
-::: filterax.utils.normalized_innovation
-::: filterax.utils.chi2_consistency
-::: filterax.utils.chi2_normalized
-::: filterax.utils.effective_ensemble_size
-::: filterax.utils.weight_entropy
+## Calibration reference
 
-### Calibration
+::: filterax.utils
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [rmse_vs_truth, spread_skill_ratio, rank_histogram, rank_histogram_chi2]
 
-::: filterax.utils.rmse_vs_truth
-::: filterax.utils.spread_skill_ratio
-::: filterax.utils.rank_histogram
-::: filterax.utils.rank_histogram_chi2
+## Covariance-diagnosis reference
 
-### Covariance diagnosis
+::: filterax.utils
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [desroziers_R_estimate, desroziers_innovation_cov, desroziers_analysis_residual_cov, dfs_from_gain, dfs_from_ensemble]
 
-::: filterax.utils.desroziers_R_estimate
-::: filterax.utils.desroziers_innovation_cov
-::: filterax.utils.desroziers_analysis_residual_cov
-::: filterax.utils.dfs_from_gain
-::: filterax.utils.dfs_from_ensemble
+## Forecast-skill reference
 
-### Forecast skill
-
-::: filterax.utils.crps_ensemble
-::: filterax.utils.crps_ensemble_batch
+::: filterax.utils
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [crps_ensemble, crps_ensemble_batch]

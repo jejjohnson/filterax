@@ -4,7 +4,11 @@ Iterative ensemble methods for derivative-free parameter estimation. All
 methods share the same outer loop — the caller supplies forward-model
 evaluations `G(θ⁽ʲ⁾)` each step, the process supplies the ensemble
 update rule. The Layer-2 wrappers (`filterax.EKI`, `filterax.EKS`,
-`filterax.UKI`) handle the loop for you.
+`filterax.UKI`) handle the loop for you; the artificial-time step `Δtₙ` is
+controlled by a [scheduler](schedulers.md), and the iteration states
+([`ProcessState`][filterax.ProcessState], [`UKIState`][filterax.UKIState],
+[`ProcessConfig`][filterax.ProcessConfig]) are documented with the
+[Protocols & Types](protocols.md).
 
 ## Picking a process
 
@@ -30,34 +34,33 @@ update rule. The Layer-2 wrappers (`filterax.EKI`, `filterax.EKS`,
 ## Layer-2 API (run-loop wrappers)
 
 These are the canonical entry points. Each composes the forward model,
-a Layer-1 process, and a scheduler into a single `.run()` call.
+a Layer-1 process, and a scheduler into a single `.run()` call returning a
+`ProcessResult`.
 
-::: filterax.EKI
-::: filterax.EKS
-::: filterax.UKI
-::: filterax.ProcessResult
+::: filterax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [EKI, EKS, UKI, ProcessResult]
 
 ## Layer-1 components (advanced)
 
 Drop down to these when you need per-step control of the loop (custom
-convergence checks, JAX `scan` integration, etc.).
+convergence checks, JAX `scan` integration, etc.). All implement
+[`AbstractProcess`][filterax.AbstractProcess].
 
-::: filterax.processes.EKI
-::: filterax.processes.EKS_Process
-::: filterax.processes.UKI
-::: filterax.processes.ETKI
-::: filterax.processes.GNKI
-::: filterax.processes.SparseInversion
-::: filterax.processes.TEKI
+::: filterax.processes
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [EKI, EKS_Process, UKI, ETKI, GNKI, SparseInversion, TEKI]
 
 ## Sigma-point utilities
 
 The unscented quadrature used by `UKI` is also exposed for direct use.
 
-::: filterax.processes.sigma_points
-
-## State containers
-
-::: filterax.ProcessState
-::: filterax.UKIState
-::: filterax.ProcessConfig
+::: filterax.processes
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [sigma_points]

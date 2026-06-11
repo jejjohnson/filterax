@@ -1,27 +1,32 @@
-# Advanced Sequential Filters (Wave 4)
+# Advanced Sequential Filters
 
-Wave 4 fills out the deterministic-filter zoo with three ensemble
-variants and one parametric reference. Use the [Wave 2 filters](primitives.md)
-(``ETKF``, ``EnSRF``, ``StochasticEnKF``, ``LETKF``) as the everyday
-defaults; reach for these when you need the specific properties below.
+Specialised deterministic variants of the everyday
+[Layer-1 filters](filters.md) (`ETKF`, `EnSRF`, `StochasticEnKF`, `LETKF`).
+Use those as the defaults; reach for these when you need the specific
+properties below. All three implement
+[`AbstractSequentialFilter`][filterax.AbstractSequentialFilter], so they
+slot into the same Layer-2 loops and pipekit adapters.
 
 ## Picking an advanced filter
 
 | Filter | Family | When to use |
 |---|---|---|
-| **`filterax.filters.ETKF_Livings`** | Deterministic, randomised | When the symmetric-sqrt ETKF develops preferred ensemble directions over long runs — the random mean-preserving rotation averages out the degeneracy. |
-| **`filterax.filters.EnSRF_Serial`** | Deterministic, scalar-serial | When ``R`` is diagonal and you want to avoid any ``N_y × N_y`` solve. Cost ``O(N_e N_x N_y)`` with no matrix inversion. |
-| **`filterax.filters.ESTKF`** | Deterministic, reduced-rank | When you want exact mean preservation by construction and a modest constant-factor speedup over ETKF — the eigendecomposition is ``(N_e − 1)³`` rather than ``N_e³``. |
-| **`filterax.filters.SquareRootKF`** | Parametric (non-ensemble) | Linear-Gaussian baselines, twin-experiment ground truths, and any setting where carrying ``S`` (with ``P = S Sᵀ``) is cheaper than carrying an ensemble. Wraps gaussx's parallel KF. |
+| [`filterax.filters.ETKF_Livings`][filterax.filters.ETKF_Livings] | Deterministic, randomised | When the symmetric-sqrt ETKF develops preferred ensemble directions over long runs — the random mean-preserving rotation averages out the degeneracy. |
+| [`filterax.filters.EnSRF_Serial`][filterax.filters.EnSRF_Serial] | Deterministic, scalar-serial | When ``R`` is diagonal and you want to avoid any ``N_y × N_y`` solve. Cost ``O(N_e N_x N_y)`` with no matrix inversion. |
+| [`filterax.filters.ESTKF`][filterax.filters.ESTKF] | Deterministic, reduced-rank | When you want exact mean preservation by construction and a modest constant-factor speedup over ETKF — the eigendecomposition is ``(N_e − 1)³`` rather than ``N_e³``. |
 
-All four implement [`AbstractSequentialFilter`][filterax.AbstractSequentialFilter]
-except `SquareRootKF`, which has its own ``filter()`` entry point because
-it propagates ``(μ, S)`` rather than particles.
+For the parametric (non-ensemble)
+[`SquareRootKF`][filterax.filters.SquareRootKF] — linear-Gaussian baselines
+and twin-experiment ground truths — see the [Filters](filters.md) page.
+
+Note that `ETKF_Livings` is stochastic (the rotation draws from a PRNG key),
+so it is rejected by the [differentiable training](differentiable.md)
+entry points, like `StochasticEnKF`.
 
 ## Reference
 
-::: filterax.filters.ETKF_Livings
-::: filterax.filters.EnSRF_Serial
-::: filterax.filters.ESTKF
-::: filterax.filters.SquareRootKF
-::: filterax.filters.SquareRootFilterResult
+::: filterax.filters
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [ESTKF, ETKF_Livings, EnSRF_Serial]
