@@ -29,6 +29,11 @@ anomalies, and the (cross-)covariances built from them.
 
 ## Kalman gain
 
+For the Schur-tapered variant that suppresses spurious long-range
+correlations, see
+[`localized_kalman_gain`][filterax.localized_kalman_gain] on the
+[Localization](localization.md) page.
+
 ::: filterax
     options:
       show_root_heading: false

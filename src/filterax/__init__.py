@@ -26,7 +26,10 @@ from filterax._filters._models import (
     LatentLETKF as LatentLETKF,
     StochasticEnKF as StochasticEnKF,
 )
-from filterax._primitives._gain import kalman_gain as kalman_gain
+from filterax._primitives._gain import (
+    kalman_gain as kalman_gain,
+    localized_kalman_gain as localized_kalman_gain,
+)
 from filterax._primitives._inflation import (
     inflate_adaptive as inflate_adaptive,
     inflate_additive as inflate_additive,
@@ -49,9 +52,12 @@ from filterax._primitives._likelihood import (
 )
 from filterax._primitives._localization import (
     adaptive_localization as adaptive_localization,
+    euclidean_distance as euclidean_distance,
     gaspari_cohn as gaspari_cohn,
     gaussian_taper as gaussian_taper,
     hard_cutoff as hard_cutoff,
+    haversine_distance as haversine_distance,
+    localization_matrix as localization_matrix,
     localize as localize,
     soar_taper as soar_taper,
 )

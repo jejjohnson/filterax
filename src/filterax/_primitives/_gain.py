@@ -63,3 +63,59 @@ def kalman_gain(
     return gaussx.ensemble_kalman_gain(
         particles, obs_particles, obs_noise, solver=solver, bessel=True
     )
+
+
+def localized_kalman_gain(
+    particles: Float[Array, "N_e N_x"],
+    obs_particles: Float[Array, "N_e N_y"],
+    obs_noise: lx.AbstractLinearOperator,
+    rho_xy: Float[Array, "N_x N_y"],
+    rho_yy: Float[Array, "N_y N_y"],
+    *,
+    solver: gaussx.AbstractSolverStrategy | None = None,
+) -> Float[Array, "N_x N_y"]:
+    r"""Localized Kalman gain ``K = (ρˣʸ ∘ Cˣᴴ) (ρʸʸ ∘ Cᴴᴴ + R)⁻¹``.
+
+    Thin wrapper over :func:`gaussx.localized_kalman_gain` with the EnKF
+    Bessel convention. Tapering both covariances with the Schur
+    (element-wise) product suppresses spurious long-range correlations;
+    by the Schur product theorem the tapered innovation covariance stays
+    PSD when ``ρʸʸ`` is (use :func:`filterax.localization_matrix` /
+    :func:`filterax.gaspari_cohn` to build the tapers).
+
+    Unlike :func:`filterax.kalman_gain`, the Hadamard product destroys
+    the low-rank structure of ``Cᴴᴴ``, so the innovation covariance is
+    materialised densely — cost ``O(Nₑ Nₓ Nᵧ + Nᵧ³)``. With
+    ``ρ ≡ 1`` this reduces exactly to the unlocalized gain.
+
+    Args:
+        particles: Prior ensemble in state space, shape ``(Nₑ, Nₓ)``.
+        obs_particles: ``H`` applied to each member, shape ``(Nₑ, Nᵧ)``.
+        obs_noise: Observation error covariance ``R`` as a linear operator.
+        rho_xy: State-observation taper, shape ``(Nₓ, Nᵧ)``.
+        rho_yy: Observation-observation taper, shape ``(Nᵧ, Nᵧ)``.
+        solver: Optional :class:`gaussx.AbstractSolverStrategy`. ``None``
+            uses structural dispatch on the dense innovation covariance.
+
+    Returns:
+        Dense localized Kalman gain of shape ``(Nₓ, Nᵧ)``.
+
+    Raises:
+        ValueError: if ``Nₑ < 2``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import kalman_gain, localized_kalman_gain
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs_particles = particles[:, :1]
+        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
+        >>> ones = jnp.ones((2, 1)), jnp.ones((1, 1))
+        >>> K_loc = localized_kalman_gain(particles, obs_particles, R, *ones)
+        >>> bool(jnp.allclose(K_loc, kalman_gain(particles, obs_particles, R)))
+        True
+    """
+    check_ensemble_size(particles.shape[0])
+    return gaussx.localized_kalman_gain(
+        particles, obs_particles, obs_noise, rho_xy, rho_yy, solver=solver, bessel=True
+    )

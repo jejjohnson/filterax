@@ -15,16 +15,19 @@ taper is itself a valid correlation matrix (Gaspari-Cohn and SOAR are; a hard
 cutoff is not, in general), localization cannot break the PSD-ness of the
 covariance.
 
-[`gaspari_cohn`][filterax.gaspari_cohn] delegates to `gaussx.gaspari_cohn`
-with support parameter `c = 2 * radius` (gaussx parameterises by the
-compact-support length, filterax by the half-width). gaussx also ships
-distance helpers you can use directly to build the inputs here:
-`gaussx.euclidean_distance`, `gaussx.haversine_distance`, and
-`gaussx.localization_matrix`. Wrap these primitives in an
+[`gaspari_cohn`][filterax.gaspari_cohn] and
+[`localization_matrix`][filterax.localization_matrix] delegate to their
+gaussx counterparts with support parameter `c = 2 * radius` (gaussx
+parameterises by the compact-support length, filterax by the half-width);
+the distance metrics ([`euclidean_distance`][filterax.euclidean_distance],
+[`haversine_distance`][filterax.haversine_distance]) are re-exported from
+gaussx unchanged. Wrap these primitives in an
 [`AbstractLocalizer`][filterax.AbstractLocalizer] to plug them into the
 Layer-2 loops as a drop-in component; the
 [`LETKF`][filterax.filters.LETKF] instead applies localization in
-observation space, per grid point.
+observation space, per grid point, and
+[`localized_kalman_gain`][filterax.localized_kalman_gain] tapers the gain
+itself.
 
 ## Taper functions
 
@@ -39,6 +42,21 @@ a diagnostic tool rather than a valid correlation function.
       show_root_toc_entry: false
       members: [gaspari_cohn, gaussian_taper, soar_taper, hard_cutoff]
 
+## Distances & taper matrices
+
+[`localization_matrix`][filterax.localization_matrix] fuses a pairwise
+distance computation with the Gaspari-Cohn taper, producing the dense
+`ρ` consumed by [`localize`][filterax.localize] and
+[`localized_kalman_gain`][filterax.localized_kalman_gain]. Use
+[`haversine_distance`][filterax.haversine_distance] as the metric for
+spherical (lat, lon)-in-radians grids.
+
+::: filterax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [localization_matrix, euclidean_distance, haversine_distance]
+
 ## Applying localization
 
 [`localize`][filterax.localize] is the Schur product itself;
@@ -51,4 +69,4 @@ metric exists (e.g. parameter spaces).
     options:
       show_root_heading: false
       show_root_toc_entry: false
-      members: [localize, adaptive_localization]
+      members: [localize, localized_kalman_gain, adaptive_localization]

@@ -33,6 +33,7 @@ plugins:
         python:
           paths: [src]
           options:
+            preload_modules: [gaussx]
             docstring_style: google
             docstring_section_style: table
             show_source: true

@@ -23,11 +23,61 @@ References: Gaspari & Cohn (1999); Houtekamer & Mitchell (2001).
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gaussx
 import jax.numpy as jnp
+from gaussx import (
+    euclidean_distance as euclidean_distance,
+    haversine_distance as haversine_distance,
+)
 from jaxtyping import Array, Float
 
 from filterax._checks import check_ensemble_size
+
+
+def localization_matrix(
+    coords_a: Float[Array, "N_a D"],
+    coords_b: Float[Array, "N_b D"],
+    radius: float,
+    *,
+    metric: Callable[
+        [Float[Array, "N_a D"], Float[Array, "N_b D"]], Float[Array, "N_a N_b"]
+    ] = euclidean_distance,
+) -> Float[Array, "N_a N_b"]:
+    r"""Pairwise Gaspari-Cohn taper matrix ``ρᵢⱼ = ρ(d(aᵢ, bⱼ); r)``.
+
+    Builds the dense localization matrix consumed by
+    :func:`filterax.localize` and :func:`filterax.localized_kalman_gain`
+    directly from coordinates, fusing the distance computation with the
+    taper. Delegates to :func:`gaussx.localization_matrix` using
+    filterax's half-width convention (compact support at ``2 r``), so
+    ``localization_matrix(a, b, r)`` matches
+    ``gaspari_cohn(metric(a, b), r)`` entry for entry.
+
+    Args:
+        coords_a: First coordinate set, shape ``(N_a, D)``.
+        coords_b: Second coordinate set, shape ``(N_b, D)``.
+        radius: Positive localization half-width ``r``; weights vanish
+            beyond distance ``2 r``.
+        metric: Pairwise distance function
+            ``(coords_a, coords_b) -> (N_a, N_b)``. Defaults to
+            :func:`filterax.euclidean_distance`; pass
+            :func:`filterax.haversine_distance` for spherical
+            (lat, lon)-in-radians grids.
+
+    Returns:
+        Taper matrix in ``[0, 1]`` of shape ``(N_a, N_b)``.
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from filterax import localization_matrix
+        >>> grid = jnp.arange(3.0)[:, None]  # three points on a line
+        >>> rho = localization_matrix(grid, grid, radius=1.0)
+        >>> rho.shape, float(rho[0, 0]), float(rho[0, 2])
+        ((3, 3), 1.0, 0.0)
+    """
+    return gaussx.localization_matrix(coords_a, coords_b, 2.0 * radius, metric=metric)
 
 
 def gaspari_cohn(
