@@ -115,7 +115,11 @@ def _eki_delta(
     noise_cov: lx.AbstractLinearOperator,
     dt: Float[Array, ""],
 ) -> Float[Array, "J N_p"]:
-    r"""Per-member EKI increment ``δθ⁽ʲ⁾ = Δt Cᶿᴳ S⁻¹ (y − G⁽ʲ⁾)``.
+    r"""Per-member EKI increment.
+
+    $$
+    \delta\theta^{(j)} = \Delta t\, C^{\theta G} S^{-1} \big(y - G^{(j)}\big)
+    $$
 
     ``S`` is built as a low-rank update so the solve is Woodbury when
     ``Γ`` is structured. The cross-covariance ``Cᶿᴳ`` is a dense
@@ -147,7 +151,11 @@ class EKI(AbstractProcess, strict=True):
     Iterative ensemble method that drives ``θ⁽ʲ⁾`` toward a MAP /
     regularised-least-squares solution. The update for each member:
 
-    ``θ⁽ʲ⁾ₙ₊₁ = θ⁽ʲ⁾ₙ + Δtₙ Cᶿᴳₙ (Cᴳᴳₙ + Δtₙ⁻¹ Γ)⁻¹ (y − G(θ⁽ʲ⁾ₙ))``
+    $$
+    \theta^{(j)}_{n+1} = \theta^{(j)}_n + \Delta t_n\, C^{\theta G}_n
+        \big(C^{G G}_n + \Delta t_n^{-1} \Gamma\big)^{-1}
+        \big(y - G(\theta^{(j)}_n)\big)
+    $$
 
     The ensemble collapses to a point as ``algo_time → 1``: spread → 0,
     no posterior uncertainty (see :class:`EKS_Process` if you need
@@ -158,7 +166,7 @@ class EKI(AbstractProcess, strict=True):
             :class:`~filterax.DataMisfitController` for the standard
             adaptive recipe.
 
-    Example:
+    Examples:
         >>> import jax
         >>> import jax.numpy as jnp
         >>> import lineax as lx
@@ -236,8 +244,13 @@ class EKS_Process(AbstractProcess, strict=True):
     finite-sample mean correction and an ensemble-preconditioned
     Brownian noise:
 
-    ``dθ⁽ʲ⁾ = Cᶿᴳ Γ⁻¹ (y − G⁽ʲ⁾) dt − (Nₚ + 1) J⁻¹ (θ⁽ʲ⁾ − θ̄) dt
-                + √(2 Cᶿᶿ) dW⁽ʲ⁾``
+    $$
+    \mathrm{d}\theta^{(j)} =
+        C^{\theta G} \Gamma^{-1} \big(y - G^{(j)}\big)\, \mathrm{d}t
+        - (N_p + 1)\, J^{-1} \big(\theta^{(j)} - \bar{\theta}\big)\,
+          \mathrm{d}t
+        + \sqrt{2\, C^{\theta\theta}}\; \mathrm{d}W^{(j)}
+    $$
 
     The discrete-time recipe used here matches Garbuno-Inigo §4: an
     EKI-style mean update (with ``Δt⁻¹ Γ`` tempering), the
@@ -350,14 +363,26 @@ def sigma_points(
 
     For mean ``μ`` and covariance ``Σ``:
 
-    ``λ = α² (Nₚ + κ) − Nₚ,   c = √(Nₚ + λ)``
+    $$
+    \lambda = \alpha^2 (N_p + \kappa) - N_p, \qquad
+    c = \sqrt{N_p + \lambda}
+    $$
 
-    ``χ⁰ = μ,   χ⁺ⱼ = μ + c · [√Σ]_{:,j},   χ⁻ⱼ = μ − c · [√Σ]_{:,j}``
+    $$
+    \chi^0 = \mu, \qquad
+    \chi^{+}_j = \mu + c \, [\sqrt{\Sigma}]_{:,j}, \qquad
+    \chi^{-}_j = \mu - c \, [\sqrt{\Sigma}]_{:,j}
+    $$
 
     with weights for the mean and covariance:
 
-    ``Wₘ⁰ = λ/(Nₚ+λ),  Wc⁰ = Wₘ⁰ + (1 − α² + β)``
-    ``Wₘⁱ = Wcⁱ = 1/(2(Nₚ+λ)) for i ≠ 0``
+    $$
+    \begin{aligned}
+    W_m^0 &= \frac{\lambda}{N_p + \lambda}, &
+    W_c^0 &= W_m^0 + (1 - \alpha^2 + \beta), \\
+    W_m^i &= W_c^i = \frac{1}{2 (N_p + \lambda)} & &\text{for } i \neq 0.
+    \end{aligned}
+    $$
 
     ``√Σ`` comes from :func:`gaussx.root_decomposition` so structured
     ``Σ`` (diagonal, low-rank, …) skips the dense Cholesky.
@@ -398,8 +423,14 @@ class UKI(AbstractProcess, strict=True):
     generates ``2 Nₚ + 1`` sigma points, evaluates the forward model on
     them, and applies a Kalman update on the unscented statistics:
 
-    ``μₙ₊₁ = μₙ + Δt Cᶿʸ Sₙ⁻¹ (y − ŷ₀)``
-    ``Σₙ₊₁ = Σₙ − Δt Cᶿʸ Sₙ⁻¹ Cᶿʸ ᵀ``
+    $$
+    \begin{aligned}
+    \mu_{n+1} &= \mu_n
+        + \Delta t\, C^{\theta y} S_n^{-1} \big(y - \hat{y}_0\big) \\
+    \Sigma_{n+1} &= \Sigma_n
+        - \Delta t\, C^{\theta y} S_n^{-1} C^{\theta y \top}
+    \end{aligned}
+    $$
 
     Deterministic (no sampling noise), no ensemble collapse, and the
     covariance ``Σₙ`` gives a calibrated posterior in the linear-Gaussian
@@ -664,9 +695,14 @@ class GNKI(AbstractProcess, strict=True):
     (``J̃ ≈ Cᶿᴳ (Cᶿᶿ)⁻¹``) and applies a Gauss-Newton update with prior
     pull-back:
 
-    ``δθ⁽ʲ⁾ = K (y − G⁽ʲ⁾) + (I − K J̃)(m₀ − θ⁽ʲ⁾)``
+    $$
+    \delta\theta^{(j)} = K \big(y - G^{(j)}\big)
+        + \big(I - K \tilde{J}\big)\big(m_0 - \theta^{(j)}\big), \qquad
+    K = \big(\tilde{J}^{\top} \Gamma^{-1} \tilde{J}
+        + \Sigma_0^{-1}\big)^{-1} \tilde{J}^{\top} \Gamma^{-1}.
+    $$
 
-    with ``K = (J̃ ᵀ Γ⁻¹ J̃ + Σ₀⁻¹)⁻¹ J̃ ᵀ Γ⁻¹``. Faster convergence
+    Faster convergence
     than :class:`EKI` for well-conditioned problems and requires
     ``J > Nₚ`` so ``Cᶿᶿ`` is invertible. In the linear-Gaussian limit
     GNKI recovers the exact posterior mean *and* covariance.
@@ -767,7 +803,10 @@ class SparseInversion(AbstractProcess, strict=True):
 
     Standard EKI step followed by an L¹ proximal soft-threshold:
 
-    ``prox_{λ‖·‖₁}(z)ᵢ = sign(zᵢ) · max(|zᵢ| − λ, 0)``
+    $$
+    \mathrm{prox}_{\lambda \|\cdot\|_1}(z)_i =
+        \mathrm{sign}(z_i) \cdot \max\big(|z_i| - \lambda,\, 0\big)
+    $$
 
     drives inactive parameters exactly to zero. Useful for variable
     selection / sparse physics discovery / sensor placement.
@@ -829,7 +868,11 @@ class TEKI(AbstractProcess, strict=True):
     Standard EKI on an augmented system that includes the parameters in
     observation space:
 
-    ``G̃(θ) = (G(θ), θ)ᵀ,   ỹ = (y, m₀)ᵀ,   Γ̃ = blockdiag(Γ, Σ₀)``
+    $$
+    \tilde{G}(\theta) = \big(G(\theta),\, \theta\big)^{\top}, \qquad
+    \tilde{y} = (y,\, m_0)^{\top}, \qquad
+    \tilde{\Gamma} = \mathrm{blockdiag}(\Gamma,\, \Sigma_0)
+    $$
 
     The augmented identity block in ``Cᶿᴳ̃`` pulls particles toward the
     prior mean ``m₀`` and prevents the ensemble from drifting arbitrarily

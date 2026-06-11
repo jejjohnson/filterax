@@ -79,7 +79,7 @@ class FilterAnalysisStep(eqx.Module, strict=True):
             ``filter.analysis`` on every cycle — e.g. ``state_coords`` /
             ``obs_coords`` for :class:`filterax.filters.LETKF`.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax.filters import ETKF
@@ -132,7 +132,7 @@ class DynamicsForwardModel(eqx.Module, strict=True):
             ``(state, t0, t1) -> state`` callable).
         dt: Default integration step advertised to pipekit.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax.pipekit import DynamicsForwardModel
         >>> fwd = DynamicsForwardModel(lambda x, t0, t1: x + (t1 - t0), dt=0.5)
@@ -171,7 +171,7 @@ class LinearizableObsOperator(eqx.Module, strict=True):
         obs_op: A :class:`filterax.AbstractObsOperator` or plain
             ``state -> obs`` callable.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax.pipekit import LinearizableObsOperator
         >>> H = LinearizableObsOperator(lambda x: x[:1] ** 2)

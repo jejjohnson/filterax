@@ -156,7 +156,7 @@ def eki(
         ensemble and returns the per-step mean delta as the optax
         update.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> import optax

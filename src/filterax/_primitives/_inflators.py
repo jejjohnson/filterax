@@ -31,15 +31,15 @@ from filterax._protocols import AbstractInflator
 
 
 class MultiplicativeInflator(AbstractInflator, strict=True):
-    r"""Multiplicative inflation :math:`X' \leftarrow \lambda X'`.
+    r"""Multiplicative inflation ``X′ ← λ X′``.
 
     Ignores ``forecast_particles`` and any extra kwargs.
 
     Attributes:
-        factor: Inflation factor :math:`\lambda > 0`; values in
+        factor: Inflation factor ``λ > 0``; values in
             ``[1.01, 1.10]`` are typical.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import MultiplicativeInflator
         >>> inflator = MultiplicativeInflator(factor=2.0)
@@ -70,7 +70,7 @@ class RTPS(AbstractInflator, strict=True):
         alpha: Relaxation coefficient in ``[0, 1]``. ``0`` keeps the
             analysis spread; ``1`` restores the forecast spread.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import RTPS
         >>> inflator = RTPS(alpha=1.0)
@@ -102,7 +102,7 @@ class RTPP(AbstractInflator, strict=True):
     Attributes:
         alpha: Relaxation coefficient in ``[0, 1]``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import RTPP
         >>> inflator = RTPP(alpha=0.5)
@@ -146,7 +146,7 @@ class AdditiveInflator(AbstractInflator, strict=True):
         base_key: PRNG key seed; folded against the per-call ``step``
             (or used as-is when no step / key is supplied).
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import jax.random as jr
         >>> import lineax as lx

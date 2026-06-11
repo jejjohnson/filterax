@@ -10,7 +10,11 @@ Localization suppresses these artefacts by tapering covariance entries
 as a function of physical distance ``d``. The localized covariance is
 the Schur (Hadamard / element-wise) product
 
-``P_loc = ρ ∘ P,   ρᵢⱼ = ρ(dᵢⱼ / r)``
+$$
+P_{\text{loc}} = \rho \circ P,
+\qquad
+\rho_{ij} = \rho(d_{ij} / r),
+$$
 
 with ``r`` the localization half-width. By the Schur product theorem,
 ``ρ ∘ P`` is PSD whenever both factors are; the Gaspari-Cohn and
@@ -69,7 +73,7 @@ def localization_matrix(
     Returns:
         Taper matrix in ``[0, 1]`` of shape ``(N_a, N_b)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import localization_matrix
         >>> grid = jnp.arange(3.0)[:, None]  # three points on a line
@@ -86,12 +90,20 @@ def gaspari_cohn(
 ) -> Float[Array, "..."]:
     r"""Gaspari-Cohn 5th-order piecewise polynomial taper.
 
-    Define ``z = d / r``. Then
+    With ``z = d / r``:
 
-    ``ρ(z) = {  −¼ z⁵ + ½ z⁴ + ⅝ z³ − ⁵⁄₃ z² + 1,            0 ≤ z ≤ 1
-                 ⅟₁₂ z⁵ − ½ z⁴ + ⅝ z³ + ⁵⁄₃ z² − 5 z + 4 − ⅔ / z,
-                                                              1 < z ≤ 2
-                 0,                                            z > 2 }``
+    $$
+    \begin{aligned}
+    \rho(z) = \begin{cases}
+      -\tfrac14 z^5 + \tfrac12 z^4 + \tfrac58 z^3 - \tfrac53 z^2 + 1
+        & 0 \le z \le 1 \\
+      \tfrac1{12} z^5 - \tfrac12 z^4 + \tfrac58 z^3 + \tfrac53 z^2
+        - 5 z + 4 - \tfrac{2}{3 z}
+        & 1 < z \le 2 \\
+      0 & z > 2.
+    \end{cases}
+    \end{aligned}
+    $$
 
     Properties:
 
@@ -113,7 +125,7 @@ def gaspari_cohn(
     Returns:
         Taper weights in ``[0, 1]`` with the same shape as ``distances``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import gaspari_cohn
         >>> d = jnp.array([0.0, 1.0, 2.0, 3.0])
@@ -147,7 +159,7 @@ def gaussian_taper(
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import gaussian_taper
         >>> gaussian_taper(jnp.array([0.0, 1.0]), radius=1.0)
@@ -175,7 +187,7 @@ def hard_cutoff(
         Indicator weights (``0.0`` or ``1.0``) with the same shape as
         ``distances``, same dtype.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import hard_cutoff
         >>> hard_cutoff(jnp.array([0.5, 1.0, 1.5]), radius=1.0)
@@ -203,7 +215,7 @@ def localize(
     Returns:
         Localized matrix of shape ``(M, N)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import localize
         >>> cov = jnp.array([[1.0, 0.5], [0.5, 1.0]])
@@ -221,7 +233,9 @@ def soar_taper(
 ) -> Float[Array, "..."]:
     r"""Second-Order Auto-Regressive taper (Thiebaux & Pedder 1987).
 
-    ``ρ(d) = (1 + d/r) exp(−d/r)``
+    $$
+    \rho(d) = \left( 1 + \frac{d}{r} \right) e^{-d / r}.
+    $$
 
     Properties:
 
@@ -244,7 +258,7 @@ def soar_taper(
     Returns:
         Taper weights in ``(0, 1]`` with the same shape as ``distances``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import soar_taper
         >>> soar_taper(jnp.array([0.0, 1.0]), radius=1.0)
@@ -271,7 +285,9 @@ def adaptive_localization(
     ``r_{ij} = Cˣᴴ_{ij} / (σ_xᵢ σ_yⱼ)`` exceeds its sampling
     uncertainty:
 
-    ``se(r) ≈ (1 − r²) / √(Nₑ − 2)``
+    $$
+    \operatorname{se}(r) \approx \frac{1 - r^{2}}{\sqrt{N_{e} - 2}}.
+    $$
 
     Correlations smaller than ``significance · se(r)`` are zeroed.
     Correlations above that threshold are kept at unit weight (a
@@ -300,7 +316,7 @@ def adaptive_localization(
         ValueError: if ``Nₑ < 3`` (the ``√(Nₑ − 2)`` noise floor is
             undefined for the smallest ensembles).
 
-    Example:
+    Examples:
         >>> import jax
         >>> from filterax import adaptive_localization
         >>> state = jax.random.normal(jax.random.key(0), (20, 2))

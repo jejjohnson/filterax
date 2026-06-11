@@ -44,7 +44,7 @@ def inflate_multiplicative(
     Returns:
         Inflated ensemble of shape ``(Nₑ, Nₓ)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import inflate_multiplicative
         >>> ens = jnp.array([[0.0, 0.0], [2.0, 2.0]])
@@ -70,12 +70,19 @@ def inflate_rtps(
     Per-variable target spread is a convex blend of analysis and
     forecast standard deviations:
 
-    ``σ_target,i = (1 − α) σᵃ_i + α σᶠ_i``
+    $$
+    \sigma^{\text{target}}_{i} =
+        (1 - \alpha)\, \sigma^{a}_{i} + \alpha\, \sigma^{f}_{i}.
+    $$
 
     Each analysis anomaly is then rescaled so the resulting standard
-    deviation matches ``σ_target``:
+    deviation matches the target:
 
-    ``x⁽ʲ⁾_relaxed = x̄ᵃ + (σ_target,i / σᵃ_i) (x⁽ʲ⁾_a − x̄ᵃ)``
+    $$
+    x^{(j)}_{\text{relaxed}} = \bar{x}^{a}
+        + \frac{\sigma^{\text{target}}_{i}}{\sigma^{a}_{i}}
+          \left( x^{(j)}_{a} - \bar{x}^{a} \right).
+    $$
 
     Spatially adaptive (per-variable factor), mean-preserving, and
     parameterised by a single coefficient ``α``. ``α = 0`` is the
@@ -92,7 +99,7 @@ def inflate_rtps(
     Returns:
         Relaxed analysis ensemble of shape ``(Nₑ, Nₓ)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import inflate_rtps
         >>> forecast = jnp.array([[-2.0], [2.0]])
@@ -118,7 +125,10 @@ def inflate_rtpp(
 
     Convex combination of analysis and forecast anomaly matrices:
 
-    ``X′_relaxed = (1 − α) X′_a + α X′_f``
+    $$
+    X^{\prime}_{\text{relaxed}} =
+        (1 - \alpha)\, X^{\prime}_{a} + \alpha\, X^{\prime}_{f}.
+    $$
 
     Unlike RTPS (which acts on per-variable spread), RTPP operates on
     the full anomaly matrix and so blends inter-variable correlation
@@ -133,7 +143,7 @@ def inflate_rtpp(
     Returns:
         Relaxed analysis ensemble of shape ``(Nₑ, Nₓ)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import inflate_rtpp
         >>> forecast = jnp.array([[-2.0], [2.0]])
@@ -220,7 +230,12 @@ def inflate_adaptive(
     cycle's *normalised innovation*. The data-implied factor is the
     clamped Mahalanobis ratio
 
-    ``λ̂_obs = clip(dᵀ S⁻¹ d / Nᵧ,  min_factor,  max_factor)``
+    $$
+    \hat{\lambda}_{\text{obs}} = \operatorname{clip}\!\left(
+        \frac{d^{\top} S^{-1} d}{N_{y}},\
+        \lambda_{\min},\ \lambda_{\max}
+    \right)
+    $$
 
     (the simplified Anderson-2009 form — under correct specification
     ``E[χ²/Nᵧ] = 1``; under-dispersive ensembles overshoot and pull
@@ -229,9 +244,16 @@ def inflate_adaptive(
     ``λ̂_obs`` whose variance is the χ²-distribution variance
     ``σ²_obs = 2 / Nᵧ``:
 
-    ``μ_post = (σ²_λ · λ̂_obs + σ²_obs · μ_prior) / (σ²_λ + σ²_obs)``
-
-    ``σ²_post = σ²_λ · σ²_obs / (σ²_λ + σ²_obs)``
+    $$
+    \mu_{\text{post}} =
+        \frac{\sigma^{2}_{\lambda}\, \hat{\lambda}_{\text{obs}}
+              + \sigma^{2}_{\text{obs}}\, \mu_{\text{prior}}}
+             {\sigma^{2}_{\lambda} + \sigma^{2}_{\text{obs}}},
+    \qquad
+    \sigma^{2}_{\text{post}} =
+        \frac{\sigma^{2}_{\lambda}\, \sigma^{2}_{\text{obs}}}
+             {\sigma^{2}_{\lambda} + \sigma^{2}_{\text{obs}}}.
+    $$
 
     Returns the *posterior* ``(μ, σ²)`` as **JAX scalars** so callers
     can carry the belief through ``jax.jit`` / ``jax.grad`` / ``lax.scan``
@@ -285,19 +307,27 @@ def ledoit_wolf_shrinkage(
     Replaces the sample covariance with a convex combination toward a
     scalar-multiple-of-identity target:
 
-    ``P_shrunk = (1 − λ*) P_sample + λ* μ I``
+    $$
+    P_{\text{shrunk}} =
+        (1 - \lambda^{*})\, P_{\text{sample}} + \lambda^{*} \mu I,
+    $$
 
     where ``μ = tr(P_sample) / Nₓ`` is the average sample eigenvalue
     and ``λ* ∈ [0, 1]`` is the optimal shrinkage intensity that
-    minimises ``E ‖P_shrunk − P_true‖²_F``. The closed-form Ledoit-
-    Wolf estimator:
+    minimises ``E ‖P_shrunk − P_true‖²_F``. The closed-form
+    Ledoit-Wolf estimator:
 
-    ``λ* = min(1, b² / d²)``
+    $$
+    \lambda^{*} = \min\!\left( 1,\ \frac{b^{2}}{d^{2}} \right),
+    \qquad
+    d^{2} = \lVert P_{\text{sample}} - \mu I \rVert^{2}_{F},
+    \qquad
+    b^{2} = \frac{1}{N_{e}^{2}} \sum_{j}
+        \lVert x^{(j)} x^{(j)\top} - P_{\text{sample}} \rVert^{2}_{F},
+    $$
 
-    ``d² = ‖P_sample − μ I‖²_F``  (sample deviation from the target)
-
-    ``b² = (1 / Nₑ²) Σⱼ ‖x⁽ʲ⁾ x⁽ʲ⁾ᵀ − P_sample‖²_F`` (oracle
-    approximation; capped at ``d²`` so ``λ* ≤ 1``).
+    where ``d²`` is the sample deviation from the target and ``b²`` is
+    the oracle approximation, capped at ``d²`` so ``λ* ≤ 1``.
 
     Useful when ``Nₑ ≪ Nₓ`` and the rank-deficient sample covariance
     would otherwise contaminate downstream operations. **Positive

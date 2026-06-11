@@ -25,7 +25,13 @@ def perturbed_observations(
 ) -> Float[Array, "N_e N_y"]:
     r"""Generate perturbed observations for the stochastic EnKF.
 
-    ``y⁽ʲ⁾_pert = y + ε⁽ʲ⁾, ε⁽ʲ⁾ ~ 𝒩(0, R)`` for ``j = 1, …, Nₑ``.
+    $$
+    y^{(j)}_{\text{pert}} = y + \varepsilon^{(j)},
+    \qquad
+    \varepsilon^{(j)} \sim \mathcal{N}(0, R),
+    \qquad
+    j = 1, \dots, N_{e}.
+    $$
 
     The sampling path depends on the structure of ``R``:
 
@@ -47,7 +53,7 @@ def perturbed_observations(
     Returns:
         Perturbed observation matrix of shape ``(Nₑ, Nᵧ)``.
 
-    Example:
+    Examples:
         >>> import jax
         >>> import jax.numpy as jnp
         >>> import lineax as lx

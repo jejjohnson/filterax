@@ -40,7 +40,7 @@ def ensemble_mean(
     Returns:
         Mean vector of shape ``(Nₓ,)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import ensemble_mean
         >>> ens = jnp.array([[0.0, 1.0], [2.0, 3.0]])
@@ -66,7 +66,7 @@ def ensemble_anomalies(
     Returns:
         Centred anomaly matrix of shape ``(Nₑ, Nₓ)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import ensemble_anomalies
         >>> ens = jnp.array([[0.0, 1.0], [2.0, 3.0]])
@@ -102,7 +102,7 @@ def ensemble_covariance(
     Raises:
         ValueError: if ``Nₑ < 2`` (the Bessel divisor is undefined).
 
-    Example:
+    Examples:
         >>> import gaussx
         >>> import jax.numpy as jnp
         >>> from filterax import ensemble_covariance
@@ -141,7 +141,7 @@ def cross_covariance(
     Raises:
         ValueError: if ``Nₑ < 2``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax import cross_covariance
         >>> particles = jnp.array([[0.0, 0.0], [2.0, 2.0]])

@@ -44,7 +44,10 @@ def ensemble_spread(
 ) -> Float[Array, " N_x"]:
     r"""Per-variable ensemble standard deviation.
 
-    ``σᵢ = √( (Nₑ − 1)⁻¹ Σⱼ (xᵢ⁽ʲ⁾ − x̄ᵢ)² )``
+    $$
+    \sigma_i = \sqrt{(N_e - 1)^{-1}
+        \sum_{j} \big(x_i^{(j)} - \bar{x}_i\big)^2}
+    $$
 
     Track over assimilation cycles. A well-calibrated filter has
     ``σ ≈ RMSE``; collapsing spread is the first sign of filter
@@ -56,7 +59,7 @@ def ensemble_spread(
     Returns:
         Per-variable standard deviation of shape ``(Nₓ,)``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax.utils import ensemble_spread
         >>> ens = jnp.array([[0.0, 0.0], [2.0, 4.0]])
@@ -74,7 +77,12 @@ def ensemble_spread(
 def rms_spread(
     ensemble: Float[Array, "N_e N_x"],
 ) -> Float[Array, ""]:
-    r"""Scalar RMS ensemble spread ``√(Nₓ⁻¹ Σᵢ σᵢ²)``."""
+    r"""Scalar RMS ensemble spread.
+
+    $$
+    \sqrt{N_x^{-1} \sum_i \sigma_i^2}
+    $$
+    """
     sigma = ensemble_spread(ensemble)
     return jnp.sqrt(jnp.mean(sigma * sigma))
 
@@ -83,13 +91,17 @@ def rmse_vs_truth(
     ensemble_mean_: Float[Array, " N_x"],
     x_true: Float[Array, " N_x"],
 ) -> Float[Array, ""]:
-    r"""RMSE of an ensemble mean against the true state ``√(Nₓ⁻¹ Σᵢ (x̄ᵢ − xᵢ*)²)``.
+    r"""RMSE of an ensemble mean against the true state.
+
+    $$
+    \mathrm{RMSE} = \sqrt{N_x^{-1} \sum_i \big(\bar{x}_i - x_i^*\big)^2}
+    $$
 
     Only available in twin / OSSE experiments where ``x_true`` is
     known. Track over time to detect filter divergence (RMSE growing
     without bound).
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax.utils import rmse_vs_truth
         >>> rmse_vs_truth(jnp.array([1.0, 2.0]), jnp.array([0.0, 2.0]))
@@ -112,7 +124,11 @@ def normalized_innovation(
     Hx_forecast: Float[Array, " N_y"],
     innovation_var: Float[Array, " N_y"],
 ) -> Float[Array, " N_y"]:
-    r"""Normalised innovation ``d_i / √(HPHᵀ + R)_{ii}``.
+    r"""Normalised innovation.
+
+    $$
+    d_i \big/ \sqrt{(H P H^{\top} + R)_{ii}}
+    $$
 
     For a correctly-specified filter the normalised innovation is
     ``𝒩(0, 1)`` componentwise. Departures from unit variance signal
@@ -126,8 +142,13 @@ def chi2_consistency(
     d: Float[Array, " N_y"],
     S_inv_d: Float[Array, " N_y"],
 ) -> Float[Array, ""]:
-    r"""``χ² = dᵀ S⁻¹ d``. Should be ``≈ Nᵧ`` under correct specification.
+    r"""Chi-squared innovation consistency statistic.
 
+    $$
+    \chi^2 = d^{\top} S^{-1} d
+    $$
+
+    Should be ``≈ Nᵧ`` under correct specification.
     Pre-compute ``S⁻¹ d`` once and pass it here so the diagnostic
     composes with whichever solver (gaussx Woodbury, dense Cholesky)
     you used for the analysis. Variance under the null is ``2 Nᵧ``.
@@ -152,7 +173,11 @@ def chi2_normalized(
 def effective_ensemble_size(
     weights: Float[Array, " N_e"],
 ) -> Float[Array, ""]:
-    r"""Effective sample size ``Nₑff = 1 / Σⱼ wⱼ²``.
+    r"""Effective sample size.
+
+    $$
+    N_{\mathrm{eff}} = 1 \Big/ \sum_{j} w_j^2
+    $$
 
     For equally-weighted ensembles (the standard EnKF) this is
     exactly ``Nₑ``. For particle filters / weighted EnKF variants,
@@ -168,7 +193,11 @@ def effective_ensemble_size(
 def weight_entropy(
     weights: Float[Array, " N_e"],
 ) -> Float[Array, ""]:
-    r"""Shannon entropy ``−Σⱼ wⱼ log wⱼ`` of importance weights.
+    r"""Shannon entropy of importance weights.
+
+    $$
+    -\sum_{j} w_j \log w_j
+    $$
 
     Maximum ``log Nₑ`` for uniform weights, ``0`` for full
     degeneracy.
@@ -188,7 +217,10 @@ def spread_skill_ratio(
 ) -> Float[Array, ""]:
     r"""Ratio of RMS spread to RMSE.
 
-    ``SSR = √(Σᵢ σᵢ² / Nₓ) / √(Σᵢ (x̄ᵢ − xᵢ*)² / Nₓ)``
+    $$
+    \mathrm{SSR} = \sqrt{\sum_i \sigma_i^2 / N_x} \Big/
+        \sqrt{\sum_i (\bar{x}_i - x_i^*)^2 / N_x}
+    $$
 
     * ``SSR ≈ 1`` — well calibrated.
     * ``SSR < 1`` — underdispersive (increase inflation).
@@ -224,7 +256,7 @@ def rank_histogram(
     Returns:
         ``(Nₑ + 1,)`` integer counts.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax.utils import rank_histogram
         >>> ens = jnp.array([[[0.0], [1.0]], [[0.0], [1.0]]])  # (T, N_e, N_x)
@@ -248,7 +280,11 @@ def rank_histogram(
 def rank_histogram_chi2(counts: Int[Array, " bins"]) -> Float[Array, ""]:
     r"""χ² flatness statistic for a rank histogram.
 
-    ``χ² = Σ_k (O_k − E_k)² / E_k`` with ``E_k = N_total / N_bins``.
+    $$
+    \chi^2 = \sum_k (O_k - E_k)^2 / E_k, \qquad
+    E_k = N_{\mathrm{total}} / N_{\mathrm{bins}}.
+    $$
+
     Larger values indicate stronger departure from uniformity; under
     the null hypothesis of uniformity the test statistic is
     ``χ²(N_bins − 1)``.
@@ -271,7 +307,11 @@ def desroziers_R_estimate(
 ) -> Float[Array, "N_y N_y"]:
     r"""A-posteriori estimate of ``R`` (Desroziers et al. 2005).
 
-    ``R̂ = E[ d_a d_fᵀ ]`` over time. When ``R̂`` disagrees with the
+    $$
+    \hat{R} = E\big[ d_a d_f^{\top} \big]
+    $$
+
+    estimated over time. When ``R̂`` disagrees with the
     prescribed ``R`` the observation-error covariance is mis-specified.
     Accumulate over many cycles (100+) for stable estimates.
     """
@@ -282,7 +322,12 @@ def desroziers_R_estimate(
 def desroziers_innovation_cov(
     d_forecast: Float[Array, "T N_y"],
 ) -> Float[Array, "N_y N_y"]:
-    r"""Empirical innovation covariance ``E[ d_f d_fᵀ ] ≈ HPHᵀ + R``."""
+    r"""Empirical innovation covariance.
+
+    $$
+    E\big[ d_f d_f^{\top} \big] \approx H P H^{\top} + R
+    $$
+    """
     T = d_forecast.shape[0]
     return einx.dot("t i, t j -> i j", d_forecast, d_forecast) / T
 
@@ -290,7 +335,12 @@ def desroziers_innovation_cov(
 def desroziers_analysis_residual_cov(
     d_analysis: Float[Array, "T N_y"],
 ) -> Float[Array, "N_y N_y"]:
-    r"""Empirical analysis-residual covariance ``E[ d_a d_aᵀ ] ≈ R − HAHᵀ``."""
+    r"""Empirical analysis-residual covariance.
+
+    $$
+    E\big[ d_a d_a^{\top} \big] \approx R - H A H^{\top}
+    $$
+    """
     T = d_analysis.shape[0]
     return einx.dot("t i, t j -> i j", d_analysis, d_analysis) / T
 
@@ -301,7 +351,11 @@ def dfs_from_gain(
 ) -> Float[Array, ""]:
     r"""Degrees of freedom for signal from an explicit gain.
 
-    ``DFS = tr(K H) ∈ [0, Nᵧ]``. Closer to ``Nᵧ`` means observations
+    $$
+    \mathrm{DFS} = \mathrm{tr}(K H) \in [0, N_y]
+    $$
+
+    Closer to ``Nᵧ`` means observations
     dominate the analysis; closer to ``0`` means the prior dominates.
 
     Reference:
@@ -318,7 +372,11 @@ def dfs_from_ensemble(
 ) -> Float[Array, ""]:
     r"""Ensemble-based DFS estimate from forecast / analysis perturbations.
 
-    ``DFS ≈ tr( Cᵃᶠ / σ_f² )`` where ``Cᵃᶠ`` is the per-variable
+    $$
+    \mathrm{DFS} \approx \mathrm{tr}\big( C^{af} / \sigma_f^2 \big)
+    $$
+
+    where ``Cᵃᶠ`` is the per-variable
     forecast-vs-analysis cross-covariance and ``σ_f²`` is the
     forecast variance — i.e. how much the analysis perturbations are
     *driven* by the forecast perturbations. ``DFS = Nₓ`` for an
@@ -352,11 +410,15 @@ def crps_ensemble(
 ) -> Float[Array, ""]:
     r"""Continuous Ranked Probability Score for a 1D ensemble forecast.
 
-    ``CRPS = E|X − y| − ½ E|X − X′|``
+    $$
+    \mathrm{CRPS} = E|X - y| - \tfrac{1}{2} E|X - X'|
+    $$
 
     Computed via the sorted-ensemble identity (Hersbach 2000):
 
-    ``½ E|X − X′| = Nₑ⁻² Σⱼ x_{(j)} (2j − 1 − Nₑ)``
+    $$
+    \tfrac{1}{2} E|X - X'| = N_e^{-2} \sum_{j} x_{(j)} (2j - 1 - N_e)
+    $$
 
     where ``x_{(j)}`` are the order statistics. Cost
     ``O(Nₑ log Nₑ)`` per observation. Lower is better; CRPS is a
@@ -370,7 +432,7 @@ def crps_ensemble(
     Returns:
         Scalar CRPS.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> from filterax.utils import crps_ensemble
         >>> crps_ensemble(jnp.array([0.0, 1.0]), jnp.array(0.5))

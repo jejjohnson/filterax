@@ -23,9 +23,15 @@ def kalman_gain(
     assembled as a :class:`gaussx.LowRankUpdate` so structural dispatch
     routes the solve through the Woodbury identity:
 
-    ``S⁻¹ = R⁻¹ − R⁻¹ U ((Nₑ − 1) I + Uᵀ R⁻¹ U)⁻¹ Uᵀ R⁻¹``
+    $$
+    S^{-1} = R^{-1} - R^{-1} U
+        \left( (N_{e} - 1) I + U^{\top} R^{-1} U \right)^{-1}
+        U^{\top} R^{-1},
+    \qquad
+    U = \frac{(HX)^{\prime\top}}{\sqrt{N_{e} - 1}}.
+    $$
 
-    with ``U = (HX)′ᵀ / √(Nₑ − 1)``. Total cost
+    Total cost
     ``O(Nₑ² Nᵧ + Nₑ³)`` for low-rank Woodbury, instead of ``O(Nᵧ³)`` for
     the dense fallback. The dense ``(Nᵧ, Nᵧ)`` matrix is never materialised
     when ``R`` carries structure (diagonal, low-rank, Toeplitz, …).
@@ -48,7 +54,7 @@ def kalman_gain(
     Raises:
         ValueError: if ``Nₑ < 2``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import kalman_gain
@@ -74,10 +80,16 @@ def localized_kalman_gain(
     *,
     solver: gaussx.AbstractSolverStrategy | None = None,
 ) -> Float[Array, "N_x N_y"]:
-    r"""Localized Kalman gain ``K = (ρˣʸ ∘ Cˣᴴ) (ρʸʸ ∘ Cᴴᴴ + R)⁻¹``.
+    r"""Kalman gain with Schur-product (Hadamard) localization.
 
     Thin wrapper over :func:`gaussx.localized_kalman_gain` with the EnKF
-    Bessel convention. Tapering both covariances with the Schur
+    Bessel convention. Computes
+
+    $$
+    K = (\rho^{xy} \circ C^{xH})\,(\rho^{yy} \circ C^{HH} + R)^{-1}.
+    $$
+
+    Tapering both covariances with the Schur
     (element-wise) product suppresses spurious long-range correlations;
     by the Schur product theorem the tapered innovation covariance stays
     PSD when ``ρʸʸ`` is (use :func:`filterax.localization_matrix` /
@@ -103,7 +115,7 @@ def localized_kalman_gain(
     Raises:
         ValueError: if ``Nₑ < 2``.
 
-    Example:
+    Examples:
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import kalman_gain, localized_kalman_gain
