@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.4](https://github.com/jejjohnson/filterax/compare/v0.0.3...v0.0.4) (2026-06-11)
+
+
+### Features
+
+* **differentiable:** add ROAD-EnKF local-gradient training ([#84](https://github.com/jejjohnson/filterax/issues/84)) ([8368c89](https://github.com/jejjohnson/filterax/commit/8368c8974130aa60093a6c3917c1c3629d188a87))
+* integrate gaussx 0.0.18, pipekit protocols, themed API docs ([#91](https://github.com/jejjohnson/filterax/issues/91)) ([ec443c7](https://github.com/jejjohnson/filterax/commit/ec443c733935b305ba940cc82637baedd63f87eb))
+* **latent:** add latent-space ensemble DA primitive (D17) ([#88](https://github.com/jejjohnson/filterax/issues/88)) ([28c1070](https://github.com/jejjohnson/filterax/commit/28c1070aab7a31795537427abfceca4ccf048f1d))
+
 ## [0.0.3](https://github.com/jejjohnson/filterax/compare/v0.0.2...v0.0.3) (2026-05-27)
 
 
