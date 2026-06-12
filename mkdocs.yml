@@ -53,6 +53,29 @@ plugins:
 
 nav:
   - Home: index.md
+  - Mathematical Reference:
+      - Foundation:
+          - 1. Problem Setting: math/01_problem_setting.md
+          - 2. Ensemble Representation: math/02_ensemble_representation.md
+          - 3. Observation Model: math/03_observation_model.md
+      - Analysis Methods:
+          - 4. Kalman Update & Ensemble Gain: math/04_kalman_update.md
+          - 5. Stochastic EnKF: math/05_stochastic_enkf.md
+          - 6. ETKF: math/06_etkf.md
+          - 7. EnSRF & ESTKF: math/07_ensrf_estkf.md
+          - 8. LETKF: math/08_letkf.md
+          - 9. Ensemble Kalman Processes: math/09_ensemble_kalman_processes.md
+          - 10. Ensemble Smoothers: math/10_smoothers.md
+      - Cross-cutting:
+          - 11. Localization: math/11_localization.md
+          - 12. Inflation: math/12_inflation.md
+          - 13. Diagnostics & Likelihood: math/13_diagnostics.md
+          - 14. Differentiable Assimilation: math/14_differentiable.md
+          - 15. Latent-Space Ensemble DA: math/15_latent_da.md
+          - 16. The Assimilation Cycle: math/16_assimilation_cycle.md
+      - Reference:
+          - Notation: math/notation.md
+          - References: math/references.md
   - API Reference:
       - Overview: api/index.md
       - Protocols & Types: api/protocols.md
