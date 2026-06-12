@@ -30,6 +30,22 @@ keeps the exact-gradient path differentiability-safe.
       show_root_toc_entry: false
       members: [differentiable_assimilate]
 
+## Adjoint strategies
+
+Declarative gradient policies for the scan, in the shared
+pipekit/diffrax vocabulary. `DirectAdjoint` is exact with the full
+tape; `RecursiveCheckpointAdjoint` is exact with recomputation;
+`TruncatedAdjoint(k)` cuts gradient flow more than `k` cycles back —
+biased, O(1) backward memory in `T`, and tolerant of chaotic gradient
+explosion. Structurally identical `pipekit_cycle.adjoints` specs are
+accepted interchangeably.
+
+::: filterax.differentiable
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [DirectAdjoint, RecursiveCheckpointAdjoint, TruncatedAdjoint]
+
 ## ROAD-EnKF local gradients
 
 `road_enkf_loss_and_grad` evaluates the loss and its local gradient in one
