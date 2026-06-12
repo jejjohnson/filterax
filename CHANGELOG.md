@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/jejjohnson/filterax/compare/v0.0.4...v0.0.5) (2026-06-12)
+
+
+### Features
+
+* adjoint strategy objects for differentiable assimilation ([#94](https://github.com/jejjohnson/filterax/issues/94)) ([a7392bb](https://github.com/jejjohnson/filterax/commit/a7392bb0a47bc9a562050bcc2995e45648a6ec3f))
+
 ## [0.0.4](https://github.com/jejjohnson/filterax/compare/v0.0.3...v0.0.4) (2026-06-11)
 
 
