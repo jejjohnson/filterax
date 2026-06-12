@@ -12,14 +12,21 @@ structurally, so the identically-named classes from
 * :class:`RecursiveCheckpointAdjoint` — :func:`jax.checkpoint` around
   the scan body: exact gradients, memory $O(\sqrt{T})$-ish at the cost
   of recomputation.
-* :class:`TruncatedAdjoint` — gradients flow only through the trailing
-  ``k`` cycles; earlier carries run under
-  :func:`jax.lax.stop_gradient`. Biased but memory $O(1)$ in ``T`` and
+* :class:`TruncatedAdjoint` — cross-cycle gradient flow stops more
+  than ``k`` cycles back: carries leaving earlier cycles run under
+  :func:`jax.lax.stop_gradient`. Per-cycle *outputs* keep their local
+  gradients deliberately — a loss summed over the returned histories
+  (e.g. ``-sum(log_likelihoods)``) therefore reproduces the ROAD-EnKF
+  local-gradient estimator, where every window contributes its own
+  term but no cross-window adjoint products form. Biased but
   *chaos-tolerant*: the exact adjoint of a chaotic rollout grows like
   $e^{\lambda_{\max} T}$, so truncation acts as gradient
-  regularisation. ``k=1`` is the cycle-level ROAD-EnKF training regime
-  (see :func:`filterax.differentiable.road_enkf_loss_and_grad` for the
-  full ROAD-EnKF recipe with its per-window local losses).
+  regularisation. Backward memory is $O(1)$ in ``T`` for losses on
+  the final state; for history-summed losses the activation memory
+  matches the plain scan, and the win is the bounded gradient depth.
+  (See :func:`filterax.differentiable.road_enkf_loss_and_grad` for
+  the sequential ROAD-EnKF driver whose memory is $O(N_e N_x)$
+  regardless of the loss.)
 
 Forward values are identical under every strategy — only the gradient
 computation differs.
@@ -52,6 +59,12 @@ class RecursiveCheckpointAdjoint:
 @dataclass(frozen=True)
 class TruncatedAdjoint:
     """Gradients flow through the trailing ``k`` cycles only.
+
+    Cross-cycle flow through the ensemble carry is cut more than
+    ``k`` cycles back; per-cycle outputs keep their local gradients,
+    so history-summed losses accumulate one local term per window
+    (the ROAD-EnKF estimator at ``k=1``) instead of exploding
+    cross-window products.
 
     Attributes:
         k: Number of trailing cycles that propagate gradients through

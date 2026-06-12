@@ -104,6 +104,38 @@ class TestEquivalences:
         assert jnp.allclose(g_foreign, g_ours)
 
 
+class TestLocalGradientSemantics:
+    def test_early_windows_contribute_locally_under_k1(self):
+        """Per-cycle outputs keep local gradients (ROAD-EnKF semantics).
+
+        With k=1 a history-summed loss must still receive one local
+        term per window — only cross-window flow is cut. If early
+        outputs were detached too, the summed-history gradient would
+        collapse onto the final window's gradient.
+        """
+        init, obs, times, R = _setup()
+
+        def loss(a, final_only):
+            result = differentiable_assimilate(
+                ETKF(),
+                _LinearDynamics(a),
+                lambda x: x,
+                init,
+                obs,
+                times,
+                R,
+                adjoint=TruncatedAdjoint(k=1),
+            )
+            logps = result.log_likelihoods
+            return -logps[-1] if final_only else -jnp.sum(logps)
+
+        a = jnp.asarray(0.9)
+        g_sum = jax.grad(lambda a: loss(a, final_only=False))(a)
+        g_last = jax.grad(lambda a: loss(a, final_only=True))(a)
+        assert jnp.isfinite(g_sum) and jnp.isfinite(g_last)
+        assert not jnp.allclose(g_sum, g_last)
+
+
 class TestChaoticTaming:
     def test_truncated_gradient_bounded_on_expanding_dynamics(self):
         """On expanding dynamics the truncated gradient is far tamer."""

@@ -62,10 +62,14 @@ vardax (names mirror diffrax's adjoint classes):
 |---|---|---|---|
 | `DirectAdjoint` (default) | exact | $O(T)$ | short rollouts |
 | `RecursiveCheckpointAdjoint` | exact | $O(\sqrt{T})$-ish (recompute) | long rollouts, exact gradients required |
-| `TruncatedAdjoint(k)` | biased: trailing $k$ cycles only | $O(1)$ in $T$ | long *chaotic* rollouts; learned-forecast training |
+| `TruncatedAdjoint(k)` | biased: no cross-cycle flow beyond $k$ (per-cycle outputs keep local gradients) | $O(1)$ in $T$ for final-state losses; bounded gradient depth otherwise | long *chaotic* rollouts; learned-forecast training |
 
 `TruncatedAdjoint` runs every carry before the trailing-$k$ window
-under `stop_gradient`. This is not merely an approximation: for
+under `stop_gradient`, while per-cycle outputs keep their *local*
+gradients — so a loss summed over the returned history reproduces the
+ROAD-EnKF local-gradient estimator (each window contributes its own
+term; no cross-window adjoint products form). This is not merely an
+approximation: for
 chaotic dynamics the exact adjoint norm grows like
 $e^{\lambda_{\max} T \Delta t}$ (Lea et al. 2000), so truncation acts
 as gradient *regularisation* — the same insight behind ROAD-EnKF
