@@ -52,6 +52,34 @@ recomputed during the backward pass, cutting memory to
 $O(\sqrt{T} \cdot N_e N_x)$ at roughly 2–3× compute. It is a pure
 memory/compute trade — the values and gradients are unchanged.
 
+## Adjoint strategies
+
+The gradient policy of the scan is selected with the ``adjoint=``
+argument, using the vocabulary shared across pipekit, filterax, and
+vardax (names mirror diffrax's adjoint classes):
+
+| Strategy | Gradient | Backward memory | When |
+|---|---|---|---|
+| `DirectAdjoint` (default) | exact | $O(T)$ | short rollouts |
+| `RecursiveCheckpointAdjoint` | exact | $O(\sqrt{T})$-ish (recompute) | long rollouts, exact gradients required |
+| `TruncatedAdjoint(k)` | biased: no cross-cycle flow beyond $k$ (per-cycle outputs keep local gradients) | $O(1)$ in $T$ for final-state losses; bounded gradient depth otherwise | long *chaotic* rollouts; learned-forecast training |
+
+`TruncatedAdjoint` runs every carry before the trailing-$k$ window
+under `stop_gradient`, while per-cycle outputs keep their *local*
+gradients — so a loss summed over the returned history reproduces the
+ROAD-EnKF local-gradient estimator (each window contributes its own
+term; no cross-window adjoint products form). This is not merely an
+approximation: for
+chaotic dynamics the exact adjoint norm grows like
+$e^{\lambda_{\max} T \Delta t}$ (Lea et al. 2000), so truncation acts
+as gradient *regularisation* — the same insight behind ROAD-EnKF
+(below), of which `TruncatedAdjoint(k=1)` is the cycle-level
+generalisation to any deterministic filter. Forward values are
+identical under every strategy; only gradients differ. The
+structurally identical `pipekit_cycle.adjoints` specs are accepted
+interchangeably, and the same vocabulary selects diffrax adjoints for
+the dynamics layer via `pipekit_jax.DiffraxForwardModel` (chapter 16).
+
 ## What is refused: stochastic components
 
 Two ingredients break smooth gradients and are rejected with a

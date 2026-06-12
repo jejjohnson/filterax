@@ -31,6 +31,7 @@ get a clear error instead of silently noisy gradients.
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import equinox as eqx
@@ -45,6 +46,7 @@ from filterax._protocols import (
     AbstractObsOperator,
     AbstractSequentialFilter,
 )
+from filterax._train._adjoints import resolve_adjoint
 from filterax._types import AssimilationResult
 
 
@@ -98,6 +100,7 @@ def differentiable_assimilate(
     *,
     inflator: AbstractInflator | None = None,
     t0: float | Float[Array, ""] = 0.0,
+    adjoint: Any | None = None,
     checkpoint: bool = False,
     **analysis_extra: Any,
 ) -> AssimilationResult:
@@ -125,7 +128,20 @@ def differentiable_assimilate(
             (``MultiplicativeInflator`` / ``RTPS`` / ``RTPP``).
             ``AdditiveInflator`` raises.
         t0: Starting time used for the first forecast window. Default 0.
-        checkpoint: When ``True``, wrap the scan body with
+        adjoint: Gradient strategy for the scan — a
+            :class:`filterax.differentiable.DirectAdjoint` (default:
+            exact, full tape),
+            :class:`filterax.differentiable.RecursiveCheckpointAdjoint`
+            (exact, recomputing), or
+            :class:`filterax.differentiable.TruncatedAdjoint` (biased:
+            gradients flow through the trailing ``k`` cycles only —
+            O(1) backward memory in ``T`` and chaos-tolerant). The
+            structurally identical ``pipekit_cycle.adjoints`` specs are
+            accepted interchangeably. Forward values are identical
+            under every strategy.
+        checkpoint: Deprecated — use
+            ``adjoint=RecursiveCheckpointAdjoint()`` instead. When
+            ``True``, wrap the scan body with
             :func:`jax.checkpoint`. Reduces backward-pass memory from
             ``O(T Nₑ Nₓ)`` to ``O(√T Nₑ Nₓ)`` at 2–3× compute cost — see
             §5.1 of the differentiable-DA design doc.
@@ -204,11 +220,48 @@ def differentiable_assimilate(
             log_lik,
         )
 
-    step_fn = jax.checkpoint(step) if checkpoint else step
+    if checkpoint:
+        warnings.warn(
+            "checkpoint=True is deprecated; use "
+            "adjoint=RecursiveCheckpointAdjoint() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    strategy = resolve_adjoint(adjoint, checkpoint)
+    strategy_name = type(strategy).__name__
     init_carry = (init_ensemble, t0_arr)
-    (final_particles, _), (forecasts, analyses, logps) = jax.lax.scan(
-        step_fn, init_carry, (observations, obs_times)
-    )
+
+    if strategy_name == "TruncatedAdjoint":
+        # Gradients flow through the trailing-k carries only: earlier
+        # steps route the carry through stop_gradient (jnp.where keeps
+        # the trailing window differentiable). Forward values are
+        # identical to the plain scan.
+        length = observations.shape[0]
+        cutoff = length - strategy.k
+
+        def truncated_step(carry, indexed):
+            i, inputs = indexed
+            new_carry, out = step(carry, inputs)
+            cut = i < cutoff
+            new_carry = jax.tree.map(
+                lambda c: jnp.where(cut, jax.lax.stop_gradient(c), c), new_carry
+            )
+            return new_carry, out
+
+        (final_particles, _), (forecasts, analyses, logps) = jax.lax.scan(
+            truncated_step,
+            init_carry,
+            (jnp.arange(length), (observations, obs_times)),
+        )
+    else:
+        step_fn = (
+            jax.checkpoint(step)
+            if strategy_name == "RecursiveCheckpointAdjoint"
+            else step
+        )
+        (final_particles, _), (forecasts, analyses, logps) = jax.lax.scan(
+            step_fn, init_carry, (observations, obs_times)
+        )
     return AssimilationResult(
         particles=final_particles,
         forecast_history=forecasts,
