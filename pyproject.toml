@@ -47,6 +47,10 @@ dev = [
     "pre-commit>=4.5.1",
     # tests/test_docstrings.py parses docstrings the way mkdocstrings does.
     "griffe>=1.0",
+    # Test-only: tests/test_pipekit_integration.py checks the adapters in
+    # filterax.pipekit against pipekit-cycle's runtime Protocols and runs
+    # them through EnsembleDACycle. filterax itself never imports pipekit.
+    "pipekit-cycle",
 ]
 lint = [
     "ruff>=0.15.10",
@@ -72,6 +76,12 @@ docs = [
     # through as None. Pin until a fixed pymdown-extensions release ships (#38).
     "pygments>=2.19,<2.22",
 ]
+
+# pipekit is not on PyPI; the dev group resolves pipekit-cycle (and the
+# pipekit core it depends on) from their release tags.
+[tool.uv.sources]
+pipekit = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit", tag = "pipekit-v0.1.1" }
+pipekit-cycle = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-cycle", tag = "pipekit-cycle-v0.0.3" }
 
 [build-system]
 requires = ["hatchling"]
