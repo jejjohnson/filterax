@@ -118,8 +118,13 @@ def _eki_delta(
     r"""Per-member EKI increment.
 
     $$
-    \delta\theta^{(j)} = \Delta t\, C^{\theta G} S^{-1} \big(y - G^{(j)}\big)
+    \delta\theta^{(j)} = C^{\theta G} S^{-1} \big(y - G^{(j)}\big),
+        \qquad S = C^{GG} + \Delta t^{-1} \Gamma
     $$
+
+    The step size enters once, through the tempered noise in ``S``. As
+    ``Δt → 0`` the increment tends to ``Δt Cᶿᴳ Γ⁻¹ (y − G⁽ʲ⁾)``, the Euler
+    step of the continuous-time flow ``θ̇ = Cᶿᴳ Γ⁻¹ (y − G)``.
 
     ``S`` is built as a low-rank update so the solve is Woodbury when
     ``Γ`` is structured. The cross-covariance ``Cᶿᴳ`` is a dense
@@ -136,8 +141,8 @@ def _eki_delta(
     innovations = einx.subtract("d, j d -> j d", obs, forward_evals)
     # Solve once for each per-member innovation: S⁻¹ rⱼ.
     S_inv_innov = gaussx.solve_rows(S, innovations)  # (J, N_d)
-    # δθⱼ = Δt · Cᶿᴳ (S⁻¹ rⱼ).
-    return dt * einx.dot("p d, j d -> j p", C_theta_G, S_inv_innov)
+    # δθⱼ = Cᶿᴳ (S⁻¹ rⱼ); Δt is already in S through Δt⁻¹ Γ.
+    return einx.dot("p d, j d -> j p", C_theta_G, S_inv_innov)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -152,7 +157,7 @@ class EKI(AbstractProcess, strict=True):
     regularised-least-squares solution. The update for each member:
 
     $$
-    \theta^{(j)}_{n+1} = \theta^{(j)}_n + \Delta t_n\, C^{\theta G}_n
+    \theta^{(j)}_{n+1} = \theta^{(j)}_n + C^{\theta G}_n
         \big(C^{G G}_n + \Delta t_n^{-1} \Gamma\big)^{-1}
         \big(y - G(\theta^{(j)}_n)\big)
     $$
@@ -426,9 +431,10 @@ class UKI(AbstractProcess, strict=True):
     $$
     \begin{aligned}
     \mu_{n+1} &= \mu_n
-        + \Delta t\, C^{\theta y} S_n^{-1} \big(y - \hat{y}_0\big) \\
+        + C^{\theta y} S_n^{-1} \big(y - \hat{y}_0\big) \\
     \Sigma_{n+1} &= \Sigma_n
-        - \Delta t\, C^{\theta y} S_n^{-1} C^{\theta y \top}
+        - C^{\theta y} S_n^{-1} C^{\theta y \top},
+        \qquad S_n = C^{yy} + \Delta t^{-1} \Gamma
     \end{aligned}
     $$
 
@@ -517,11 +523,11 @@ class UKI(AbstractProcess, strict=True):
         innovation = obs - y_mean
         K = jnp.linalg.solve(S_tempered.T, C_theta_y.T).T  # (Nₚ, N_d)
 
-        mean_new = state.mean + dt * einx.dot("p d, d -> p", K, innovation)
-        # Σ_{n+1} = Σ̂ − Δt · K · S_tempered · K^T  (Huang 2022 eq. 14).
+        mean_new = state.mean + einx.dot("p d, d -> p", K, innovation)
+        # Σ_{n+1} = Σ̂ − K S_tempered Kᵀ; Δt enters once, through Δt⁻¹ Γ in S.
         Sigma_dense = state.covariance.as_matrix()
         K_S = einx.dot("p a, a b -> p b", K, S_tempered)  # (Nₚ, N_d)
-        Sigma_new = Sigma_dense - dt * einx.dot("p d, q d -> p q", K_S, K)
+        Sigma_new = Sigma_dense - einx.dot("p d, q d -> p q", K_S, K)
         Sigma_new = 0.5 * (Sigma_new + Sigma_new.T)
         return UKIState(
             mean=mean_new,

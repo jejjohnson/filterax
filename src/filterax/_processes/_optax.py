@@ -419,11 +419,11 @@ def uki(
         innovation = obs - y_mean
         K_gain = jnp.linalg.solve(S_tempered.T, C_theta_y.T).T
 
-        new_mean = state.mean + dt * einx.dot("p d, d -> p", K_gain, innovation)
-        # Σ_{n+1} = Σ̂ − Δt · K · S_tempered · K^T  (Huang 2022 eq. 14).
+        new_mean = state.mean + einx.dot("p d, d -> p", K_gain, innovation)
+        # Σ_{n+1} = Σ̂ − K S_tempered Kᵀ; Δt enters once, through Δt⁻¹ Γ in S.
         Sigma_dense = state.covariance.as_matrix()
         K_S = einx.dot("p a, a b -> p b", K_gain, S_tempered)
-        Sigma_new = Sigma_dense - dt * einx.dot("p d, q d -> p q", K_S, K_gain)
+        Sigma_new = Sigma_dense - einx.dot("p d, q d -> p q", K_S, K_gain)
         Sigma_new = 0.5 * (Sigma_new + Sigma_new.T)
         cov_new = lx.MatrixLinearOperator(Sigma_new, tags=lx.positive_semidefinite_tag)
 
