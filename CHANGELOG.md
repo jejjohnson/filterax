@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.6](https://github.com/jejjohnson/filterax/compare/v0.0.5...v0.0.6) (2026-10-27)
+
+
+### Features
+
+* **processes:** bayesian inversion at layer 2 with TEKI and a prior-aware EKS ([#110](https://github.com/jejjohnson/filterax/issues/110)) ([473497c](https://github.com/jejjohnson/filterax/commit/473497c18facebff63cc9b5fff604862d8b9a563))
+
+
+### Bug Fixes
+
+* **processes:** apply the step size once in the tempered Kalman updates ([#108](https://github.com/jejjohnson/filterax/issues/108)) ([e7bb1e4](https://github.com/jejjohnson/filterax/commit/e7bb1e401c0a13cf0d72a9c0ce11c79732ff5ed3)), closes [#106](https://github.com/jejjohnson/filterax/issues/106)
+
 ## [0.0.5](https://github.com/jejjohnson/filterax/compare/v0.0.4...v0.0.5) (2026-09-18)
 
 
