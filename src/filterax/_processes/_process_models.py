@@ -22,6 +22,7 @@ from jaxtyping import Array, Float, PRNGKeyArray
 
 from filterax._processes._processes import (
     EKI as _EKI,
+    TEKI as _TEKI,
     UKI as _UKI,
     EKS_Process as _EKS,
 )
@@ -112,7 +113,7 @@ def _ensemble_cov_dense(
 
 
 def _run_ensemble(
-    process: _EKI | _EKS,
+    process: _EKI | _EKS | _TEKI,
     forward_fn: ForwardFn,
     init_particles: Float[Array, "J N_p"],
     obs: Float[Array, " N_d"],
@@ -216,6 +217,10 @@ class EKS(eqx.Module, strict=True):
             its ``scheduler`` and ``n_iterations`` fields take precedence
             over the module-level ``scheduler`` and the ``500``-iteration
             default.
+        prior_mean: Prior mean ``m₀``. With ``prior_cov``, the ensemble
+            samples the posterior ``p(θ | y) ∝ p(y | θ) 𝒩(θ; m₀, Σ₀)``;
+            without them, the likelihood alone (a flat prior).
+        prior_cov: Prior covariance ``Σ₀``.
     """
 
     forward_fn: ForwardFn
@@ -224,12 +229,97 @@ class EKS(eqx.Module, strict=True):
     scheduler: AbstractScheduler = eqx.field(default_factory=EKSStableScheduler)
     seed: int = eqx.field(static=True, default=0)
     config: ProcessConfig | None = None
+    prior_mean: Float[Array, " N_p"] | None = None
+    prior_cov: lx.AbstractLinearOperator | None = None
 
     def run(self, init_particles: Float[Array, "J N_p"]) -> ProcessResult:
         sched = _resolve_scheduler(self.scheduler, self.config)
         n_iter = _resolve_n_iterations(self.config, default=500)
         return _run_ensemble(
-            _EKS(scheduler=sched, key=self.seed),
+            _EKS(
+                scheduler=sched,
+                key=self.seed,
+                prior_mean=self.prior_mean,
+                prior_cov=self.prior_cov,
+            ),
+            self.forward_fn,
+            init_particles,
+            self.obs,
+            self.noise_cov,
+            n_iterations=n_iter,
+            stop_at_algo_time_one=False,
+        )
+
+
+class TEKI(eqx.Module, strict=True):
+    r"""Tikhonov Ensemble Kalman Inversion — full run loop to the MAP.
+
+    EKI on the augmented system $\tilde G(\theta) = (G(\theta), \theta)$,
+    $\tilde y = (y, m_0)$, $\tilde\Gamma = \mathrm{blockdiag}(\Gamma, \Sigma_0)$
+    (Chada, Stuart & Tong 2020). The prior enters as data, so the
+    iteration targets the maximum a posteriori estimate
+
+    $$
+    \theta^* = \arg\min_\theta\;
+        \tfrac{1}{2} \|y - G(\theta)\|^2_{\Gamma^{-1}}
+        + \tfrac{1}{2} \|\theta - m_0\|^2_{\Sigma_0^{-1}},
+    $$
+
+    whereas :class:`EKI` converges toward a least-squares fit in the span
+    of the initial ensemble. The MAP is a fixed point of every step, so
+    the run does not stop at ``algo_time = 1``; it runs ``n_iterations``
+    steps while the deterministic ensemble contracts onto it. The final
+    ensemble spread is a convergence diagnostic, not a posterior
+    uncertainty; use :class:`EKS` with the same prior for samples.
+
+    Attributes:
+        forward_fn: ``θ → G(θ)``.
+        obs: Observation vector ``y``.
+        noise_cov: Observation noise covariance ``Γ``.
+        prior_mean: Prior mean ``m₀``.
+        prior_cov: Prior covariance ``Σ₀``.
+        scheduler: Step-size strategy (default ``FixedScheduler(dt=1.0)``,
+            one augmented Kalman update per iteration). Ignored when
+            ``config`` is provided.
+        config: Optional :class:`ProcessConfig`. When provided, **both**
+            its ``scheduler`` and ``n_iterations`` fields take precedence
+            over the module-level ``scheduler`` and the ``200``-iteration
+            default.
+
+    Examples:
+        >>> import jax, jax.numpy as jnp, lineax as lx
+        >>> import filterax as flx
+        >>> F = jnp.array([[1.0, 0.5], [-0.3, 1.2], [0.7, 0.1]])
+        >>> y = jnp.array([0.9, -1.4, 0.6])
+        >>> teki = flx.TEKI(
+        ...     forward_fn=lambda th: F @ th,
+        ...     obs=y,
+        ...     noise_cov=lx.DiagonalLinearOperator(0.1 * jnp.ones(3)),
+        ...     prior_mean=jnp.zeros(2),
+        ...     prior_cov=lx.DiagonalLinearOperator(jnp.ones(2)),
+        ... )
+        >>> init = jax.random.normal(jax.random.key(0), (50, 2))
+        >>> teki.run(init).mean.shape
+        (2,)
+    """
+
+    forward_fn: ForwardFn
+    obs: Float[Array, " N_d"]
+    noise_cov: lx.AbstractLinearOperator
+    prior_mean: Float[Array, " N_p"]
+    prior_cov: lx.AbstractLinearOperator
+    scheduler: AbstractScheduler = eqx.field(
+        default_factory=lambda: FixedScheduler(dt=1.0)
+    )
+    config: ProcessConfig | None = None
+
+    def run(self, init_particles: Float[Array, "J N_p"]) -> ProcessResult:
+        sched = _resolve_scheduler(self.scheduler, self.config)
+        n_iter = _resolve_n_iterations(self.config, default=200)
+        return _run_ensemble(
+            _TEKI(
+                scheduler=sched, prior_mean=self.prior_mean, prior_cov=self.prior_cov
+            ),
             self.forward_fn,
             init_particles,
             self.obs,

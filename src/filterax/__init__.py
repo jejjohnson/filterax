@@ -73,6 +73,7 @@ from filterax._primitives._statistics import (
 from filterax._processes._process_models import (
     EKI as EKI,
     EKS as EKS,
+    TEKI as TEKI,
     UKI as UKI,
     ProcessResult as ProcessResult,
 )

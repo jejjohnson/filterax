@@ -252,10 +252,16 @@ class EKS_Process(AbstractProcess, strict=True):
     $$
     \mathrm{d}\theta^{(j)} =
         C^{\theta G} \Gamma^{-1} \big(y - G^{(j)}\big)\, \mathrm{d}t
+        - C^{\theta\theta} \Sigma_0^{-1} \big(\theta^{(j)} - m_0\big)\,
+          \mathrm{d}t
         - (N_p + 1)\, J^{-1} \big(\theta^{(j)} - \bar{\theta}\big)\,
           \mathrm{d}t
         + \sqrt{2\, C^{\theta\theta}}\; \mathrm{d}W^{(j)}
     $$
+
+    The prior term is present only when ``prior_mean`` and ``prior_cov``
+    are given; without them the stationary law is the likelihood alone
+    (a flat prior), which is the behaviour before the prior was added.
 
     The discrete-time recipe used here matches Garbuno-Inigo §4: an
     EKI-style mean update (with ``Δt⁻¹ Γ`` tempering), the
@@ -271,18 +277,33 @@ class EKS_Process(AbstractProcess, strict=True):
         key: Base PRNG key for the Brownian draws. Each step uses
             ``jr.fold_in(key, state.step)`` so successive updates are
             independent without manual key splitting.
+        prior_mean: Prior mean ``m₀ ∈ ℝ^{Nₚ}``, or ``None`` for a flat
+            prior. Give it together with ``prior_cov``.
+        prior_cov: Prior covariance ``Σ₀``, or ``None`` for a flat prior.
+            ``Σ₀⁻¹`` is applied through :func:`gaussx.solve_rows`, never
+            formed densely.
     """
 
     scheduler: AbstractScheduler
     key: PRNGKeyArray
+    prior_mean: Float[Array, " N_p"] | None
+    prior_cov: lx.AbstractLinearOperator | None
 
     def __init__(
         self,
         scheduler: AbstractScheduler,
         key: PRNGKeyArray | int = 0,
+        prior_mean: Float[Array, " N_p"] | None = None,
+        prior_cov: lx.AbstractLinearOperator | None = None,
     ):
+        if (prior_mean is None) != (prior_cov is None):
+            raise ValueError(
+                "EKS_Process needs both prior_mean and prior_cov, or neither."
+            )
         self.scheduler = scheduler
         self.key = jr.PRNGKey(key) if isinstance(key, int) else key
+        self.prior_mean = prior_mean
+        self.prior_cov = prior_cov
 
     def init(
         self,
@@ -337,6 +358,15 @@ class EKS_Process(AbstractProcess, strict=True):
         )
 
         particles_new = state.particles + drift_data + drift_pull + noise
+
+        # 4. Prior drift ``− Δt Cᶿᶿ Σ₀⁻¹ (θ⁽ʲ⁾ − m₀)``, with
+        #    Cᶿᶿ v = X′ᵀ (X′ v) / (J − 1) so no Nₚ × Nₚ matrix is formed.
+        if self.prior_mean is not None and self.prior_cov is not None:
+            offset = einx.subtract("j p, p -> j p", state.particles, self.prior_mean)
+            precision_offset = gaussx.solve_rows(self.prior_cov, offset)  # (J, Nₚ)
+            weights = einx.dot("k p, j p -> j k", anom, precision_offset)  # (J, J)
+            prior_drift = einx.dot("j k, k p -> j p", weights, anom) / (J - 1)
+            particles_new = particles_new - dt * prior_drift
         return ProcessState(
             particles=particles_new,
             forward_evals=forward_evals,
