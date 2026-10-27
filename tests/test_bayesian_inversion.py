@@ -139,3 +139,67 @@ def test_eks_samples_the_posterior(prior):
 def test_eks_prior_needs_both_mean_and_covariance():
     with pytest.raises(ValueError, match="both prior_mean and prior_cov"):
         EKS_Process(scheduler=flx.FixedScheduler(dt=0.1), prior_mean=jnp.zeros(2))
+
+
+# ──────────────────────────────────────────────────────────────────────
+# EKS prior term: implicit, so a tight prior cannot destabilise it
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _uninformative_eks(scheduler, n_iterations):
+    """Constant forward model, prior 100× tighter than the initial ensemble."""
+    m0 = jnp.asarray([0.3, -0.2])
+    eks = flx.EKS(
+        forward_fn=lambda th: jnp.zeros(3),
+        obs=jnp.zeros(3),
+        noise_cov=lx.DiagonalLinearOperator(jnp.ones(3)),
+        prior_mean=m0,
+        prior_cov=_psd(0.01 * jnp.eye(2)),
+        config=ProcessConfig(scheduler=scheduler, n_iterations=n_iterations),
+    )
+    return m0, eks.run(jax.random.normal(jax.random.key(0), (200, 2)))
+
+
+def test_eks_tight_prior_is_stable_with_default_scheduler():
+    """The default scheduler picks Δt ≈ 1 here; an explicit prior drift
+    multiplied offsets by 1 − Δt/σ₀² = −99 per step and diverged."""
+    m0, result = _uninformative_eks(flx.EKSStableScheduler(), 60)
+    assert bool(jnp.all(jnp.isfinite(result.particles)))
+    assert float(jnp.max(jnp.abs(result.mean - m0))) < 0.05
+    ratio = jnp.diag(result.covariance.as_matrix()) / 0.01
+    assert bool(jnp.all((ratio > 0.5) & (ratio < 2.0)))
+
+
+def test_eks_uninformative_data_returns_the_prior():
+    m0, result = _uninformative_eks(flx.FixedScheduler(dt=0.02), 600)
+    z = jnp.abs(result.mean - m0) / 0.1
+    ratio = jnp.diag(result.covariance.as_matrix()) / 0.01
+    assert float(jnp.max(z)) < 0.25
+    assert bool(jnp.all((ratio > 0.75) & (ratio < 1.3)))
+
+
+def test_eks_implicit_prior_step_matches_dense_formula():
+    """θ = θ* − (I + Δt C Σ₀⁻¹)⁻¹ Δt C Σ₀⁻¹ (θ* − m₀), formed densely."""
+    J, n_p, dt = 30, 4, 0.7
+    particles = jax.random.normal(jax.random.key(3), (J, n_p))
+    m0 = jnp.linspace(-1.0, 1.0, n_p)
+    S0 = jnp.diag(jnp.asarray([0.01, 0.1, 1.0, 10.0]))
+    # A constant forward model zeroes the data drift; zero ensemble noise is
+    # not reachable, so compare against the same key's explicit update.
+    process = EKS_Process(
+        scheduler=flx.FixedScheduler(dt=dt), key=5, prior_mean=m0, prior_cov=_psd(S0)
+    )
+    flat = EKS_Process(scheduler=flx.FixedScheduler(dt=dt), key=5)
+    noise_cov = lx.DiagonalLinearOperator(jnp.ones(2))
+    evals = jnp.zeros((J, 2))
+    explicit = flat.update(flat.init(particles, jnp.zeros(2), noise_cov), evals)
+    implicit = process.update(process.init(particles, jnp.zeros(2), noise_cov), evals)
+    anom = particles - particles.mean(0)
+    C = anom.T @ anom / (J - 1)
+    A = C @ jnp.linalg.inv(S0)
+    theta_star = explicit.particles
+    expected = (
+        theta_star
+        - jnp.linalg.solve(jnp.eye(n_p) + dt * A, dt * A @ (theta_star - m0).T).T
+    )
+    np.testing.assert_allclose(implicit.particles, expected, rtol=1e-10, atol=1e-12)

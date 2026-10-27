@@ -262,6 +262,9 @@ class EKS_Process(AbstractProcess, strict=True):
     The prior term is present only when ``prior_mean`` and ``prior_cov``
     are given; without them the stationary law is the likelihood alone
     (a flat prior), which is the behaviour before the prior was added.
+    The prior term is taken implicitly in θ, as in Garbuno-Inigo et al.
+    (2020, §4), so a prior much tighter than the ensemble contracts the
+    particles toward ``m₀`` for any ``Δt`` instead of amplifying them.
 
     The discrete-time recipe used here matches Garbuno-Inigo §4: an
     EKI-style mean update (with ``Δt⁻¹ Γ`` tempering), the
@@ -359,14 +362,29 @@ class EKS_Process(AbstractProcess, strict=True):
 
         particles_new = state.particles + drift_data + drift_pull + noise
 
-        # 4. Prior drift ``− Δt Cᶿᶿ Σ₀⁻¹ (θ⁽ʲ⁾ − m₀)``, with
-        #    Cᶿᶿ v = X′ᵀ (X′ v) / (J − 1) so no Nₚ × Nₚ matrix is formed.
+        # 4. Prior drift ``− Δt Cᶿᶿ Σ₀⁻¹ (θ⁽ʲ⁾ − m₀)``, taken implicitly in
+        #    θ (Garbuno-Inigo et al. 2020, §4) so a prior tighter than the
+        #    ensemble cannot destabilise the step:
+        #        θ ← θ* − (I + Δt C Σ₀⁻¹)⁻¹ Δt C Σ₀⁻¹ (θ* − m₀),
+        #    θ* being the explicit update above. With C = U Uᵀ,
+        #    U = X′ᵀ / √(J − 1), the push-through identity gives
+        #        (I + Δt U Uᵀ Σ₀⁻¹)⁻¹ Δt U Uᵀ Σ₀⁻¹
+        #            = Δt U (I_J + Δt Uᵀ Σ₀⁻¹ U)⁻¹ Uᵀ Σ₀⁻¹,
+        #    so only a J × J system is solved and no Nₚ × Nₚ matrix is formed.
         if self.prior_mean is not None and self.prior_cov is not None:
-            offset = einx.subtract("j p, p -> j p", state.particles, self.prior_mean)
+            offset = einx.subtract(
+                "j p, p -> j p", particles_new, self.prior_mean
+            )  # (J, Nₚ)
             precision_offset = gaussx.solve_rows(self.prior_cov, offset)  # (J, Nₚ)
-            weights = einx.dot("k p, j p -> j k", anom, precision_offset)  # (J, J)
-            prior_drift = einx.dot("j k, k p -> j p", weights, anom) / (J - 1)
-            particles_new = particles_new - dt * prior_drift
+            precision_anom = gaussx.solve_rows(self.prior_cov, anom)  # (J, Nₚ)
+            # Uᵀ Σ₀⁻¹ U = X′ Σ₀⁻¹ X′ᵀ / (J − 1)
+            gram = einx.dot("k p, l p -> k l", anom, precision_anom) / (J - 1)
+            system = jnp.eye(J, dtype=gram.dtype) + dt * gram  # (J, J)
+            # Uᵀ Σ₀⁻¹ (θ*ⱼ − m₀), one column per member
+            rhs = einx.dot("k p, j p -> k j", anom, precision_offset) / jnp.sqrt(J - 1)
+            coeff = jnp.linalg.solve(system, rhs)  # (J, J)
+            correction = dt * einx.dot("k j, k p -> j p", coeff, anom) / jnp.sqrt(J - 1)
+            particles_new = particles_new - correction
         return ProcessState(
             particles=particles_new,
             forward_evals=forward_evals,
