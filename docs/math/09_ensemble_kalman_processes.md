@@ -212,9 +212,10 @@ small steps while the misfit is large and stops at the noise level.
 
 ## Choosing a process
 
-Need posterior samples → **EKS**. Need a calibrated parametric
+Need posterior samples → **EKS** with `prior_mean` / `prior_cov`. Need
+the MAP under a Gaussian prior without gradients → **TEKI**. Need a calibrated parametric
 covariance and $N_p \lesssim 100$ → **UKI**. Sparse parameters →
-**SparseInversion**. Ill-posed, drifting EKI → **TEKI**.
+**SparseInversion**.
 Well-conditioned with $J > N_p$ and a hurry → **GNKI**. Otherwise →
 **EKI**, the simple robust default.
 
