@@ -25,7 +25,7 @@ forward evaluations $G^{(j)} = G(\theta^{(j)}_n)$, sample
 cross-covariance $C^{\theta G}_n$ and obs-space covariance $C^{GG}_n$:
 
 $$
-\theta^{(j)}_{n+1} = \theta^{(j)}_n + \Delta t_n\, C^{\theta G}_n
+\theta^{(j)}_{n+1} = \theta^{(j)}_n + C^{\theta G}_n
     \big(C^{G G}_n + \Delta t_n^{-1} \Gamma\big)^{-1}
     \big(y - G(\theta^{(j)}_n)\big).
 $$
@@ -84,9 +84,11 @@ at every sigma point and the unscented statistics feed a tempered
 Kalman update on $(\mu, \Sigma)$:
 
 $$
-\mu_{n+1} = \mu_n + \Delta t\, C^{\theta y} S_n^{-1} (y - \hat{y}_0),
+\mu_{n+1} = \mu_n + C^{\theta y} S_n^{-1} (y - \hat{y}_0),
 \qquad
-\Sigma_{n+1} = \Sigma_n - \Delta t\, C^{\theta y} S_n^{-1} C^{\theta y \top}.
+\Sigma_{n+1} = \Sigma_n - C^{\theta y} S_n^{-1} C^{\theta y \top},
+\qquad
+S_n = C^{yy} + \Delta t^{-1} \Gamma.
 $$
 
 Deterministic, reproducible, no collapse, and $\Sigma_n$ is calibrated
