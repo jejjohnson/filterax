@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>filterax — ensemble filters and processes</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+  #diagram { width: 1560px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 270px 300px 360px 260px;
+    column-gap: 84px;
+    align-items: center;
+  }
+  .stack { display: flex; flex-direction: column; gap: 22px; }
+  .lane .node + .node { margin-top: 16px; }
+  .base-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 34px;
+  }
+  .slab {
+    display: flex; align-items: center; gap: 14px;
+    border-radius: 14px; padding: 12px 16px;
+    background: var(--base-bg); border: 1.5px solid #cbd5e1;
+  }
+  .slab .lib { font-weight: 700; font-size: 15px; white-space: nowrap; }
+  .slab .what { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  .slab code { font-family: var(--mono); font-size: 12px; color: var(--ink); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="diagram">
+  <div class="title">filterax — ensemble Kalman filters, smoothers and processes</div>
+  <div class="subtitle">One ensemble, two families: filter a state through time, or iterate an ensemble to invert for parameters. All of it is pure JAX, so all of it differentiates.</div>
+
+  <div class="grid">
+    <!-- column 1: what you supply -->
+    <div class="lane find" id="lane-inputs">
+      <div class="lane-head"><span class="verb">inputs</span><span class="pkg">what you supply</span></div>
+      <div class="node">
+        <div class="name">ensemble</div>
+        <div class="desc">N members of the state or the parameters, one array</div>
+      </div>
+      <div class="node">
+        <div class="name">dynamics</div>
+        <div class="desc"><code>AbstractDynamics</code> — a <code>somax</code> or <code>diffrax</code> model</div>
+      </div>
+      <div class="node">
+        <div class="name">observations</div>
+        <div class="desc"><code>AbstractObsOperator</code> · <code>AbstractNoise</code></div>
+      </div>
+      <div class="node">
+        <div class="name">regularisation</div>
+        <div class="desc"><code>AbstractLocalizer</code> · <code>AbstractInflator</code> · <code>AbstractScheduler</code></div>
+      </div>
+    </div>
+
+    <!-- column 2: layer 0 primitives -->
+    <div class="lane compute" id="lane-primitives">
+      <div class="lane-head"><span class="verb">layer 0</span><span class="pkg">primitives</span></div>
+      <div class="node">
+        <div class="name">ensemble statistics</div>
+        <div class="desc"><code>ensemble_mean</code> · <code>ensemble_covariance</code> · <code>cross_covariance</code> — low-rank <code>gaussx</code> operators</div>
+      </div>
+      <div class="node">
+        <div class="name">Kalman gain</div>
+        <div class="desc"><code>kalman_gain</code> · <code>localized_kalman_gain</code></div>
+      </div>
+      <div class="node">
+        <div class="name">localisation · inflation</div>
+        <div class="desc"><code>gaspari_cohn</code> · <code>localize</code> · <code>inflate_rtps</code> · <code>inflate_rtpp</code></div>
+      </div>
+      <div class="node">
+        <div class="name">diagnostics</div>
+        <div class="desc"><code>log_likelihood</code> · <code>innovation_statistics</code></div>
+      </div>
+    </div>
+
+    <!-- column 3: the two families -->
+    <div class="stack">
+      <div class="lane cut" id="lane-filters">
+        <div class="lane-head"><span class="verb">filters</span><span class="pkg">state through time</span></div>
+        <div class="node">
+          <div class="name"><code>StochasticEnKF</code> · <code>ETKF</code> · <code>EnSRF</code> · <code>LETKF</code></div>
+          <div class="desc">latent variants <code>LatentETKF</code> · <code>LatentLETKF</code></div>
+        </div>
+        <div class="node">
+          <div class="name">smoothers</div>
+          <div class="desc"><code>EnKS</code> · <code>EnsembleRTS</code> · <code>FixedLagSmoother</code> · <code>IES</code></div>
+        </div>
+      </div>
+      <div class="lane read" id="lane-processes">
+        <div class="lane-head"><span class="verb">processes</span><span class="pkg">parameters by iteration</span></div>
+        <div class="node">
+          <div class="name"><code>EKI</code> · <code>EKS</code> · <code>TEKI</code> · <code>UKI</code></div>
+          <div class="desc">step sizes from <code>DataMisfitController</code>; also as optax transforms in <code>filterax.optax</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- column 4: what comes out -->
+    <div class="lane out" id="lane-out">
+      <div class="lane-head"><span class="verb">out</span><span class="pkg">results</span></div>
+      <div class="node">
+        <div class="name">analysis ensembles</div>
+        <div class="desc"><code>AssimilationResult</code> · <code>SmoothingResult</code></div>
+      </div>
+      <div class="node">
+        <div class="name">parameter posterior</div>
+        <div class="desc"><code>ProcessResult</code></div>
+      </div>
+      <div class="node solid">
+        <div class="name">gradients through the window</div>
+        <div class="desc"><code>differentiable_assimilate</code> under <code>jax.grad</code></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="base-row">
+    <div class="slab">
+      <div class="lib">gaussx · lineax</div>
+      <div class="what">Ensemble covariances stay low-rank operators; gains and log-determinants are structured solves.</div>
+    </div>
+    <div class="slab">
+      <div class="lib">equinox · optax</div>
+      <div class="what">Filters are modules; the processes also run as an <code>optax.GradientTransformation</code>.</div>
+    </div>
+    <div class="slab">
+      <div class="lib">pipekit</div>
+      <div class="what"><code>FilterAnalysisStep</code> and <code>DynamicsForwardModel</code> drop a filter into a DA cycle next to <code>vardax</code>.</div>
+    </div>
+  </div>
+</div>
+<script src="_connect.js"></script>
+<script>
+  wire("lane-inputs", "lane-primitives", { label: "<span class='t'>ensemble</span>", color: "#7b6bb5" });
+  wire("lane-primitives", "lane-filters", { toShift: 0, label: "<span class='t'>K</span>", color: "#cf9418" });
+  wire("lane-primitives", "lane-processes", { label: "<span class='t'>K</span>", color: "#cf9418" });
+  wire("lane-filters", "lane-out", { color: "#3f6fb5" });
+  wire("lane-processes", "lane-out", { color: "#23978a" });
+  ready();
+</script>
+</body>
+</html>
