@@ -1,4 +1,9 @@
-# filterax
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <img alt="filterax" src="docs/assets/logo-light.svg" width="360">
+  </picture>
+</p>
 
 [![Tests](https://github.com/jejjohnson/filterax/actions/workflows/ci.yml/badge.svg)](https://github.com/jejjohnson/filterax/actions/workflows/ci.yml)
 [![Lint](https://github.com/jejjohnson/filterax/actions/workflows/lint.yml/badge.svg)](https://github.com/jejjohnson/filterax/actions/workflows/lint.yml)
@@ -24,6 +29,8 @@ Author: J. Emmanuel Johnson · Repo: <https://github.com/jejjohnson/filterax> ·
 - **Iterative processes** for parameter estimation and posterior sampling — EKI, EKS, UKI, ETKI, GNKI, and friends.
 
 Everything is pure JAX, so every filter is differentiable by construction. There is no separate "differentiable EnKF" mode: wrap any filter in `jax.grad` and train dynamics parameters end-to-end through the assimilation window.
+
+<p align="center"><img src="docs/assets/diagrams/filterax-overview.png" alt="filterax in one picture: you supply an ensemble, dynamics, observations and regularisation; layer-0 primitives compute ensemble statistics and Kalman gains; sequential filters and smoothers move a state through time while iterative processes invert for parameters; results are analysis ensembles, a parameter posterior and gradients through the window" width="100%"></p>
 
 ---
 
@@ -87,13 +94,13 @@ import lineax as lx
 import filterax as flx
 
 key = jr.PRNGKey(0)
-particles = jr.normal(key, (100, 20))        # 100-member ensemble in R^20
-H = jr.normal(jr.split(key)[1], (5, 20))     # linear observation operator
+particles = jr.normal(key, (100, 20))  # 100-member ensemble in R^20
+H = jr.normal(jr.split(key)[1], (5, 20))  # linear observation operator
 R = lx.DiagonalLinearOperator(0.1 * jnp.ones(5))
 
-obs_particles = particles @ H.T              # map ensemble to obs space
+obs_particles = particles @ H.T  # map ensemble to obs space
 K = flx.kalman_gain(particles, obs_particles, R)  # (20, 5)
-P = flx.ensemble_covariance(particles)       # gaussx.LowRankUpdate, rank <= 99
+P = flx.ensemble_covariance(particles)  # gaussx.LowRankUpdate, rank <= 99
 ```
 
 ---
