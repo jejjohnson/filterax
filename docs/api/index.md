@@ -15,7 +15,7 @@ analysis components in the middle, full assimilation loops on top:
 | [Inflation](inflation.md) | Multiplicative / RTPS / RTPP / additive inflators, adaptive inflation, Ledoit-Wolf shrinkage |
 | [Filters](filters.md) | L1 analysis steps (`filterax.filters.ETKF`, …), the parametric `SquareRootKF`, L2 assimilation loops (`filterax.ETKF`, …), and latent-space DA |
 | [Advanced filters](filters_advanced.md) | `ESTKF`, `ETKF_Livings`, `EnSRF_Serial` — specialised deterministic variants |
-| [Smoothers](smoothers.md) | `EnKS`, `EnsembleRTS`, `EnsembleSqrtSmoother`, `FixedLagSmoother`, `IES` |
+| [Smoothers](smoothers.md) | `EnKS`, `EnsembleRTS`, `EnsembleSqrtSmoother`, `FixedLagSmoother`, `IES`, and the exact `KalmanSmoother` |
 | [Processes](processes.md) | Ensemble Kalman processes for derivative-free inversion — EKI, EKS, UKI and friends |
 | [Schedulers](schedulers.md) | Artificial-time step controllers for the EKP iteration |
 | [optax integration](optax.md) | EKI / EKS / UKI as `optax.GradientTransformation`s |

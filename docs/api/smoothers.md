@@ -29,3 +29,15 @@ themed namespace (`filterax.smoothers.EnKS`).
       show_root_heading: false
       show_root_toc_entry: false
       members: [EnKS, EnsembleRTS, EnsembleSqrtSmoother, FixedLagSmoother, IES]
+
+## Exact linear-Gaussian smoother
+
+When the dynamics and observation operator are linear and the noise is Gaussian, no ensemble is needed: [`KalmanSmoother`][filterax.KalmanSmoother] runs the exact Kalman filter forward and the Rauch-Tung-Striebel smoother backward (through gaussx's `kalman_filter` and `rts_smoother`) and returns the filtered and smoothed Gaussian marginals in a [`KalmanSmoothingResult`][filterax.KalmanSmoothingResult]. It is the exact counterpart of `EnKS` and `EnsembleRTS`, and the ground truth they converge to as the ensemble grows.
+
+Its prior sits at the first observation time and each transition spans the actual gap to the next one, so irregular observation times need no regridding; `KalmanSmoother.from_sde` builds the transitions from a gaussx SDE kernel such as `gaussx.MaternSDE`. Masked observation entries are marginalised out exactly, and a time with every entry masked only predicts.
+
+::: filterax
+    options:
+      show_root_heading: false
+      show_root_toc_entry: false
+      members: [KalmanSmoother, KalmanSmoothingResult]
