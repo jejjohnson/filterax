@@ -33,8 +33,12 @@ def kalman_gain(
 
     Total cost
     ``O(Nₑ² Nᵧ + Nₑ³)`` for low-rank Woodbury, instead of ``O(Nᵧ³)`` for
-    the dense fallback. The dense ``(Nᵧ, Nᵧ)`` matrix is never materialised
-    when ``R`` carries structure (diagonal, low-rank, Toeplitz, …).
+    the dense fallback. The Woodbury route is not unconditional: from
+    gaussx v0.6.5, :func:`gaussx.ensemble_kalman_gain` forms the ``(Nᵧ, Nᵧ)``
+    innovation densely and solves it directly when ``Nₑ ≥ Nᵧ``, and uses
+    Woodbury only otherwise; the two routes agree to rounding. On the
+    Woodbury route the dense ``(Nᵧ, Nᵧ)`` matrix is never materialised when
+    ``R`` carries structure (diagonal, low-rank, Toeplitz, …).
 
     Args:
         particles: Prior ensemble in state space, shape ``(Nₑ, Nₓ)``.
