@@ -8,14 +8,14 @@ or stability-controlled for the EKS Langevin SDE. All implement
 
 By convention `algo_time = Σₙ Δtₙ`. Schedulers that drive convergence
 arrange for `algo_time → 1`; the Layer-2 run loops break out when
-`algo_time ≥ 1` (the standard EKI termination rule of Iglesias 2016).
+`algo_time ≥ 1` (the standard EKI termination rule; Iglesias & Yang 2021).
 
 ## Picking a scheduler
 
 | Scheduler | Use with | Behaviour |
 |---|---|---|
 | [`FixedScheduler`][filterax.FixedScheduler] | Any process | Constant `Δt`; you tune manually |
-| [`DataMisfitController`][filterax.DataMisfitController] | EKI, ETKI, GNKI, TEKI | Adaptive `Δt`; clamps so `algo_time` lands at `1` |
+| [`DataMisfitController`][filterax.DataMisfitController] | EKI, ETKI, GNKI, TEKI | Adaptive `Δt` from the Iglesias & Yang (2021) rule; clamps so `algo_time` lands at `1` |
 | [`EKSStableScheduler`][filterax.EKSStableScheduler] | EKS | Bounds `Δt` by `‖Cᶿᶿ‖` so the Langevin dynamics stay in the stability region |
 
 ## Reference

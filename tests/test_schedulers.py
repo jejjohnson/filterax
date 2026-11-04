@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
+import jax.random as jr
 import lineax as lx
 import numpy as np
 import pytest
@@ -44,19 +46,105 @@ def test_data_misfit_controller_clamps_to_remaining_algo_time():
     assert dt == pytest.approx(0.1, abs=1e-6)
 
 
-def test_data_misfit_controller_shrinks_when_misfit_is_large():
-    # Far from the data: misfit is huge → dt small.
-    sched = flx.DataMisfitController(target_misfit=1.0)
-    evals = 10.0 * jnp.ones((5, 2))
+def _iglesias_yang_candidates(residuals, noise_variance):
+    """Closed-form candidates of Iglesias & Yang (2021, eq. 14), for diagonal Γ."""
+    n_obs = residuals.shape[1]
+    misfits = 0.5 * np.sum(np.asarray(residuals) ** 2 / noise_variance, axis=1)
+    accuracy = n_obs / (2.0 * misfits.mean())
+    uncertainty = np.sqrt(n_obs / (2.0 * misfits.var(ddof=1)))
+    return accuracy, uncertainty
+
+
+def test_data_misfit_controller_matches_iglesias_yang_closed_form():
+    """Regression for #116: the old step was M times too small on this problem."""
+    n_members, n_params, n_obs = 50, 10, 100
+    key_g, key_u, key_y = jr.split(jr.key(0), 3)
+    G = jr.normal(key_g, (n_obs, n_params))
+    particles = jr.normal(key_u, (n_members, n_params))
+    obs = G @ jnp.ones(n_params) + jr.normal(key_y, (n_obs,))
+    evals = particles @ G.T
+    state = flx.ProcessState(
+        particles=particles,
+        forward_evals=evals,
+        obs=obs,
+        noise_cov=lx.DiagonalLinearOperator(jnp.ones(n_obs)),
+        step=jnp.asarray(0, dtype=jnp.int32),
+        algo_time=jnp.asarray(0.0),
+    )
+    accuracy, uncertainty = _iglesias_yang_candidates(obs[None, :] - evals, 1.0)
+    expected = min(max(accuracy, uncertainty), 1.0)
+    dt = flx.DataMisfitController().get_dt(state)
+    np.testing.assert_allclose(float(dt), expected, rtol=1e-12)
+
+
+@pytest.mark.parametrize(
+    ("residuals", "accuracy_binds"),
+    [
+        # Nearly equal misfits: σ²_Φ is small, so the √ candidate is the larger.
+        ([[30.0, 0.0], [30.1, 0.0], [30.2, 0.0]], False),
+        # Very unequal misfits: σ²_Φ is large, so M / 2Φ̄ is the larger.
+        ([[1.0, 0.0], [10.0, 0.0], [100.0, 0.0]], True),
+    ],
+)
+def test_data_misfit_controller_takes_the_larger_candidate(residuals, accuracy_binds):
+    residuals = jnp.asarray(residuals)
+    state = _state_with_evals(
+        jnp.zeros((3, 2)), -residuals, lx.DiagonalLinearOperator(jnp.ones(2))
+    )
+    accuracy, uncertainty = _iglesias_yang_candidates(residuals, 1.0)
+    assert (accuracy > uncertainty) == accuracy_binds
+    dt = float(flx.DataMisfitController().get_dt(state))
+    np.testing.assert_allclose(dt, max(accuracy, uncertainty), rtol=1e-12)
+
+
+def test_data_misfit_controller_equal_misfits_take_the_remaining_budget():
+    """σ²_Φ = 0 makes the second candidate infinite, so only 1 − tₙ binds."""
     state = _state_with_evals(
         jnp.zeros((5, 3)),
-        evals,
+        10.0 * jnp.ones((5, 2)),
         lx.DiagonalLinearOperator(0.01 * jnp.ones(2)),
+        algo_time=0.25,
     )
-    # Misfit = mean(Σ_d (0 - 10)^2 / 0.01) = 2 * 100 / 0.01 = 20000.
-    # dt = 1 / 20000 = 5e-5.
-    dt = float(sched.get_dt(state))
-    np.testing.assert_allclose(dt, 5e-5, rtol=1e-3)
+    assert float(flx.DataMisfitController().get_dt(state)) == pytest.approx(0.75)
+
+
+def test_data_misfit_controller_is_zero_past_the_budget():
+    """algo_time can overshoot 1, and a negative step must not reach the update."""
+    evals = jnp.asarray([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
+    state = _state_with_evals(
+        jnp.zeros((3, 2)),
+        evals,
+        lx.DiagonalLinearOperator(jnp.ones(2)),
+        algo_time=1.5,
+    )
+    assert float(flx.DataMisfitController().get_dt(state)) == 0.0
+
+
+def test_data_misfit_controller_runs_under_jit():
+    evals = jnp.asarray([[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
+    state = _state_with_evals(
+        jnp.zeros((3, 2)), evals, lx.DiagonalLinearOperator(jnp.ones(2))
+    )
+    controller = flx.DataMisfitController()
+    eager = controller.get_dt(state)
+    np.testing.assert_allclose(jax.jit(controller.get_dt)(state), eager, rtol=1e-12)
+
+
+def test_eki_with_data_misfit_controller_reaches_time_one_in_few_iterations():
+    """Regression for #116: at M = 100 the old controller needed about M times more."""
+    n_members, n_params, n_obs = 50, 10, 100
+    key_g, key_u, key_y = jr.split(jr.key(0), 3)
+    G = jr.normal(key_g, (n_obs, n_params))
+    particles = jr.normal(key_u, (n_members, n_params))
+    obs = G @ jnp.ones(n_params) + jr.normal(key_y, (n_obs,))
+    eki = flx.EKI(
+        forward_fn=lambda theta: G @ theta,
+        obs=obs,
+        noise_cov=lx.DiagonalLinearOperator(jnp.ones(n_obs)),
+        config=flx.ProcessConfig(scheduler=flx.DataMisfitController(), n_iterations=20),
+    )
+    result = eki.run(particles)
+    assert result.converged
 
 
 def test_eks_stable_scheduler_clips_to_max_dt():

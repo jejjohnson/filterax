@@ -75,7 +75,7 @@ chapter. Per-chapter lists repeat the most load-bearing entries.
     tasks.* Inverse Problems, 35(9), 095005.
 20. Iglesias, M. A. (2016). *A regularizing iterative ensemble Kalman
     method for PDE-constrained inverse problems.* Inverse Problems,
-    32(2), 025002. (Data-misfit step-size control.)
+    32(2), 025002. (Regularising Levenberg-Marquardt scheme.)
 
 ## Smoothers (chapter 10)
 
@@ -180,6 +180,10 @@ chapter. Per-chapter lists repeat the most load-bearing entries.
     Pain, C., Linden, P., & Guo, Y.-K. (2021). *Data assimilation in
     the latent space of a convolutional autoencoder.* ICCS 2021,
     LNCS 12746.
+
+## Adaptive step size (chapter 9)
+
+50. Iglesias, M. A. & Yang, Y. (2021). *Adaptive regularisation for ensemble Kalman inversion.* Inverse Problems, 37(2), 025008. (`DataMisfitController`.)
 
 ## Ecosystem libraries
 

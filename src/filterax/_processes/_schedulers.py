@@ -3,7 +3,7 @@
 Every EKP iteration is parameterised by an artificial-time step
 ``Δtₙ ∈ ℝ₊``. The role of the scheduler is to pick ``Δtₙ`` from the
 current :class:`ProcessState` — either a constant, a misfit-adaptive
-rule (Iglesias 2016), or a stability-controlled rule for the EKS
+rule (Iglesias & Yang 2021), or a stability-controlled rule for the EKS
 Langevin dynamics.
 
 All schedulers implement :class:`AbstractScheduler` so they slot into
@@ -12,13 +12,14 @@ loops without further glue. Schedulers are stateless ``eqx.Module``
 subclasses — they receive the state and return a scalar.
 
 Convention: ``algo_time = Σₙ Δtₙ``. Schedulers that drive convergence
-arrange for ``algo_time → 1`` (Iglesias 2016 §3); the L2 run loop can
+arrange for ``algo_time → 1`` (Iglesias & Yang 2021); the L2 run loop can
 break out when ``algo_time ≥ 1``.
 """
 
 from __future__ import annotations
 
 import equinox as eqx
+import gaussx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
@@ -51,55 +52,60 @@ class FixedScheduler(AbstractScheduler, strict=True):
 
 
 class DataMisfitController(AbstractScheduler, strict=True):
-    r"""Data-misfit-adaptive step size (Iglesias 2016 §3.2).
+    r"""Data misfit controller of Iglesias & Yang (2021, eq. 14).
 
-    Picks ``Δtₙ`` so that the **current** ensemble's misfit contributes
-    a uniform fraction of the total artificial-time interval ``[0, 1]``.
-    The recipe:
-
-    $$
-    \Delta t_n = \min\big(\text{target\_misfit} / \Phi_n,\;
-        1 - \text{algo\_time}_n\big)
-    $$
-
-    with the per-step misfit norm
+    With per-particle misfits ``Φⱼ = ½ ‖y − G(θ⁽ʲ⁾)‖²_{Γ⁻¹}``, their ensemble
+    mean ``Φ̄`` and variance ``σ²_Φ``, and ``M`` observations:
 
     $$
-    \Phi_n = J^{-1} \sum_{j} \big\| y - G(\theta^{(j)}) \big\|^2_{\Gamma^{-1}}
+    \Delta t_n = \min\left(
+        \max\left(\frac{M}{2 \bar\Phi},\;
+            \sqrt{\frac{M}{2 \sigma^2_\Phi}}\right),\;
+        1 - t_n\right)
     $$
 
-    computed in observation space — ``state.noise_cov`` carries ``Γ``
-    itself, and we apply ``Γ⁻¹`` internally via :func:`gaussx.solve_rows`
-    so structured ``Γ`` (diagonal, low-rank, …) is never densified.
-    The ``min`` clamps the final step so ``algo_time`` lands exactly at
-    ``1.0``, which is the standard EKI termination criterion; subsequent
-    calls return ``Δt = 0`` (the L1 processes guard their ``1/Δt``
-    paths with a small floor so further calls are no-ops rather than
-    NaNs).
+    Both candidates come from ``‖Γ^{-1/2} r‖² ~ χ²_M`` under the correct
+    model, which has mean ``M`` and variance ``2M``. The rule has no tuning
+    parameter. The ``min`` clamps the final step so ``algo_time`` lands
+    exactly at ``1.0``, which is the standard EKI termination criterion;
+    subsequent calls return ``Δt = 0`` (the L1 processes guard their ``1/Δt``
+    paths with a small floor so further calls are no-ops rather than NaNs).
 
-    Attributes:
-        target_misfit: Desired misfit-weighted increment. ``1.0`` is the
-            default and matches Iglesias' "noise-level" stopping rule.
-        eps: Small floor on the misfit denominator so the initial step
-            (where the ensemble has not yet been corrected toward the
-            data) doesn't divide by zero.
+    An ensemble whose misfits are all equal has ``σ²_Φ = 0``, so the second
+    candidate is infinite and the step is the whole remaining budget.
+
+    The computation is :func:`gaussx.discrepancy_step_size`, which applies
+    ``Γ⁻¹`` through a structured solve, so diagonal or low-rank ``Γ`` is never
+    densified.
+
+    Examples:
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import DataMisfitController, ProcessState
+        >>> state = ProcessState(
+        ...     particles=jnp.zeros((3, 2)),
+        ...     forward_evals=jnp.array([[3.0, 0.0], [4.0, 0.0], [5.0, 0.0]]),
+        ...     obs=jnp.zeros(2),
+        ...     noise_cov=lx.DiagonalLinearOperator(jnp.ones(2)),
+        ...     step=jnp.asarray(0),
+        ...     algo_time=jnp.asarray(0.0),
+        ... )
+        >>> dt = DataMisfitController().get_dt(state)
+        >>> bool(0.0 < dt <= 1.0)
+        True
+
+    Reference:
+        Iglesias, M. A. & Yang, Y. (2021). *Adaptive regularisation for
+        ensemble Kalman inversion.* Inverse Problems, 37(2), 025008.
     """
 
-    target_misfit: float = eqx.field(static=True, default=1.0)
-    eps: float = eqx.field(static=True, default=1e-8)
-
     def get_dt(self, state: ProcessState) -> Float[Array, ""]:
-        # Mahalanobis misfit Φ = (1/J) Σⱼ ‖y − Gⱼ‖²_{Γ⁻¹}.
-        residuals = state.obs[None, :] - state.forward_evals  # (J, N_d)
-        # Solve Γ z = r for each row — gaussx dispatches by structure of Γ.
-        from gaussx import solve_rows
-
-        Gamma_inv_r = solve_rows(state.noise_cov, residuals)  # (J, N_d)
-        # Φ = (1/J) Σⱼ rⱼ · (Γ⁻¹ rⱼ).
-        misfit = jnp.mean(jnp.sum(residuals * Gamma_inv_r, axis=-1))
-        dt_target = self.target_misfit / jnp.maximum(misfit, self.eps)
-        remaining = 1.0 - state.algo_time
-        return jnp.minimum(dt_target, jnp.maximum(remaining, 0.0))
+        # 1 − tₙ, floored because a negative budget is not a step
+        remaining = jnp.maximum(1.0 - state.algo_time, 0.0)
+        # Δtₙ = min(max(M / 2Φ̄, √(M / 2σ²_Φ)), 1 − tₙ)
+        return gaussx.discrepancy_step_size(
+            state.forward_evals, state.obs, state.noise_cov, remaining=remaining
+        )
 
 
 class EKSStableScheduler(AbstractScheduler, strict=True):
