@@ -193,3 +193,14 @@ def test_ledoit_wolf_matches_eager_under_jit():
     assert jnp.ndim(jit_shrinkage) == 0
     assert jnp.allclose(jit_covariance, eager_covariance)
     assert jnp.allclose(jit_shrinkage, eager_shrinkage)
+
+
+def test_inflate_additive_dense_noise_above_lanczos_rank():
+    """Regression for #115: additive inflation shares the same sampling path."""
+    factor = jr.normal(jr.key(0), (60, 60))
+    Q = lx.MatrixLinearOperator(
+        factor @ factor.T + jnp.eye(60), lx.positive_semidefinite_tag
+    )
+    ensemble = jr.normal(jr.key(1), (8, 60))
+    inflated = flx.inflate_additive(jr.key(2), ensemble, Q)
+    assert inflated.shape == (8, 60)
