@@ -301,7 +301,7 @@ def inflate_adaptive(
 
 def ledoit_wolf_shrinkage(
     particles: Float[Array, "N_e N_x"],
-) -> tuple[Float[Array, "N_x N_x"], float]:
+) -> tuple[Float[Array, "N_x N_x"], Float[Array, ""]]:
     r"""Ledoit-Wolf optimal covariance shrinkage (Ledoit & Wolf 2004).
 
     Replaces the sample covariance with a convex combination toward a
@@ -342,7 +342,8 @@ def ledoit_wolf_shrinkage(
 
     Returns:
         ``(P_shrunk, λ*)`` — shrunk covariance and the optimal
-        shrinkage intensity.
+        shrinkage intensity as a scalar array, so the function composes
+        with ``jit``, ``vmap`` and ``grad``.
 
     Raises:
         ValueError: if ``Nₑ < 2`` (the Bessel divisor is undefined).
@@ -371,4 +372,4 @@ def ledoit_wolf_shrinkage(
         jnp.asarray(1.0, dtype=particles.dtype), b2 / jnp.maximum(d2, 1e-30)
     )
     shrunk = (1.0 - shrinkage) * sample + shrinkage * target
-    return shrunk, float(shrinkage)
+    return shrunk, shrinkage
