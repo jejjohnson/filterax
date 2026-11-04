@@ -111,7 +111,7 @@ In filterax the draw is structure-aware: for diagonal $R$ the
 perturbations are $\varepsilon^{(j)} = z^{(j)} \odot \sqrt{\operatorname{diag}(R)}$
 with standard-normal $z^{(j)}$ at $O(N_e N_y)$ cost and no matrix ever
 formed; for general $R$ a structured square root $L$ with
-$LL^\top = R$ comes from `gaussx.root_decomposition` and
+$LL^\top = R$ comes from `gaussx.sample_mvn` and
 $\varepsilon^{(j)} = L z^{(j)}$.
 
 ## Innovation statistics
