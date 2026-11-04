@@ -108,27 +108,34 @@ The smoothers above refine a sequential filter's history. The
 2019) attacks a single window head-on as an inverse problem
 $y = G(\theta) + \eta$, where $G$ maps parameters (or an initial
 state) to the whole observation record. Each iteration re-targets the
-*initial* ensemble plus a Kalman correction evaluated at the current
-iterate:
+*initial* ensemble plus a Gauss-Newton correction linearised at the
+current iterate:
 
 $$
 \theta_{i+1}^{(j)} = (1 - \alpha)\, \theta_i^{(j)} + \alpha \Big[\theta_0^{(j)}
-    + K_i \big(y + \epsilon^{(j)} - G(\theta_i^{(j)})\big)\Big], \qquad
-K_i = C^{\theta G}_i \big(C^{GG}_i + \Gamma\big)^{-1},
+    + K_i \big(d^{(j)} - G(\theta_i^{(j)}) + G_i (\theta_i^{(j)} - \theta_0^{(j)})\big)\Big], \qquad
+K_i = C^{0}_{\theta\theta} G_i^\top \big(G_i C^{0}_{\theta\theta} G_i^\top + \Gamma\big)^{-1},
 $$
 
-with perturbations $\epsilon^{(j)} \sim \mathcal{N}(0, \Gamma)$ redrawn
-per iteration. This is a Gauss-Newton iteration for the regularised
-least-squares problem, with the ensemble statistics standing in for the
-Jacobian (compare EKI in chapter 9 — the anchor to $\theta_0^{(j)}$,
-rather than a drift from the current iterate, is the distinguishing
-feature, and it is what keeps the prior in the objective). $\alpha = 1$
-is the pure Chen-Oliver update; $\alpha < 1$ damps it,
-Levenberg-Marquardt style, for strongly nonlinear $G$. One iteration
-on a linear $G$ reduces IES to the (ensemble) smoother update —
-that's `test_ies_single_step_matches_numpy_reference`. Its home turf
-is history matching and reservoir-type problems where one backward
-pass over a sequential filter is not enough.
+with perturbed observations $d^{(j)} = y + \epsilon^{(j)}$ and
+$\epsilon^{(j)} \sim \mathcal{N}(0, \Gamma)$ drawn once per member, so that
+each member minimises one fixed objective. $C^{0}_{\theta\theta}$ is the
+initial ensemble covariance, and $G_i$ is the ensemble-average sensitivity,
+the least-squares fit $\Delta G_i = \Delta\Theta_i G_i^\top$ to the current
+anomalies. Everything factors through the $N_e \times N_e$ matrix
+$\Delta\Theta_0 \Delta\Theta_i^{+}$, so no $N_p \times N_p$ matrix is formed.
+
+This is a Gauss-Newton iteration for the regularised least-squares problem,
+with the ensemble statistics standing in for the Jacobian (compare EKI in
+chapter 9 — the anchor to $\theta_0^{(j)}$, rather than a drift from the
+current iterate, is the distinguishing feature, and it is what keeps the
+prior in the objective). The term $G_i(\theta_i^{(j)} - \theta_0^{(j)})$ is
+what makes the anchor consistent: for a linear $G$ the bracket is
+$d^{(j)} - G\theta_0^{(j)}$ at every iteration, so with $\alpha = 1$ the
+first iterate is the ensemble smoother update and later iterates stay there.
+$\alpha < 1$ damps the iteration, Levenberg-Marquardt style, for strongly
+nonlinear $G$. Its home turf is history matching and reservoir-type problems
+where one backward pass over a sequential filter is not enough.
 
 ## Implementation in filterax
 

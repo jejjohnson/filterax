@@ -405,9 +405,7 @@ def test_ies_single_step_matches_numpy_reference(getkey):
     out = ies.solve(init, y, R, lambda theta: G @ theta)
 
     # Reproduce the package's perturbed-observation draw exactly.
-    base_key = jr.PRNGKey(seed)
-    iter_key = jr.fold_in(base_key, 0)
-    y_pert = flx.perturbed_observations(iter_key, y, R, init.shape[0])
+    y_pert = flx.perturbed_observations(jr.PRNGKey(seed), y, R, init.shape[0])
 
     expected = _ref_ies_step(
         np.asarray(init),
@@ -419,6 +417,106 @@ def test_ies_single_step_matches_numpy_reference(getkey):
         y_pert=np.asarray(y_pert),
     )
     np.testing.assert_allclose(np.asarray(out.particles), expected, atol=1e-9)
+
+
+def _linear_gaussian_problem(n_members: int, n_params: int = 2):
+    """Linear G(θ) = A θ, prior 𝒩(0, I), noise 𝒩(0, 0.1 I), with exact posterior."""
+    if n_params == 2:
+        A = jnp.asarray([[1.0, 0.5], [0.0, 1.0], [1.0, -1.0]])
+        y = jnp.asarray([1.0, 2.0, 0.5])
+    else:
+        A = jr.normal(jr.key(3), (3, n_params))
+        y = jr.normal(jr.key(4), (3,))
+    noise_variance = 0.1
+    R = lx.DiagonalLinearOperator(noise_variance * jnp.ones(3))
+    prior = jr.normal(jr.key(0), (n_members, n_params))
+    # Σ_post = (I + Aᵀ A / σ²)⁻¹, μ_post = Σ_post Aᵀ y / σ²
+    posterior_covariance = jnp.linalg.inv(jnp.eye(n_params) + A.T @ A / noise_variance)
+    posterior_mean = posterior_covariance @ (A.T @ y) / noise_variance
+    return A, y, R, prior, posterior_mean, posterior_covariance
+
+
+@pytest.mark.parametrize("n_iterations", [1, 2, 5, 20])
+def test_ies_converges_to_linear_gaussian_posterior_mean(n_iterations):
+    """Regression for #117: the iteration fell back toward the prior mean."""
+    A, y, R, prior, posterior_mean, _ = _linear_gaussian_problem(4000)
+    out = flx.IES(n_iterations=n_iterations).solve(prior, y, R, lambda th: A @ th)
+    error = jnp.max(jnp.abs(out.particles.mean(axis=0) - posterior_mean))
+    assert error < 0.02
+
+
+def test_ies_matches_linear_gaussian_posterior_covariance():
+    A, y, R, prior, _, posterior_covariance = _linear_gaussian_problem(4000)
+    out = flx.IES(n_iterations=5).solve(prior, y, R, lambda th: A @ th)
+    sample_covariance = jnp.cov(out.particles, rowvar=False)
+    relative_error = jnp.abs(sample_covariance - posterior_covariance) / jnp.abs(
+        posterior_covariance
+    )
+    assert jnp.max(relative_error) < 0.05
+
+
+@pytest.mark.parametrize(("n_members", "n_params"), [(50, 2), (8, 20)])
+def test_ies_first_iterate_is_a_fixed_point_for_linear_forward(n_members, n_params):
+    """For linear G every member's innovation is d^j − A θ_0^j at all iterations,
+    with more parameters than members too."""
+    A, y, R, prior, _, _ = _linear_gaussian_problem(n_members, n_params)
+    forward = lambda th: A @ th
+    first = flx.IES(n_iterations=1).solve(prior, y, R, forward).particles
+    later = flx.IES(n_iterations=10).solve(prior, y, R, forward).particles
+    np.testing.assert_allclose(np.asarray(later), np.asarray(first), atol=1e-7)
+
+
+def test_ies_damped_iteration_reaches_the_undamped_fixed_point():
+    A, y, R, prior, _, _ = _linear_gaussian_problem(100)
+    forward = lambda th: A @ th
+    undamped = flx.IES(n_iterations=1).solve(prior, y, R, forward).particles
+    damped = flx.IES(n_iterations=40, step_size=0.5).solve(prior, y, R, forward)
+    np.testing.assert_allclose(
+        np.asarray(damped.particles), np.asarray(undamped), atol=1e-7
+    )
+
+
+def test_ies_recovers_nonlinear_posterior_against_grid_oracle():
+    """G(θ) = θ + 0.3 θ³ per component, so the posterior factorises on a 1-D grid."""
+    truth = jnp.asarray([1.2, -0.7])
+    forward = lambda th: th + 0.3 * th**3
+    y = forward(truth)
+    noise_variance = 0.01
+    R = lx.DiagonalLinearOperator(noise_variance * jnp.ones(2))
+    prior = jr.normal(jr.key(0), (2000, 2))
+
+    grid = np.linspace(-4.0, 4.0, 40_001)
+    log_density = (
+        -0.5 * grid[None, :] ** 2
+        - 0.5
+        * (np.asarray(y)[:, None] - np.asarray(forward(grid))) ** 2
+        / noise_variance
+    )
+    weights = np.exp(log_density - log_density.max(axis=1, keepdims=True))
+    weights = weights / weights.sum(axis=1, keepdims=True)
+    exact_mean = (weights * grid).sum(axis=1)
+    exact_std = np.sqrt((weights * (grid - exact_mean[:, None]) ** 2).sum(axis=1))
+
+    out = flx.IES(n_iterations=20).solve(prior, y, R, forward).particles
+    np.testing.assert_allclose(np.asarray(out.mean(axis=0)), exact_mean, atol=0.01)
+    np.testing.assert_allclose(np.asarray(out.std(axis=0)), exact_std, rtol=0.1)
+
+
+@pytest.mark.parametrize(("n_members", "n_params"), [(50, 2), (8, 20)])
+def test_ies_gradient_matches_central_differences(n_members, n_params):
+    A, y, R, prior, _, _ = _linear_gaussian_problem(n_members, n_params)
+    forward = lambda th: A @ th + 0.05 * jnp.sin(A @ th)
+
+    def loss(obs):
+        out = flx.IES(n_iterations=3).solve(prior, obs, R, forward)
+        return jnp.sum(out.particles**2)
+
+    gradient = jax.grad(loss)(y)
+    h = 1e-5
+    central = jnp.stack(
+        [(loss(y.at[i].add(h)) - loss(y.at[i].add(-h))) / (2 * h) for i in range(3)]
+    )
+    np.testing.assert_allclose(np.asarray(gradient), np.asarray(central), rtol=1e-6)
 
 
 def test_ies_step_size_zero_is_rejected():
