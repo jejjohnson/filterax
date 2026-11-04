@@ -469,42 +469,69 @@ class EnsembleSqrtSmoother(eqx.Module, strict=True):
 def _ies_step(
     particles_i: Float[Array, "J N_p"],
     particles_0: Float[Array, "J N_p"],
-    obs: Float[Array, " N_d"],
+    perturbed_obs: Float[Array, "J N_d"],
     noise_cov: lx.AbstractLinearOperator,
     forward_model: Callable[[Float[Array, " N_p"]], Float[Array, " N_d"]],
     step_size: Float[Array, ""],
-    key: PRNGKeyArray,
 ) -> Float[Array, "J N_p"]:
-    r"""One Chen-Oliver IES iteration.
+    r"""One Gauss-Newton IES iteration (ensemble randomised maximum likelihood).
 
     $$
     \theta_{i+1}^j = (1 - \alpha)\, \theta_i^j + \alpha \big[\theta_0^j
-        + K_i \big(y + \epsilon^j - G(\theta_i^j)\big)\big]
+        + K_i \big(d^j - G(\theta_i^j) + G_i (\theta_i^j - \theta_0^j)\big)\big],
+    \qquad
+    K_i = C^0_{\theta\theta} G_i^\top
+        \big(G_i C^0_{\theta\theta} G_i^\top + \Gamma\big)^{-1}
     $$
 
-    where ``K_i = C^{θG}_i (C^{GG}_i + Γ_y)⁻¹`` is the sample-cov gain
-    at the current iterate. With ``α = 1`` this is the pure
-    Chen-Oliver update — particles snap to ``θ_0 + K_i r_i`` each step;
-    with ``α < 1`` the iteration is damped (Levenberg-Marquardt-style).
+    ``G_i`` is the ensemble-average sensitivity, the least-squares fit
+    ``ΔG_i = ΔΘ_i G_iᵀ`` to the current anomalies. Only products of ``G_iᵀ``
+    with rows of parameter vectors are needed, so everything factors through
+    the ``(J, J)`` matrix ``ΔΘ_0 ΔΘ_i⁺`` and no ``(N_p, N_p)`` matrix is formed.
 
-    The gain solve runs through gaussx's structural Woodbury so
-    diagonal / low-rank ``Γ_y`` never densifies.
+    Args:
+        particles_i: Current iterate ``θ_i``.
+        particles_0: Initial ensemble ``θ_0``.
+        perturbed_obs: Perturbed observations ``d^j = y + ε^j``, fixed per
+            member across iterations.
+        noise_cov: Observation noise covariance ``Γ``.
+        forward_model: ``G`` applied to one particle.
+        step_size: Damping ``α``.
+
+    Returns:
+        The next iterate ``θ_{i+1}``.
     """
-    J = particles_i.shape[0]
-    evals = jax.vmap(forward_model)(particles_i)  # (J, N_d)
-    # Perturbed obs y + ε^j with ε^j ~ 𝒩(0, Γ_y) via the structure-aware draw.
-    y_pert = perturbed_observations(key, obs, noise_cov, J)
-    innovations = y_pert - evals  # (J, N_d)
-    # K_i applied to innovations via the ensemble-cov Kalman recipe.
-    # S = C^GG + Γ_y as a low-rank update for structural Woodbury dispatch.
-    C_GG = gaussx.ensemble_covariance(evals, bessel=True)
-    S = gaussx.LowRankUpdate(noise_cov, C_GG.U)
-    S_inv_innov = gaussx.solve_rows(S, innovations)  # (J, N_d)
-    C_theta_G = gaussx.ensemble_cross_covariance(
-        particles_i, evals, bessel=True
-    )  # (N_p, N_d)
-    K_r = einx.dot("p d, j d -> j p", C_theta_G, S_inv_innov)  # (J, N_p)
-    target = particles_0 + K_r
+    # G(θ_i^j)
+    evals = jax.vmap(forward_model)(particles_i)
+
+    # --- ensemble-average sensitivity ---
+    # ΔΘ_i⁺
+    anomalies_pinv = jnp.linalg.pinv(ensemble_anomalies(particles_i))
+    # ΔG_i
+    obs_anomalies = ensemble_anomalies(evals)
+
+    # ΔΘ G_iᵀ = ΔΘ ΔΘ_i⁺ ΔG_i, for any rows ΔΘ of parameter vectors
+    def apply_sensitivity(
+        rows: Float[Array, "J N_p"],
+    ) -> Float[Array, "J N_d"]:
+        to_iterate = einx.dot("j p, p k -> j k", rows, anomalies_pinv)
+        return einx.dot("j k, k d -> j d", to_iterate, obs_anomalies)
+
+    # --- gain from the prior covariance ---
+    # ΔΘ_0 G_iᵀ
+    prior_obs_anomalies = apply_sensitivity(ensemble_anomalies(particles_0))
+    # K_i = C⁰_θθ G_iᵀ (G_i C⁰_θθ G_iᵀ + Γ)⁻¹
+    gain = gaussx.ensemble_kalman_gain(particles_0, prior_obs_anomalies, noise_cov)
+
+    # --- update ---
+    # G_i (θ_i^j − θ_0^j)
+    linearisation = apply_sensitivity(particles_i - particles_0)
+    # r^j = d^j − G(θ_i^j) + G_i (θ_i^j − θ_0^j)
+    innovations = perturbed_obs - evals + linearisation
+    # K_i r^j
+    correction = einx.dot("p d, j d -> j p", gain, innovations)
+    target = particles_0 + correction
+    # Levenberg-Marquardt damping toward the Gauss-Newton target
     return (1.0 - step_size) * particles_i + step_size * target
 
 
@@ -512,19 +539,26 @@ class IES(eqx.Module, strict=True):
     r"""Iterative Ensemble Smoother — Chen & Oliver (2013); Evensen et al. (2019).
 
     Standalone iterative ensemble method that solves an inverse problem
-    in a single window of observations. At each iteration:
+    in a single window of observations. With perturbed observations
+    ``d^j = y + ε^j``, each ``ε^j ~ 𝒩(0, Γ)`` drawn once, each iteration is:
 
     $$
     \theta_{i+1}^j = (1 - \alpha)\, \theta_i^j + \alpha \big[\theta_0^j
-        + K_i \big(y + \epsilon^j - G(\theta_i^j)\big)\big]
+        + K_i \big(d^j - G(\theta_i^j) + G_i (\theta_i^j - \theta_0^j)\big)\big],
+    \qquad
+    K_i = C^0_{\theta\theta} G_i^\top
+        \big(G_i C^0_{\theta\theta} G_i^\top + \Gamma\big)^{-1}
     $$
 
-    The anchor to ``θ_0^j`` (the *initial* ensemble member) is what
-    distinguishes IES from :class:`~filterax.EKI`'s drift-style
-    iteration: rather than walking ``θ`` toward a MAP with a step-size
-    schedule, IES re-targets ``θ_0`` plus the current Kalman correction
-    every iteration. ``α = 1`` is the pure Chen-Oliver update;
-    ``α < 1`` damps the iteration for strongly nonlinear ``G``.
+    where ``C⁰_θθ`` is the initial ensemble covariance and ``G_i`` the
+    ensemble-average sensitivity at the current iterate. The anchor to
+    ``θ_0^j`` (the *initial* ensemble member) is what distinguishes IES
+    from :class:`~filterax.EKI`'s drift-style iteration: rather than walking
+    ``θ`` toward a MAP with a step-size schedule, IES re-targets ``θ_0``
+    plus a Gauss-Newton correction every iteration. For a linear ``G`` the
+    first iterate with ``α = 1`` is already the ensemble posterior and later
+    iterates stay there. ``α < 1`` damps the iteration, Levenberg-Marquardt
+    style, for strongly nonlinear ``G``.
 
     Use case: history matching, reservoir simulation, and any inverse
     problem where the forward model maps parameters to a *full*
@@ -535,8 +569,8 @@ class IES(eqx.Module, strict=True):
     Attributes:
         n_iterations: Static iteration count.
         step_size: Damping factor ``α ∈ (0, 1]``. Default 1.0
-            (pure Chen-Oliver).
-        seed: Integer for the default per-iteration PRNG key.
+            (undamped Gauss-Newton).
+        seed: Integer for the default PRNG key of the perturbations.
         base_key: Optional explicit PRNG key (takes precedence over
             ``seed``).
     """
@@ -579,22 +613,24 @@ class IES(eqx.Module, strict=True):
         base_key = self.base_key if self.base_key is not None else jr.PRNGKey(self.seed)
         step_size = jnp.asarray(self.step_size, dtype=particles.dtype)
 
+        # d^j = y + ε^j, fixed per member: redrawing per iteration changes the
+        # objective each member is minimising, so the iteration cannot settle.
+        perturbed_obs = perturbed_observations(
+            base_key, obs, noise_cov, particles.shape[0]
+        )
+
         def step(
-            carry: Float[Array, "J N_p"], i: Int[Array, ""]
+            carry: Float[Array, "J N_p"], _: None
         ) -> tuple[Float[Array, "J N_p"], None]:
-            # Fresh per-iteration sub-key so the perturbation draws are
-            # independent across iterations.
-            sub = jr.fold_in(base_key, i)
             new_carry = _ies_step(
                 carry,
                 particles,
-                obs,
+                perturbed_obs,
                 noise_cov,
                 forward_model,
                 step_size,
-                sub,
             )
             return new_carry, None
 
-        final, _ = jax.lax.scan(step, particles, jnp.arange(self.n_iterations))
+        final, _ = jax.lax.scan(step, particles, None, length=self.n_iterations)
         return AnalysisResult(particles=final)
