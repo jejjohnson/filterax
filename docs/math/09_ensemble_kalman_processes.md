@@ -101,19 +101,17 @@ Every process consumes a $\Delta t_n$ from an `AbstractScheduler`:
 
 - **`FixedScheduler(dt=...)`** — constant; you tune it. With
   $\Delta t = 1$, one EKI/UKI step *is* the full Kalman update.
-- **`DataMisfitController`** (Iglesias 2016) — the standard adaptive
-  rule. With the ensemble-mean Mahalanobis misfit
-  $\Phi_n = J^{-1} \sum_j \lVert y - G(\theta^{(j)})\rVert^2_{\Gamma^{-1}}$,
+- **`DataMisfitController`** (Iglesias & Yang 2021) — the standard adaptive
+  rule, with no tuning parameter. With per-particle misfits
+  $\Phi_j = \tfrac{1}{2} \lVert y - G(\theta^{(j)})\rVert^2_{\Gamma^{-1}}$, their
+  ensemble mean $\bar\Phi$ and variance $\sigma^2_\Phi$, and $M$ observations,
 
 $$
-\Delta t_n = \min\big(\text{target\_misfit} / \Phi_n,\;
-    1 - t_n\big),
+\Delta t_n = \min\left(\max\left(\frac{M}{2\bar\Phi},\;
+    \sqrt{\frac{M}{2\sigma^2_\Phi}}\right),\; 1 - t_n\right).
 $$
 
-  small careful steps while far from the data, ramping up as the misfit
-  falls, and clamped so the artificial time lands exactly on $t = 1$ —
-  the standard stopping rule. Past convergence it returns
-  $\Delta t = 0$ and further updates are no-ops, not NaNs.
+  Both candidates come from $\lVert \Gamma^{-1/2} r \rVert^2 \sim \chi^2_M$ under the correct model, which has mean $M$ and variance $2M$. The steps are small while far from the data, ramp up as the misfit falls, and are clamped so the artificial time lands exactly on $t = 1$ — the standard stopping rule. Past convergence it returns $\Delta t = 0$ and further updates are no-ops, not NaNs.
 - **`EKSStableScheduler`** — bounds $\Delta t \le
   \text{target}/\lVert C^{\theta\theta}\rVert$ (via a cheap Frobenius
   bound) so the EKS Langevin discretisation stays in its stability
