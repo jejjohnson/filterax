@@ -26,6 +26,10 @@ from filterax._filters._models import (
     LatentLETKF as LatentLETKF,
     StochasticEnKF as StochasticEnKF,
 )
+from filterax._filters._parametric import (
+    KalmanSmoother as KalmanSmoother,
+    KalmanSmoothingResult as KalmanSmoothingResult,
+)
 from filterax._primitives._gain import (
     kalman_gain as kalman_gain,
     localized_kalman_gain as localized_kalman_gain,
