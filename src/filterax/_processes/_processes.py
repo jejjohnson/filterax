@@ -82,7 +82,7 @@ def _scale_noise(
     Diagonal ``Γ`` scales its diagonal in place (no matrix formed); any
     other operator falls back to a dense ``MatrixLinearOperator`` since
     lineax's structural solvers don't dispatch through
-    :class:`gaussx.ScaledOperator`.
+    :func:`gaussx.scaled_operator`.
     """
     if isinstance(noise_cov, lx.DiagonalLinearOperator):
         return lx.DiagonalLinearOperator(factor * lx.diagonal(noise_cov))

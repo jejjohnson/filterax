@@ -280,6 +280,11 @@ class KalmanSmoother(eqx.Module, strict=True):
         transition, process_noise = sde.discretise_sequence(gaps)
         # Σ_x = P_∞
         init_cov = sde.sde_params().P_inf
+        if init_cov is None:
+            raise ValueError(
+                f"{type(sde).__name__}.sde_params() reports P_inf=None (no "
+                "stationary covariance), so from_sde cannot set the prior."
+            )
         if init_mean is None:
             init_mean = jnp.zeros(init_cov.shape[0], init_cov.dtype)
         return cls(
