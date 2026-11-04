@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
@@ -183,3 +184,12 @@ def test_ledoit_wolf_reduces_condition_number():
     shrunk_cond = float(np.linalg.cond(np.asarray(P_shrunk)))
     assert shrunk_cond < sample_cond
     assert 0.0 <= lam <= 1.0
+
+
+def test_ledoit_wolf_matches_eager_under_jit():
+    ensemble = jr.normal(jr.key(0), (8, 5))
+    eager_covariance, eager_shrinkage = flx.ledoit_wolf_shrinkage(ensemble)
+    jit_covariance, jit_shrinkage = jax.jit(flx.ledoit_wolf_shrinkage)(ensemble)
+    assert jnp.ndim(jit_shrinkage) == 0
+    assert jnp.allclose(jit_covariance, eager_covariance)
+    assert jnp.allclose(jit_shrinkage, eager_shrinkage)
