@@ -112,10 +112,13 @@ $$
 $$
 
   Both candidates come from $\lVert \Gamma^{-1/2} r \rVert^2 \sim \chi^2_M$ under the correct model, which has mean $M$ and variance $2M$. The steps are small while far from the data, ramp up as the misfit falls, and are clamped so the artificial time lands exactly on $t = 1$ — the standard stopping rule. Past convergence it returns $\Delta t = 0$ and further updates are no-ops, not NaNs.
-- **`EKSStableScheduler`** — bounds $\Delta t \le
-  \text{target}/\lVert C^{\theta\theta}\rVert$ (via a cheap Frobenius
-  bound) so the EKS Langevin discretisation stays in its stability
-  region.
+- **`EKSStableScheduler`** — bounds the step by the parameter covariance and by the stiffness of the posterior,
+
+$$
+\Delta t_n = \min\left(\text{max\_dt},\; \frac{\text{target}}{\lVert C^{\theta\theta}_n\rVert_F},\; \frac{\text{target\_stiffness}}{\lVert S_n\rVert_F}\right), \qquad S_n = \frac{\Delta G_n \Gamma^{-1} \Delta G_n^\top + X'_n \Sigma_0^{-1} X_n'^\top}{J - 1}.
+$$
+
+  For a linear $G$ with $H = G^\top \Gamma^{-1} G + \Sigma_0^{-1}$, $S_n$ has the nonzero spectrum of $C^{\theta\theta}_n H$, so $\lVert S\rVert_F = \sqrt{N_p}$ at the exact posterior whatever the scale of the problem. The step then settles at about $\text{target\_stiffness}/\sqrt{N_p}$. On a scalar linear model with a flat prior the stationary variance is $H^{-1}((1 - 2\Delta t)^{-1/2} - 1)/\Delta t \approx H^{-1}(1 + \tfrac{3}{2}\Delta t)$, with no stationary solution for $\Delta t \ge 1/2$. The default $\text{target\_stiffness} = 0.1$ aims for an excess variance of about 10% on a low-dimensional, data-dominated problem.
 
 ## The variant zoo, briefly
 

@@ -272,8 +272,8 @@ class EKS_Process(AbstractProcess, strict=True):
     *ensemble-space* sqrt of ``Cᶿᶿ`` (which avoids the dense ``Nₚ × Nₚ``
     Cholesky — see comments below).
 
-    Use :class:`~filterax.EKSStableScheduler` to keep ``Δt`` inside the
-    stability region.
+    Use :class:`~filterax.EKSStableScheduler` to keep ``Δt`` small against
+    the posterior's stiffness, which sets the sampling bias.
 
     Attributes:
         scheduler: Step-size controller. Prefer EKSStableScheduler.
@@ -324,6 +324,7 @@ class EKS_Process(AbstractProcess, strict=True):
             noise_cov=noise_cov,
             step=jnp.asarray(0, dtype=jnp.int32),
             algo_time=jnp.asarray(0.0, dtype=particles.dtype),
+            prior_cov=self.prior_cov,
         )
 
     def update(
@@ -392,6 +393,7 @@ class EKS_Process(AbstractProcess, strict=True):
             noise_cov=state.noise_cov,
             step=state.step + 1,
             algo_time=state.algo_time + dt,
+            prior_cov=state.prior_cov,
         )
 
 

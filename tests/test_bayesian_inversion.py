@@ -4,9 +4,8 @@ Both are checked against the closed-form linear-Gaussian posterior
 
     ``Σ* = (Σ₀⁻¹ + Fᵀ Γ⁻¹ F)⁻¹``,   ``θ* = m₀ + Σ* Fᵀ Γ⁻¹ (y − F m₀)``.
 
-EKS runs at a fixed small step: ``EKSStableScheduler`` bounds ``Δt`` by the
-parameter covariance, not by the posterior's stiffness, and overdisperses
-on this problem (#109).
+EKS runs on its default scheduler and iteration count: ``EKSStableScheduler``
+bounds ``Δt`` by the posterior's stiffness, so the default settings sample.
 """
 
 from __future__ import annotations
@@ -115,7 +114,6 @@ def _eks_moments(prior: bool):
         noise_cov=Gamma,
         prior_mean=m0 if prior else None,
         prior_cov=_psd(S0) if prior else None,
-        config=ProcessConfig(scheduler=flx.FixedScheduler(dt=0.02), n_iterations=600),
     )
     result = eks.run(jax.random.normal(jax.random.key(10), (200, 2)))
     z = jnp.abs(result.mean - mean) / jnp.sqrt(jnp.diag(cov))
@@ -129,7 +127,8 @@ def test_eks_samples_the_posterior(prior):
 
     With J = 200 the sample mean's standard error is ≈ 0.07 σ and the
     sample variance's ≈ 0.10 relative; the bounds are about 3.5 of each,
-    plus the O(Δt) Euler bias at Δt = 0.02.
+    plus the O(Δt) Euler bias. The default scheduler settles at
+    Δt ≈ 0.1 / √2 here, an excess variance of about 10%.
     """
     z, ratio = _eks_moments(prior)
     assert float(jnp.max(z)) < 0.25
@@ -160,14 +159,24 @@ def _uninformative_eks(scheduler, n_iterations):
     return m0, eks.run(jax.random.normal(jax.random.key(0), (200, 2)))
 
 
-def test_eks_tight_prior_is_stable_with_default_scheduler():
-    """The default scheduler picks Δt ≈ 1 here; an explicit prior drift
-    multiplied offsets by 1 − Δt/σ₀² = −99 per step and diverged."""
-    m0, result = _uninformative_eks(flx.EKSStableScheduler(), 60)
+def test_eks_tight_prior_is_stable_at_a_large_step():
+    """An explicit prior drift would multiply offsets by 1 − Δt/σ₀² = −99 per
+    step at Δt = 1 and diverge. The implicit step instead settles at a variance
+    ratio of (1 + 2 Δt)^{1/2} − 1 ≈ 0.73."""
+    m0, result = _uninformative_eks(flx.FixedScheduler(dt=1.0), 60)
     assert bool(jnp.all(jnp.isfinite(result.particles)))
     assert float(jnp.max(jnp.abs(result.mean - m0))) < 0.05
     ratio = jnp.diag(result.covariance.as_matrix()) / 0.01
     assert bool(jnp.all((ratio > 0.5) & (ratio < 2.0)))
+
+
+def test_eks_tight_prior_is_stable_with_default_scheduler():
+    m0, result = _uninformative_eks(flx.EKSStableScheduler(), 200)
+    z = jnp.abs(result.mean - m0) / 0.1
+    ratio = jnp.diag(result.covariance.as_matrix()) / 0.01
+    assert bool(jnp.all(jnp.isfinite(result.particles)))
+    assert float(jnp.max(z)) < 0.25
+    assert bool(jnp.all((ratio > 0.75) & (ratio < 1.3)))
 
 
 def test_eks_uninformative_data_returns_the_prior():

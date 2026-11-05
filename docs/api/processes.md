@@ -33,8 +33,7 @@ noise $\Gamma$, the models converge to different things:
   \tfrac{1}{2}\|\theta - m_0\|^2_{\Sigma_0^{-1}}$.
 - `EKS` with `prior_mean` / `prior_cov`: samples of the posterior
   $p(\theta \mid y)$. Without them, samples of the likelihood (a flat
-  prior). Use a small fixed step (`FixedScheduler(dt=0.02)` or so) for
-  sampling; `EKSStableScheduler` can pick steps too large for the data (#109).
+  prior).
 - `UKI`: a Gaussian approximation, with the initial $(\mu_0, \Sigma_0)$
   acting as the prior. Exact for a linear $G$.
 

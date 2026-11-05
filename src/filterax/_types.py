@@ -32,6 +32,7 @@ class ProcessState(eqx.Module, strict=True):
     noise_cov: lx.AbstractLinearOperator
     step: Int[Array, ""]
     algo_time: Float[Array, ""]
+    prior_cov: lx.AbstractLinearOperator | None = None
 
 
 class UKIState(eqx.Module, strict=True):
