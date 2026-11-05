@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.7](https://github.com/jejjohnson/filterax/compare/v0.0.6...v0.0.7) (2026-11-05)
+
+
+### Features
+
+* **smoothers:** add KalmanSmoother, an exact Kalman filter and RTS smoother over irregular times ([#127](https://github.com/jejjohnson/filterax/issues/127)) ([f682973](https://github.com/jejjohnson/filterax/commit/f682973c6fe6e9575ce194a0526055cbd032a7af)), closes [#126](https://github.com/jejjohnson/filterax/issues/126)
+
+
+### Bug Fixes
+
+* **inflation:** return the ledoit_wolf_shrinkage intensity as an array ([#130](https://github.com/jejjohnson/filterax/issues/130)) ([45b898a](https://github.com/jejjohnson/filterax/commit/45b898adeb287be5de688a285f3d09d895988c06)), closes [#118](https://github.com/jejjohnson/filterax/issues/118)
+* **primitives:** draw perturbed observations with gaussx.sample_mvn ([#131](https://github.com/jejjohnson/filterax/issues/131)) ([4b0683a](https://github.com/jejjohnson/filterax/commit/4b0683aaa34080e2b01e370e4b8c41556a99eab5)), closes [#115](https://github.com/jejjohnson/filterax/issues/115)
+* **schedulers:** bound the EKS step by the posterior's stiffness ([#135](https://github.com/jejjohnson/filterax/issues/135)) ([b4f813b](https://github.com/jejjohnson/filterax/commit/b4f813b202c498fcd9df5b222116203ca70cad88)), closes [#109](https://github.com/jejjohnson/filterax/issues/109)
+* **schedulers:** make DataMisfitController the Iglesias-Yang rule ([#134](https://github.com/jejjohnson/filterax/issues/134)) ([44cda6b](https://github.com/jejjohnson/filterax/commit/44cda6b29db9fc0ad2edec4b03b6391f73bd1f86)), closes [#116](https://github.com/jejjohnson/filterax/issues/116)
+* **smoothers:** make IES a Gauss-Newton iteration that converges ([#133](https://github.com/jejjohnson/filterax/issues/133)) ([dd961db](https://github.com/jejjohnson/filterax/commit/dd961dbb0b39497db8cd23a354f14f88e0282442)), closes [#117](https://github.com/jejjohnson/filterax/issues/117)
+
 ## [0.0.6](https://github.com/jejjohnson/filterax/compare/v0.0.5...v0.0.6) (2026-10-27)
 
 
