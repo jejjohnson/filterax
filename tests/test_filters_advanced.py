@@ -241,29 +241,61 @@ def test_square_root_kf_raises_no_gaussx_deprecation():
         ).filter(observations, jnp.zeros(3), jnp.eye(3))
 
 
-def test_square_root_kf_stays_psd_in_float32_near_singular():
-    """Here the covariance form returns an indefinite covariance and a NaN."""
-    dtype = jnp.float32
-    transition = jnp.asarray([[1.0, 0.1], [0.0, 1.0]], dtype)
-    obs_model = jnp.asarray([[1.0, 0.0]], dtype)
-    process_noise = 1e-12 * jnp.eye(2, dtype=dtype)
-    obs_noise = 1e-10 * jnp.eye(1, dtype=dtype)
-    observations = jnp.sin(jnp.linspace(0.0, 5.0, 64, dtype=dtype))[:, None]
-    result = flx.filters.SquareRootKF(
-        transition=transition,
-        obs_model=obs_model,
-        process_noise=process_noise,
-        obs_noise=obs_noise,
-    ).filter(observations, jnp.zeros(2, dtype), 100.0 * jnp.eye(2, dtype=dtype))
-    assert result.filtered_covs.dtype == dtype
-    covariances = 0.5 * (
-        result.filtered_covs + jnp.swapaxes(result.filtered_covs, -1, -2)
+def _strong_observation_model(process_var, obs_var, prior_var, dtype):
+    """A constant-velocity model with data drawn from the model itself."""
+    num_steps = 64
+    transition = jnp.array([[1.0, 0.1], [0.0, 1.0]])
+    obs_model = jnp.array([[1.0, 0.0]])
+    state_key, noise_key, obs_key = jr.split(jr.PRNGKey(0), 3)
+    state = jnp.sqrt(prior_var) * jr.normal(state_key, (2,))
+    observations = []
+    for step in range(num_steps):
+        process_draw = jr.normal(jr.fold_in(noise_key, step), (2,))
+        state = transition @ state + jnp.sqrt(process_var) * process_draw
+        obs_draw = jr.normal(jr.fold_in(obs_key, step), (1,))
+        observations.append(obs_model @ state + jnp.sqrt(obs_var) * obs_draw)
+    return flx.filters.SquareRootKF(
+        transition=transition.astype(dtype),
+        obs_model=obs_model.astype(dtype),
+        process_noise=(process_var * jnp.eye(2)).astype(dtype),
+        obs_noise=(obs_var * jnp.eye(1)).astype(dtype),
+    ).filter(
+        jnp.stack(observations).astype(dtype),
+        jnp.zeros(2, dtype),
+        (prior_var * jnp.eye(2)).astype(dtype),
     )
-    assert float(jnp.min(jnp.linalg.eigvalsh(covariances))) > 0.0
+
+
+@pytest.mark.parametrize(
+    ("process_var", "obs_var", "prior_var", "max_mean_error", "max_loglik_error"),
+    [
+        (1e-8, 1e-6, 1.0, 0.1, 0.1),
+        (1e-10, 1e-8, 1.0, 1.0, 0.1),
+        (1e-12, 1e-10, 100.0, 10.0, 2.0),
+    ],
+)
+def test_square_root_kf_float32_matches_a_float64_reference(
+    process_var, obs_var, prior_var, max_mean_error, max_loglik_error
+):
+    """Means and log-likelihood, not only a PSD covariance.
+
+    Before gaussx v0.6.9 the means here were up to billions of standard
+    deviations off, while the covariances still looked healthy (#141).
+    """
+    reference = _strong_observation_model(process_var, obs_var, prior_var, jnp.float64)
+    single = _strong_observation_model(process_var, obs_var, prior_var, jnp.float32)
+    assert single.filtered_means.dtype == jnp.float32
+
+    variances = jnp.stack([reference.filtered_covs[:, i, i] for i in range(2)], -1)
+    mean_error = jnp.abs(single.filtered_means - reference.filtered_means)
+    assert jnp.max(mean_error / jnp.sqrt(variances)) < max_mean_error
+    assert jnp.abs(single.log_likelihood - reference.log_likelihood) < max_loglik_error
+    # The covariance form returns an indefinite covariance at the last of these.
+    assert jnp.min(jnp.linalg.eigvalsh(single.filtered_covs)) > 0.0
 
 
 def test_square_root_kf_is_accurate_in_float32_on_a_well_conditioned_model():
-    """The float32 limit in the docstring starts far from this conditioning."""
+    """Close agreement at ordinary conditioning, beyond the strong cases above."""
     transition, obs_model, process_noise, obs_noise, observations = _square_root_model()
 
     def run(dtype):

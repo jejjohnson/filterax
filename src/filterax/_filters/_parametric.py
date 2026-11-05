@@ -51,14 +51,10 @@ class SquareRootKF(eqx.Module, strict=True):
     parallelism. The factors stay internal: the result reports the
     covariances ``L Lᵀ``.
 
-    In float64 this matches the covariance form to rounding on a
-    well-conditioned model.
-
-    Warning:
-        A PSD covariance does not mean an accurate mean. In float32, once
-        ``R`` is about ``1e8`` times smaller than ``P₀``, the means and the
-        log-likelihood can be far worse than the covariance form's, while
-        the covariances still look healthy. Use float64 for such models.
+    It matches the covariance form to rounding in float64 on a
+    well-conditioned model. In float32 it stays closer to a float64 reference
+    than the covariance form at strong conditioning, and stays positive
+    definite where the covariance form does not.
 
     The constructor stores the (time-invariant) ``Φ``, ``H``, ``Q``,
     ``R`` and lets the user push observations through :meth:`filter`.
