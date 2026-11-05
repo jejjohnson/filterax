@@ -466,3 +466,21 @@ def test_analysis_gradient_with_a_constant_observation_channel(filter_name):
     central = loss(particles + step * direction) - loss(particles - step * direction)
     central = central / (2.0 * step)
     np.testing.assert_allclose(jnp.sum(gradient * direction), central, rtol=1e-6)
+
+
+@pytest.mark.parametrize("filter_name", ["ETKF", "EnSRF", "ESTKF"])
+def test_analysis_forms_no_ensemble_sized_matrix(filter_name):
+    """With more members than observations, the (Nₑ, Nₑ) system must never appear."""
+    num_members = 50
+    obs_noise = lx.DiagonalLinearOperator(jnp.ones(3))
+    obs_operator = jnp.ones((3, 4))
+    analysis_filter = getattr(flx.filters, filter_name)()
+
+    def run(particles):
+        result = analysis_filter.analysis(
+            particles, jnp.zeros(3), lambda x: obs_operator @ x, obs_noise
+        )
+        return result.particles, result.log_likelihood
+
+    jaxpr = str(jax.make_jaxpr(run)(jnp.zeros((num_members, 4))))
+    assert f"[{num_members},{num_members}]" not in jaxpr

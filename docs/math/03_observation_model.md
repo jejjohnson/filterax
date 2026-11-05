@@ -150,6 +150,8 @@ Because $C^{HH}$ has rank $\le N_e - 1$, filterax assembles $S$ as a
 $\log\lvert S\rvert$ and $S^{-1}d$ go through the matrix-determinant
 lemma and the Woodbury identity at $O(N_e^2 N_y + N_e^3)$.
 
+With $N_e > N_y$ that capacitance is the larger system, so the log-likelihood the filters report takes a QR of the stacked factors $[U, R^{1/2}]$ instead, at $O(N_e N_y^2)$. Its triangular factor $T$ has $T^\top T = S$, which gives $\log\lvert S\rvert$ and $d^\top S^{-1} d$ without squaring the condition number by forming $S$.
+
 ## Implementation in filterax
 
 ```python

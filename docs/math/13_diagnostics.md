@@ -168,9 +168,7 @@ rank-$(N_e - 1)$ ensemble term $U U^\top$ with
 $U = (HX)'^\top / \sqrt{N_e - 1}$ — so $\log|S|$ dispatches through
 the matrix-determinant lemma and $S^{-1} d$ through the Woodbury
 identity, both at $O(N_e^2 N_y + N_e^3)$ without materialising the
-dense $(N_y, N_y)$ matrix. `innovation_statistics` bundles $d$, $S$,
-the whitened residual (a true Cholesky whitening), and the
-log-likelihood in one call.
+dense $(N_y, N_y)$ matrix. With $N_e > N_y$, the log-likelihood instead takes a QR of the stacked factors $[U, R^{1/2}]$ (chapter 3). `innovation_statistics` bundles $d$, $S$, the whitened residual $S^{-1/2} d$ (the principal root), and the log-likelihood in one call.
 
 ## Effective ensemble size and weight entropy
 
