@@ -35,7 +35,8 @@ import optax
 from jaxtyping import Array, Float, PRNGKeyArray
 
 from filterax._processes._processes import (
-    _eki_delta,
+    EKI,
+    _eki_update,
     _safe_inv_dt,
     sigma_points,
 )
@@ -214,16 +215,14 @@ def eki(
         shim = _scheduler_state_shim(
             state.particles, evals, obs, noise_cov, state.step, state.algo_time
         )
-        dt = sched.get_dt(shim)
-        delta = _eki_delta(state.particles, evals, obs, noise_cov, dt)
-        particles_new = state.particles + delta
-        new_mean = jnp.mean(particles_new, axis=0)
+        updated = EKI(scheduler=sched).update(shim, evals)
+        new_mean = jnp.mean(updated.particles, axis=0)
         # Unflatten the mean increment back into the params tree.
         mean_update = state.unravel(new_mean - prev_mean)
         return mean_update, EKIOptaxState(
-            particles=particles_new,
-            algo_time=state.algo_time + dt,
-            step=state.step + 1,
+            particles=updated.particles,
+            algo_time=updated.algo_time,
+            step=updated.step,
             unravel=state.unravel,
         )
 
@@ -304,7 +303,7 @@ def eks(
         dt = sched.get_dt(shim)
 
         # EKI-style drift + mean-pull + ensemble-preconditioned noise.
-        drift = _eki_delta(state.particles, evals, obs, noise_cov, dt)
+        particles_drifted = _eki_update(state.particles, evals, obs, noise_cov, dt)
         mean = jnp.mean(state.particles, axis=0)
         anom = state.particles - mean[None, :]
         drift_pull = -((N_p + 1) / J) * dt * anom
@@ -314,7 +313,7 @@ def eks(
             jnp.sqrt(2.0 * dt) * einx.dot("j k, k p -> j p", xi, anom) / jnp.sqrt(J - 1)
         )
 
-        particles_new = state.particles + drift + drift_pull + brownian
+        particles_new = particles_drifted + drift_pull + brownian
         new_mean = jnp.mean(particles_new, axis=0)
         mean_update = state.unravel(new_mean - prev_mean)
         return mean_update, EKSOptaxState(

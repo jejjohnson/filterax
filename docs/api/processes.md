@@ -18,7 +18,7 @@ controlled by a [scheduler](schedulers.md), and the iteration states
 | **`filterax.EKS`** | Posterior samples | Full ensemble | `J` | Posterior uncertainty matters; longer runs; pass `prior_mean` / `prior_cov` for a Bayesian prior |
 | **`filterax.TEKI`** | MAP | None (spread is a convergence diagnostic) | `J` | Point estimate under a Gaussian prior, without gradients |
 | **`filterax.UKI`** | Parametric `(μ, Σ)` | Calibrated `Σ` | `2 Nₚ + 1` (fixed) | Moderate `Nₚ ≲ 100`, deterministic, reproducible |
-| **`filterax.processes.ETKI`** | MLE | None | `J` | Same as EKI — semantic alias; output-scalable variant for `N_d ≫ J` (current impl delegates to EKI's gaussx-Woodbury solve) |
+| **`filterax.processes.ETKI`** | Gaussian posterior, for linear `G` | Via spread | `J` | The ETKF square-root transform at `Γ / Δt`. Over a schedule with `Σ Δt = 1` it reaches the Gaussian posterior for a linear `G`, keeping spread where EKI collapses it |
 | **`filterax.processes.GNKI`** | MAP + ensemble spread | Via spread | `J` | Well-conditioned, fast convergence, requires `J > Nₚ` |
 | **`filterax.processes.SparseInversion`** | Sparse point estimate | None | `J` | Variable selection, sparse parameter recovery |
 

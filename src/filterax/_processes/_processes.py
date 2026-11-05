@@ -69,56 +69,27 @@ def _with_evals(state: ProcessState, evals: Float[Array, "J N_d"]) -> ProcessSta
 _DT_EPSILON: float = 1e-30
 
 
+def _floored_dt(dt: Float[Array, ""]) -> Float[Array, ""]:
+    """``dt`` with a tiny floor, so post-convergence calls are stable."""
+    return jnp.maximum(dt, _DT_EPSILON)
+
+
 def _safe_inv_dt(dt: Float[Array, ""]) -> Float[Array, ""]:
     """Reciprocal of ``dt`` with a tiny floor so post-convergence calls are stable."""
-    return 1.0 / jnp.maximum(dt, _DT_EPSILON)
+    return 1.0 / _floored_dt(dt)
 
 
-def _scale_noise(
-    noise_cov: lx.AbstractLinearOperator, factor: Float[Array, ""]
-) -> lx.AbstractLinearOperator:
-    """Return ``factor · Γ`` preserving structural type when possible.
-
-    Diagonal ``Γ`` scales its diagonal in place (no matrix formed); any
-    other operator falls back to a dense ``MatrixLinearOperator`` since
-    lineax's structural solvers don't dispatch through
-    :func:`gaussx.scaled_operator`.
-    """
-    if isinstance(noise_cov, lx.DiagonalLinearOperator):
-        return lx.DiagonalLinearOperator(factor * lx.diagonal(noise_cov))
-    dense = factor * noise_cov.as_matrix()
-    return lx.MatrixLinearOperator(dense, tags=lx.positive_semidefinite_tag)
-
-
-def _innovation_covariance(
-    obs_anom: Float[Array, "J N_d"],
-    noise_cov: lx.AbstractLinearOperator,
-    inv_dt: Float[Array, ""],
-) -> gaussx.LowRankUpdate:
-    r"""Build ``S = Cᴳᴳ + Δt⁻¹ Γ`` as a low-rank update.
-
-    The ensemble obs-space covariance ``Cᴳᴳ`` is rank ``≤ J − 1`` and is
-    composed with the (Δt-scaled) noise base so gaussx dispatches solves
-    via the Woodbury identity. ``_scale_noise`` keeps the base
-    structural when ``Γ`` is diagonal — no dense ``(N_d, N_d)`` block is
-    formed.
-    """
-    cov = gaussx.ensemble_covariance(obs_anom, bessel=True)
-    scaled_noise = _scale_noise(noise_cov, inv_dt)
-    return gaussx.LowRankUpdate(scaled_noise, cov.U)
-
-
-def _eki_delta(
+def _eki_update(
     particles: Float[Array, "J N_p"],
     forward_evals: Float[Array, "J N_d"],
     obs: Float[Array, " N_d"],
     noise_cov: lx.AbstractLinearOperator,
     dt: Float[Array, ""],
 ) -> Float[Array, "J N_p"]:
-    r"""Per-member EKI increment.
+    r"""One deterministic EKI step, through :func:`gaussx.eki_step`.
 
     $$
-    \delta\theta^{(j)} = C^{\theta G} S^{-1} \big(y - G^{(j)}\big),
+    \theta^{(j)} \leftarrow \theta^{(j)} + C^{\theta G} S^{-1} \big(y - G^{(j)}\big),
         \qquad S = C^{GG} + \Delta t^{-1} \Gamma
     $$
 
@@ -126,23 +97,20 @@ def _eki_delta(
     ``Δt → 0`` the increment tends to ``Δt Cᶿᴳ Γ⁻¹ (y − G⁽ʲ⁾)``, the Euler
     step of the continuous-time flow ``θ̇ = Cᶿᴳ Γ⁻¹ (y − G)``.
 
-    ``S`` is built as a low-rank update so the solve is Woodbury when
-    ``Γ`` is structured. The cross-covariance ``Cᶿᴳ`` is a dense
-    ``(Nₚ, N_d)`` matrix because ``N_d`` is typically small.
-
-    Cost: ``O(J² N_d + J Nₚ N_d)`` per step.
+    ``Γ`` stays a lazily scaled operator, so a structured ``Γ`` keeps its own
+    solve. gaussx forms ``S`` densely when ``J ≥ N_d`` and uses Woodbury
+    otherwise.
     """
-    C_theta_G = gaussx.ensemble_cross_covariance(
-        particles, forward_evals, bessel=True
-    )  # (Nₚ, N_d)
-    obs_anom = ensemble_anomalies(forward_evals)
-    S = _innovation_covariance(obs_anom, noise_cov, _safe_inv_dt(dt))
-    # innovations[j, d] = y[d] − G[j, d]
-    innovations = einx.subtract("d, j d -> j d", obs, forward_evals)
-    # Solve once for each per-member innovation: S⁻¹ rⱼ.
-    S_inv_innov = gaussx.solve_rows(S, innovations)  # (J, N_d)
-    # δθⱼ = Cᶿᴳ (S⁻¹ rⱼ); Δt is already in S through Δt⁻¹ Γ.
-    return einx.dot("p d, j d -> j p", C_theta_G, S_inv_innov)
+    # Every member sees the same y, which makes the step deterministic.
+    member_obs = jnp.broadcast_to(obs, forward_evals.shape)
+    return gaussx.eki_step(
+        particles,
+        forward_evals,
+        obs,
+        noise_cov,
+        dt=_floored_dt(dt),
+        perturbed_obs=member_obs,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -221,10 +189,9 @@ class EKI(AbstractProcess, strict=True):
         # computation sees them.
         state_now = _with_evals(state, forward_evals)
         dt = self.scheduler.get_dt(state_now)
-        delta = _eki_delta(
+        particles_new = _eki_update(
             state.particles, forward_evals, state.obs, state.noise_cov, dt
         )
-        particles_new = state.particles + delta
         return ProcessState(
             particles=particles_new,
             forward_evals=forward_evals,
@@ -338,7 +305,7 @@ class EKS_Process(AbstractProcess, strict=True):
         J, N_p = state.particles.shape
 
         # 1. EKI-style drift toward the data.
-        drift_data = _eki_delta(
+        particles_drifted = _eki_update(
             state.particles, forward_evals, state.obs, state.noise_cov, dt
         )
 
@@ -361,7 +328,7 @@ class EKS_Process(AbstractProcess, strict=True):
             jnp.sqrt(2.0 * dt) * einx.dot("j k, k p -> j p", xi, anom) / jnp.sqrt(J - 1)
         )
 
-        particles_new = state.particles + drift_data + drift_pull + noise
+        particles_new = particles_drifted + drift_pull + noise
 
         # 4. Prior drift ``− Δt Cᶿᶿ Σ₀⁻¹ (θ⁽ʲ⁾ − m₀)``, taken implicitly in
         #    θ (Garbuno-Inigo et al. 2020, §4) so a prior tighter than the
@@ -684,20 +651,22 @@ class UKI(AbstractProcess, strict=True):
 class ETKI(AbstractProcess, strict=True):
     r"""Ensemble Transform Kalman Inversion.
 
-    The "transform" variant of EKI. Conceptually identical to
-    :class:`EKI` on the analysis ensemble (in batch form both write the
-    same linear-Gaussian posterior); the *intended* distinction is that
-    ETKI rewrites the per-step solve in the ``J × J`` ensemble subspace,
-    yielding ``O(J² N_d)`` cost instead of ``O(N_d³)`` when ``N_d ≫ J``.
+    The ETKF square-root transform applied to the tempered likelihood, through
+    :func:`gaussx.eki_step` with ``deterministic=True``:
 
-    The current implementation defers to the same Bessel-corrected EKI
-    delta as :class:`EKI` — gaussx routes the inner solve through the
-    Woodbury identity, so the dense ``(N_d, N_d)`` block is *not* formed
-    even though the outer call signature is identical. A future
-    optimisation can specialise the transform path explicitly when
-    ``N_d`` is extreme; for now the two classes coexist so users can
-    select the conceptually-appropriate one without paying a different
-    cost.
+    $$
+    \bar{\theta} \leftarrow \bar{\theta} + C^{\theta G} S^{-1} (y - \bar{G}),
+    \qquad
+    \theta' \leftarrow W \theta',
+    \qquad
+    W = (J - 1)^{1/2} \big((J - 1) I + G' \Delta t \Gamma^{-1} G'^{\top}\big)^{-1/2}.
+    $$
+
+    The mean moves as in :class:`EKI`, but the anomalies contract at half EKI's
+    rate as ``Δt → 0``. For a linear ``G`` with ``J > Nₚ``, a schedule with
+    ``Σ Δtₙ = 1`` lands exactly on the Gaussian posterior of the initial
+    ensemble's mean and covariance, where :class:`EKI` keeps collapsing the
+    spread.
 
     Attributes:
         scheduler: Step-size strategy.
@@ -731,11 +700,16 @@ class ETKI(AbstractProcess, strict=True):
     ) -> ProcessState:
         state_now = _with_evals(state, forward_evals)
         dt = self.scheduler.get_dt(state_now)
-        delta = _eki_delta(
-            state.particles, forward_evals, state.obs, state.noise_cov, dt
+        particles_new = gaussx.eki_step(
+            state.particles,
+            forward_evals,
+            state.obs,
+            state.noise_cov,
+            dt=_floored_dt(dt),
+            deterministic=True,
         )
         return ProcessState(
-            particles=state.particles + delta,
+            particles=particles_new,
             forward_evals=forward_evals,
             obs=state.obs,
             noise_cov=state.noise_cov,
@@ -829,9 +803,11 @@ class GNKI(AbstractProcess, strict=True):
         # solve_rows treats each row of J_tilde as an N_d vector and
         # returns (Γ⁻¹ J̃)_k row-by-row → shape (Nₚ, N_d).
         Gamma_inv_J = gaussx.solve_rows(state.noise_cov, J_tilde)  # (Nₚ, N_d)
-        precision = einx.dot("p d, q d -> p q", J_tilde, Gamma_inv_J) + jnp.linalg.inv(
-            self.prior_cov.as_matrix()
+        # Σ₀⁻¹, each row solved through the prior's own structure
+        prior_precision = gaussx.solve_rows(
+            self.prior_cov, jnp.eye(N_p, dtype=J_tilde.dtype)
         )
+        precision = einx.dot("p d, q d -> p q", J_tilde, Gamma_inv_J) + prior_precision
         precision = 0.5 * (precision + precision.T)
         K_gain = jnp.linalg.solve(precision, Gamma_inv_J)  # (Nₚ, N_d)
 
@@ -901,12 +877,9 @@ class SparseInversion(AbstractProcess, strict=True):
     ) -> ProcessState:
         state_now = _with_evals(state, forward_evals)
         dt = self.scheduler.get_dt(state_now)
-        delta = _eki_delta(
-            state.particles, forward_evals, state.obs, state.noise_cov, dt
-        )
+        z = _eki_update(state.particles, forward_evals, state.obs, state.noise_cov, dt)
         # Soft-threshold proximal operator scaled by Δt · λ.
         lam = self.penalty_weight * dt
-        z = state.particles + delta
         particles_new = jnp.sign(z) * jnp.maximum(jnp.abs(z) - lam, 0.0)
         return ProcessState(
             particles=particles_new,
@@ -954,14 +927,13 @@ class TEKI(AbstractProcess, strict=True):
         check_ensemble_size(particles.shape[0])
         N_d = obs.shape[0]
         N_p = particles.shape[1]
-        zero_evals = jnp.zeros((particles.shape[0], N_d + N_p), dtype=particles.dtype)
-        # Store the augmented obs ỹ = (y, m₀) and augmented Γ̃ = blockdiag.
-        aug_obs = jnp.concatenate([obs, self.prior_mean])
-        aug_noise = (
-            lx.BlockDiagonalLinearOperator([noise_cov, self.prior_cov])
-            if hasattr(lx, "BlockDiagonalLinearOperator")
-            else _block_diag(noise_cov, self.prior_cov)
+        zero_evals = jnp.zeros((particles.shape[0], N_d), dtype=particles.dtype)
+        # ỹ = (y, m₀) and Γ̃ = blockdiag(Γ, Σ₀), stored so each update and the
+        # scheduler see the augmented system.
+        _, aug_obs, aug_noise = gaussx.tikhonov_augment(
+            particles, zero_evals, obs, noise_cov, self.prior_mean, self.prior_cov
         )
+        zero_evals = jnp.zeros((particles.shape[0], N_d + N_p), dtype=particles.dtype)
         return ProcessState(
             particles=particles,
             forward_evals=zero_evals,
@@ -981,8 +953,9 @@ class TEKI(AbstractProcess, strict=True):
         aug_evals = jnp.concatenate([forward_evals, state.particles], axis=1)
         state_now = _with_evals(state, aug_evals)
         dt = self.scheduler.get_dt(state_now)
-        delta = _eki_delta(state.particles, aug_evals, state.obs, state.noise_cov, dt)
-        particles_new = state.particles + delta
+        particles_new = _eki_update(
+            state.particles, aug_evals, state.obs, state.noise_cov, dt
+        )
         return ProcessState(
             particles=particles_new,
             forward_evals=aug_evals,
@@ -991,23 +964,6 @@ class TEKI(AbstractProcess, strict=True):
             step=state.step + 1,
             algo_time=state.algo_time + dt,
         )
-
-
-def _block_diag(
-    A: lx.AbstractLinearOperator, B: lx.AbstractLinearOperator
-) -> lx.MatrixLinearOperator:
-    """Fallback dense block-diagonal for the augmented Γ̃ in TEKI.
-
-    Used only when lineax does not expose ``BlockDiagonalLinearOperator``.
-    The matrix is small (``N_d + Nₚ`` per side) so densifying is cheap.
-    """
-    A_mat = A.as_matrix()
-    B_mat = B.as_matrix()
-    n, m = A_mat.shape[0], B_mat.shape[0]
-    out = jnp.zeros((n + m, n + m), dtype=A_mat.dtype)
-    out = out.at[:n, :n].set(A_mat)
-    out = out.at[n:, n:].set(B_mat)
-    return lx.MatrixLinearOperator(out, tags=lx.positive_semidefinite_tag)
 
 
 # ──────────────────────────────────────────────────────────────────────

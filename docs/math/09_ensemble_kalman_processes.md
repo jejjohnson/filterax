@@ -127,7 +127,7 @@ $$
 | `processes.GNKI` | Explicit ensemble Jacobian $\tilde{J} = (C^{\theta\theta})^{-1} C^{\theta G}$ + Gauss-Newton step with prior pull-back; fast, needs $J > N_p$; recovers the exact linear-Gaussian posterior |
 | `processes.TEKI` | Tikhonov EKI: augments $\tilde{G}(\theta) = (G(\theta), \theta)$, $\tilde{y} = (y, m_0)$, $\tilde{\Gamma} = \mathrm{blockdiag}(\Gamma, \Sigma_0)$ — vanilla EKI on the augmented system converges to the MAP instead of drifting on ill-posed problems |
 | `processes.SparseInversion` | EKI step + L¹ soft-threshold prox $\mathrm{sign}(z)\max(|z| - \lambda, 0)$ — drives inactive parameters exactly to zero (variable selection) |
-| `processes.ETKI` | Transform-flavoured EKI; currently shares EKI's Woodbury-routed solve |
+| `processes.ETKI` | Deterministic ETKF transform at $\Gamma / \Delta t$, through `gaussx.eki_step(deterministic=True)`; a schedule with $\sum \Delta t = 1$ is exact for a linear $G$ with $J > N_p$ |
 
 ## Three API layers
 
