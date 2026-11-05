@@ -104,7 +104,7 @@ ensemble-space matrix $\tilde{C} = (N_e-1) I + Y' R^{-1} Y'^\top$.
 When $N_y < N_e$ — the usual case — $\tilde{C}$ has $N_e - N_y$
 eigenvalues *structurally repeated* at $N_e - 1$, and the
 reverse-mode derivative of `jnp.linalg.eigh` divides by eigenvalue
-gaps: repeated eigenvalues give **NaN gradients**. filterax's ETKF runs `gaussx.etkf_transform`, which differentiates the eigendecomposition in closed form, so the gaps never appear in a denominator. See [chapter 6](06_etkf.md); the practical consequence here is simply that `jax.grad` through the ETKF is NaN-free.
+gaps: repeated eigenvalues give **NaN gradients**. filterax's ETKF runs `gaussx.etkf_analysis`, which differentiates the eigendecomposition in closed form, so the gaps never appear in a denominator. See [chapter 6](06_etkf.md); the practical consequence here is simply that `jax.grad` through the ETKF is NaN-free.
 
 ## ROAD-EnKF: local gradients
 

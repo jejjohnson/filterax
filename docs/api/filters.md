@@ -23,7 +23,7 @@ standard cycle does not fit (custom inflation schedules, pipekit cycling,
 differentiable training).
 
 !!! note "ETKF analysis core"
-    `ETKF`, `EnSRF` and `ESTKF` run `gaussx.etkf_transform`, which takes one `(N_e, N_e)` symmetric eigendecomposition. Its derivative is taken in closed form, so it stays finite under `jax.grad` at the repeated eigenvalues of the transform (see [Differentiable training](differentiable.md)).
+    `ETKF`, `EnSRF`, `ESTKF` and `ETKF_Livings` run `gaussx.etkf_analysis`. With fewer observations than members it takes a thin QR and an `(N_y, N_y)` symmetric eigendecomposition, and forms no `(N_e, N_e)` matrix; otherwise it takes one `(N_e, N_e)` eigendecomposition. Its derivative is taken in closed form, so it stays finite under `jax.grad` at the repeated eigenvalues of the transform (see [Differentiable training](differentiable.md)).
 
 For the specialised deterministic variants (`ESTKF`, `ETKF_Livings`,
 `EnSRF_Serial`) see [Advanced filters](filters_advanced.md).
