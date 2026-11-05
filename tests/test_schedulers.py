@@ -170,3 +170,90 @@ def test_eks_stable_scheduler_shrinks_for_spread_ensembles():
     )
     dt = float(sched.get_dt(state))
     assert 0 < dt < 1.0  # well below max_dt
+
+
+def _stiffness_state(gamma=0.1, prior_variance=None, scale=1.0, num_members=40):
+    """A linear model's state, with its dense stiffness ``S`` and ``Cᶿᶿ H``."""
+    F = jnp.asarray([[1.0, 0.5], [-0.3, 1.2], [0.7, 0.1]]) / scale
+    particles = scale * jr.normal(jr.PRNGKey(1), (num_members, 2))
+    evals = particles @ F.T
+    prior_cov = None if prior_variance is None else prior_variance * jnp.eye(2)
+    state = flx.ProcessState(
+        particles=particles,
+        forward_evals=evals,
+        obs=jnp.zeros(3),
+        noise_cov=lx.DiagonalLinearOperator(gamma * jnp.ones(3)),
+        step=jnp.asarray(0, dtype=jnp.int32),
+        algo_time=jnp.asarray(0.0),
+        prior_cov=None
+        if prior_cov is None
+        else lx.MatrixLinearOperator(prior_cov, lx.positive_semidefinite_tag),
+    )
+    anomalies = particles - particles.mean(0)
+    obs_anomalies = evals - evals.mean(0)
+    stiffness = obs_anomalies @ obs_anomalies.T / gamma
+    H = F.T @ F / gamma
+    if prior_cov is not None:
+        stiffness = stiffness + anomalies @ jnp.linalg.inv(prior_cov) @ anomalies.T
+        H = H + jnp.linalg.inv(prior_cov)
+    C = anomalies.T @ anomalies / (num_members - 1)
+    return state, stiffness / (num_members - 1), C @ H
+
+
+_ONLY_STIFFNESS = {"max_dt": 1e6, "target": 1e6}
+
+
+@pytest.mark.parametrize("prior_variance", [None, 0.5], ids=["flat", "prior"])
+def test_eks_stable_scheduler_is_bounded_by_the_dense_stiffness(prior_variance):
+    state, stiffness, _ = _stiffness_state(prior_variance=prior_variance)
+    sched = flx.EKSStableScheduler(target_stiffness=0.3, **_ONLY_STIFFNESS)
+    expected = 0.3 / jnp.linalg.norm(stiffness)
+    assert float(sched.get_dt(state)) == pytest.approx(float(expected), rel=1e-10)
+
+
+@pytest.mark.parametrize("prior_variance", [None, 0.5], ids=["flat", "prior"])
+def test_eks_stable_scheduler_stiffness_has_the_spectrum_of_cov_times_hessian(
+    prior_variance,
+):
+    """``‖S‖²_F = tr((Cᶿᶿ H)²)`` for a linear model, the Euler stiffness."""
+    state, _, cov_hessian = _stiffness_state(prior_variance=prior_variance)
+    sched = flx.EKSStableScheduler(target_stiffness=1.0, **_ONLY_STIFFNESS)
+    expected = 1.0 / jnp.sqrt(jnp.trace(cov_hessian @ cov_hessian))
+    assert float(sched.get_dt(state)) == pytest.approx(float(expected), rel=1e-10)
+
+
+@pytest.mark.parametrize(("gamma", "scale"), [(1e-4, 1.0), (100.0, 1.0), (0.1, 30.0)])
+def test_eks_stable_scheduler_settles_at_the_same_step_at_any_scale(gamma, scale):
+    """An ensemble with ``Cᶿᶿ = H⁻¹`` has ``‖S‖_F = √Nₚ`` whatever the units."""
+    num_members = 40
+    F = jnp.asarray([[1.0, 0.5], [-0.3, 1.2], [0.7, 0.1]]) / scale
+    H = F.T @ F / gamma + jnp.eye(2) / scale**2
+    # Rows with exactly identity sample covariance, coloured by H^{-1/2}.
+    raw = jr.normal(jr.PRNGKey(2), (num_members, 2))
+    raw = raw - raw.mean(0)
+    whitened = jnp.linalg.qr(raw)[0] * jnp.sqrt(num_members - 1.0)
+    particles = whitened @ jnp.linalg.cholesky(jnp.linalg.inv(H)).T
+    state = flx.ProcessState(
+        particles=particles,
+        forward_evals=particles @ F.T,
+        obs=jnp.zeros(3),
+        noise_cov=lx.DiagonalLinearOperator(gamma * jnp.ones(3)),
+        step=jnp.asarray(0, dtype=jnp.int32),
+        algo_time=jnp.asarray(0.0),
+        prior_cov=lx.MatrixLinearOperator(
+            scale**2 * jnp.eye(2), lx.positive_semidefinite_tag
+        ),
+    )
+    sched = flx.EKSStableScheduler(**_ONLY_STIFFNESS)
+    assert float(sched.get_dt(state)) == pytest.approx(0.1 / jnp.sqrt(2.0), rel=1e-8)
+
+
+def test_eks_stable_scheduler_gradient_is_finite_at_zero_stiffness():
+    particles = jr.normal(jr.PRNGKey(3), (10, 2))
+    noise_cov = lx.DiagonalLinearOperator(jnp.ones(3))
+    sched = flx.EKSStableScheduler()
+
+    def dt_of(evals):
+        return sched.get_dt(_state_with_evals(particles, evals, noise_cov))
+
+    assert bool(jnp.all(jnp.isfinite(jax.grad(dt_of)(jnp.zeros((10, 3))))))

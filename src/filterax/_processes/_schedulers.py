@@ -18,11 +18,13 @@ break out when ``algo_time ≥ 1``.
 
 from __future__ import annotations
 
+import einx
 import equinox as eqx
 import gaussx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from filterax._primitives._statistics import ensemble_anomalies
 from filterax._protocols import AbstractScheduler
 from filterax._types import ProcessState
 
@@ -108,34 +110,79 @@ class DataMisfitController(AbstractScheduler, strict=True):
         )
 
 
+def _posterior_stiffness_norm(state: ProcessState) -> Float[Array, ""]:
+    """Frobenius norm of the ensemble-space posterior stiffness ``S``, floored."""
+    num_members = state.particles.shape[0]
+    # ΔG
+    obs_anomalies = ensemble_anomalies(state.forward_evals)
+    # Γ⁻¹ ΔGᵀ, row-wise
+    precision_obs_anomalies = gaussx.solve_rows(state.noise_cov, obs_anomalies)
+    # S = ΔG Γ⁻¹ ΔGᵀ / (J − 1)
+    stiffness = einx.dot("j d, k d -> j k", obs_anomalies, precision_obs_anomalies) / (
+        num_members - 1
+    )
+    if state.prior_cov is not None:
+        # X′
+        anomalies = ensemble_anomalies(state.particles)
+        # Σ₀⁻¹ X′ᵀ, row-wise
+        precision_anomalies = gaussx.solve_rows(state.prior_cov, anomalies)
+        # S ← S + X′ Σ₀⁻¹ X′ᵀ / (J − 1)
+        stiffness = stiffness + einx.dot(
+            "j p, k p -> j k", anomalies, precision_anomalies
+        ) / (num_members - 1)
+    # ‖S‖²_F, floored inside the root so its gradient stays finite at S = 0
+    squared_norm = einx.sum("[j k]", stiffness * stiffness)
+    return jnp.sqrt(jnp.maximum(squared_norm, 1e-24))
+
+
 class EKSStableScheduler(AbstractScheduler, strict=True):
     r"""Stability-aware step size for the EKS Langevin dynamics.
 
-    The EKS / ALDI SDE develops instability if ``Δt`` is too large
-    relative to the spectral norm of the ensemble preconditioner
-    ``Cᶿᶿ`` (Garbuno-Inigo et al. 2020 §5). We clip ``Δt`` so the
-    drift term is bounded:
+    Bounds ``Δt`` by the stiffness of the posterior as well as by the size of
+    the ensemble preconditioner ``Cᶿᶿ``:
 
     $$
-    \Delta t_n = \min\big(\text{max\_dt},\;
-        \text{target} / \|C^{\theta\theta}_n\|_2\big)
+    \Delta t_n = \min\left(\text{max\_dt},\;
+        \frac{\text{target}}{\|C^{\theta\theta}_n\|_F},\;
+        \frac{\text{target\_stiffness}}{\|S_n\|_F}\right),
+    \qquad
+    S_n = \frac{\Delta G_n \Gamma^{-1} \Delta G_n^\top
+        + X'_n \Sigma_0^{-1} X_n'^\top}{J - 1}
     $$
 
-    We bound the spectral norm via the Frobenius norm of the
-    ``Nₑ × Nₑ`` Gram of the anomalies — ``‖A‖₂ ≤ ‖A‖_F`` for any
-    matrix, so this is a *conservative* (slightly tighter than
-    necessary) cap on ``Δt``. A true top-eigenvalue estimate would
-    require an extra ``Nₑ × Nₑ`` eigendecomposition per step; the
-    Frobenius bound costs only a single dot product and is cheap
-    enough to evaluate every iteration.
+    ``ΔG_n`` and ``X′_n`` hold the anomalies of the forward evaluations and
+    the particles, as rows. For a linear ``G`` with ``H = Gᵀ Γ⁻¹ G + Σ₀⁻¹``,
+    ``S_n`` has the nonzero spectrum of ``Cᶿᶿ H``, the stiffness of the Euler-
+    Maruyama step. The prior term is present when ``state.prior_cov`` is set.
+    At the exact posterior ``Cᶿᶿ H = I``, so ``‖S‖_F = √Nₚ`` whatever the scale
+    of the problem, and the step settles at about ``target_stiffness / √Nₚ``.
+
+    The step sets the sampling bias. On a scalar linear model with a flat
+    prior, the update's stationary variance solves
+    ``C = C / (1 + Δt C H)² + 2 Δt C``, which gives
+
+    $$
+    \frac{C}{H^{-1}} = \frac{(1 - 2 \Delta t)^{-1/2} - 1}{\Delta t}
+        \approx 1 + \tfrac{3}{2} \Delta t,
+    $$
+
+    with no stationary solution for ``Δt ≥ 1/2``. The prior step is implicit
+    and also shrinks the noise, so a direction set by the prior alone has
+    ``C / H⁻¹ = ((1 + 2 Δt)^{1/2} - 1) / Δt ≈ 1 - Δt / 2`` and is stable at any
+    ``Δt``. The default ``target_stiffness`` aims for an excess variance of
+    about 10% on a low-dimensional, data-dominated problem. All of this is
+    computed in the ``(J, J)`` ensemble space, and ``Γ`` and ``Σ₀`` are applied
+    through structured solves.
 
     Attributes:
         max_dt: Hard ceiling on the step size.
         target: Desired ``Δt × ‖Cᶿᶿ‖_F`` product.
+        target_stiffness: Desired ``Δt × ‖S‖_F`` product.
     """
 
     max_dt: float = eqx.field(static=True, default=1.0)
     target: float = eqx.field(static=True, default=1.0)
+    target_stiffness: float = eqx.field(static=True, default=0.1)
 
     def get_dt(self, state: ProcessState) -> Float[Array, ""]:
         # Cheap spectral-norm estimate via the (J, J) Gram of the
@@ -149,4 +196,7 @@ class EKSStableScheduler(AbstractScheduler, strict=True):
         # The Frobenius bound on top eigenvalue: ‖A‖₂ ≤ ‖A‖_F.
         spectral_bound = jnp.sqrt(jnp.sum(gram * gram))
         dt_stable = self.target / jnp.maximum(spectral_bound, 1e-12)
-        return jnp.minimum(jnp.asarray(self.max_dt), dt_stable)
+        # target_stiffness / ‖S‖_F
+        dt_stiffness = self.target_stiffness / _posterior_stiffness_norm(state)
+        dt_bound = jnp.minimum(dt_stable, dt_stiffness)
+        return jnp.minimum(jnp.asarray(self.max_dt), dt_bound)

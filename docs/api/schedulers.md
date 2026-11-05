@@ -16,7 +16,7 @@ arrange for `algo_time → 1`; the Layer-2 run loops break out when
 |---|---|---|
 | [`FixedScheduler`][filterax.FixedScheduler] | Any process | Constant `Δt`; you tune manually |
 | [`DataMisfitController`][filterax.DataMisfitController] | EKI, ETKI, GNKI, TEKI | Adaptive `Δt` from the Iglesias & Yang (2021) rule; clamps so `algo_time` lands at `1` |
-| [`EKSStableScheduler`][filterax.EKSStableScheduler] | EKS | Bounds `Δt` by `‖Cᶿᶿ‖` so the Langevin dynamics stay in the stability region |
+| [`EKSStableScheduler`][filterax.EKSStableScheduler] | EKS | Bounds `Δt` by `‖Cᶿᶿ‖` and by the posterior's stiffness, which sets the sampling bias |
 
 ## Reference
 
