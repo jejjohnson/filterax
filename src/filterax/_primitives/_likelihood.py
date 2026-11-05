@@ -2,13 +2,14 @@
 
 The innovation covariance ``S = H P H ᵀ + R`` is built as a
 :class:`gaussx.LowRankUpdate`, so logdets and solves can dispatch through the
-matrix-determinant lemma and Woodbury identity respectively. Only
-:func:`innovation_statistics` forms the ``(Nᵧ, Nᵧ)`` matrix, and only when it
-is smaller than the ``(Nₑ, Nₑ)`` Woodbury capacitance.
+matrix-determinant lemma and Woodbury identity respectively. With more members
+than observations the ``(Nₑ, Nₑ)`` Woodbury capacitance is the larger system, so
+the ensemble log-likelihood takes a QR of the stacked factors of ``S`` instead.
 """
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from typing import TypedDict
 
@@ -107,6 +108,64 @@ def innovation_covariance(
     return gaussx.LowRankUpdate(obs_noise, cov.U)
 
 
+def ensemble_log_likelihood(
+    obs_particles: Float[Array, "N_e N_y"],
+    innovation: Float[Array, " N_y"],
+    obs_noise: lx.AbstractLinearOperator,
+    *,
+    solver: gaussx.AbstractSolverStrategy | None = None,
+) -> Float[Array, ""]:
+    r"""``log 𝒩(v; 0, S)`` for ``S = U Uᵀ + R``, by the cheaper and safer route.
+
+    With ``Nₑ > Nᵧ``, a thin QR of the stacked factors ``[U, R^½]`` gives a
+    triangular ``T`` with ``Tᵀ T = S`` at ``O(Nₑ Nᵧ²)``:
+
+    $$
+    \log\lvert S \rvert = 2 \sum_i \log \lvert T_{ii} \rvert, \qquad
+    v^{\top} S^{-1} v = \lVert T^{-\top} v \rVert^{2}.
+    $$
+
+    This avoids two failures in float32. Woodbury factors an ``(Nₑ, Nₑ)``
+    capacitance and is wrong once ``R`` is small against ``Cᴴᴴ``. Forming ``S``
+    squares the condition number, and gives NaN when channels are duplicated
+    and ``R`` is tiny. With ``Nₑ ≤ Nᵧ``, or with a ``solver``, which needs the
+    structured operator, this is :func:`log_likelihood` on
+    :func:`innovation_covariance`.
+
+    Args:
+        obs_particles: ``H`` applied to each ensemble member, shape
+            ``(Nₑ, Nᵧ)``.
+        innovation: Innovation ``v = y − H x̄``, shape ``(Nᵧ,)``.
+        obs_noise: Observation error covariance ``R``.
+        solver: Optional :class:`gaussx.AbstractSolverStrategy`.
+
+    Returns:
+        Scalar log-probability.
+    """
+    num_members, obs_size = obs_particles.shape
+    if solver is not None or num_members <= obs_size:
+        S = innovation_covariance(obs_particles, obs_noise)
+        return log_likelihood(innovation, S, solver=solver)
+    # U = (HX)′ᵀ / √(Nₑ − 1)
+    ensemble_factor = gaussx.ensemble_covariance(obs_particles, bessel=True).U
+    # R^½
+    noise_factor = gaussx.sqrt(obs_noise).as_matrix()
+    # [U, R^½]ᵀ, so that its R factor T has Tᵀ T = U Uᵀ + R
+    stacked = einx.id(
+        "obs col -> col obs", jax.numpy.hstack([ensemble_factor, noise_factor])
+    )
+    upper = jax.numpy.linalg.qr(stacked, mode="r")
+    # T⁻ᵀ v
+    whitened = jax.scipy.linalg.solve_triangular(upper, innovation, trans=1)
+    # log|S| = 2 ∑ᵢ log|Tᵢᵢ|, the sign of Tᵢᵢ being arbitrary
+    half_logdet = einx.sum(
+        "[obs]", jax.numpy.log(jax.numpy.abs(jax.numpy.diagonal(upper)))
+    )
+    # −½ (Nᵧ log 2π + log|S| + vᵀ S⁻¹ v)
+    quadratic = einx.dot("obs, obs ->", whitened, whitened)
+    return -0.5 * (obs_size * math.log(2.0 * math.pi) + 2.0 * half_logdet + quadratic)
+
+
 class InnovationStatistics(TypedDict):
     """Return type of :func:`innovation_statistics`.
 
@@ -144,11 +203,10 @@ def innovation_statistics(
     squared norm matches ``vᵀ S⁻¹ v`` to about ``1e-10`` (relative, float64) up
     to a condition number of ``1e6``.
 
-    With fewer members than observations, every solve goes through Woodbury and
-    ``S`` is never materialised. Otherwise each Woodbury solve would factor the
-    larger ``(Nₑ, Nₑ)`` capacitance, so ``S`` is formed densely, the same rule
-    as :func:`gaussx.ensemble_kalman_gain`. Passing ``solver`` keeps the
-    structured operator for the log-likelihood.
+    With at most as many members as observations, the whitener goes through
+    Woodbury and ``S`` is never materialised. Otherwise each Woodbury solve
+    would factor the larger ``(Nₑ, Nₑ)`` capacitance, so ``S`` is formed
+    densely. The log-likelihood comes from :func:`ensemble_log_likelihood`.
 
     Args:
         particles: Forecast ensemble, shape ``(Nₑ, Nₓ)``.
@@ -189,11 +247,13 @@ def innovation_statistics(
     # At Nₑ = 1000, Nᵧ = 3 the 30 Woodbury solves below take 100 s against
     # milliseconds for the (Nᵧ, Nᵧ) matrix.
     solve_operator = S
-    if solver is None and num_members >= obs_size:
+    if solver is None and num_members > obs_size:
         solve_operator = lx.MatrixLinearOperator(
             S.as_matrix(), lx.positive_semidefinite_tag
         )
-    log_prob = log_likelihood(innovation, solve_operator, solver=solver)
+    log_prob = ensemble_log_likelihood(
+        obs_particles, innovation, obs_noise, solver=solver
+    )
 
     # z = S⁻¹ᐟ² v. The default 15 nodes leave a relative error of 1e-5 in zᵀ z
     # at a condition number of 6.5e6.

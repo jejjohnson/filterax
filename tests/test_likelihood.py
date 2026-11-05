@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gaussx
 import jax
 import jax.numpy as jnp
 import jax.random as jr
@@ -11,6 +12,7 @@ import pytest
 from scipy.stats import multivariate_normal
 
 import filterax as flx
+from filterax._primitives._likelihood import ensemble_log_likelihood
 
 
 def test_log_likelihood_matches_scipy_diagonal(getkey):
@@ -174,4 +176,118 @@ def test_innovation_statistics_whitener_has_finite_gradients(num_members, obs_si
         jax.grad(mahalanobis)(obs_particles),
         rtol=1e-8,
         atol=1e-8,
+    )
+
+
+def _dense_log_likelihood(innovation, S):
+    obs_size = innovation.shape[0]
+    quadratic = innovation @ jnp.linalg.solve(S, innovation)
+    log_det = jnp.linalg.slogdet(S)[1]
+    return -0.5 * (obs_size * jnp.log(2.0 * jnp.pi) + log_det + quadratic)
+
+
+@pytest.mark.parametrize("noise", ["diagonal", "dense"])
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(30, 4), (4, 6), (6, 6)], ids=str
+)
+def test_ensemble_log_likelihood_matches_the_dense_form(num_members, obs_size, noise):
+    """``(30, 4)`` takes the QR route; the other two take Woodbury."""
+    obs_particles, obs, obs_noise = _whitening_problem(num_members, obs_size, noise)
+    innovation = obs - obs_particles.mean(0)
+    S = flx.innovation_covariance(obs_particles, obs_noise)
+    value = ensemble_log_likelihood(obs_particles, innovation, obs_noise)
+    np.testing.assert_allclose(
+        value, _dense_log_likelihood(innovation, S.as_matrix()), rtol=1e-10
+    )
+
+
+def test_ensemble_log_likelihood_keeps_a_solver_on_the_structured_operator():
+    obs_particles, obs, obs_noise = _whitening_problem(30, 4, "diagonal")
+    innovation = obs - obs_particles.mean(0)
+    value = ensemble_log_likelihood(
+        obs_particles, innovation, obs_noise, solver=gaussx.DenseSolver()
+    )
+    reference = ensemble_log_likelihood(obs_particles, innovation, obs_noise)
+    np.testing.assert_allclose(value, reference, rtol=1e-8)
+
+
+@pytest.mark.parametrize(
+    ("variance", "channel"),
+    [(1e-8, "independent"), (1e-12, "independent"), (1e-10, "duplicated")],
+    ids=str,
+)
+def test_ensemble_log_likelihood_float32_matches_float64(variance, channel):
+    """Woodbury is wrong at the first two, and a formed S gives NaN at the last."""
+    obs_particles = jr.normal(jr.PRNGKey(0), (200, 3))
+    if channel == "duplicated":
+        obs_particles = obs_particles.at[:, 1].set(obs_particles[:, 0])
+    obs = jr.normal(jr.PRNGKey(1), (3,))
+
+    def value(dtype):
+        particles = obs_particles.astype(dtype)
+        noise = lx.DiagonalLinearOperator(variance * jnp.ones(3, dtype))
+        innovation = obs.astype(dtype) - particles.mean(0)
+        return ensemble_log_likelihood(particles, innovation, noise)
+
+    reference, single = value(jnp.float64), value(jnp.float32)
+    assert single.dtype == jnp.float32
+    np.testing.assert_allclose(single, reference, rtol=1e-4)
+
+
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(30, 4), (4, 6)], ids=["qr", "woodbury"]
+)
+def test_ensemble_log_likelihood_gradient_matches_central_differences(
+    num_members, obs_size
+):
+    obs_particles, obs, obs_noise = _whitening_problem(
+        num_members, obs_size, "diagonal"
+    )
+
+    def loss(particles):
+        innovation = obs - particles.mean(0)
+        return ensemble_log_likelihood(particles, innovation, obs_noise)
+
+    gradient = jax.grad(loss)(obs_particles)
+    direction = jr.normal(jr.PRNGKey(5), obs_particles.shape)
+    step = 1e-6
+    central = loss(obs_particles + step * direction)
+    central = (central - loss(obs_particles - step * direction)) / (2.0 * step)
+    np.testing.assert_allclose(jnp.sum(gradient * direction), central, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "make_noise",
+    [
+        pytest.param(
+            lambda: lx.MatrixLinearOperator(
+                jnp.eye(4) + 0.2, lx.positive_semidefinite_tag
+            ),
+            id="dense",
+        ),
+        pytest.param(
+            lambda: gaussx.Kronecker(
+                lx.DiagonalLinearOperator(jnp.array([0.5, 1.5])),
+                lx.DiagonalLinearOperator(jnp.array([0.4, 0.8])),
+            ),
+            id="kronecker",
+        ),
+        pytest.param(
+            lambda: gaussx.BlockDiag(
+                lx.DiagonalLinearOperator(jnp.ones(2)),
+                lx.MatrixLinearOperator(jnp.eye(2) + 0.1, lx.positive_semidefinite_tag),
+            ),
+            id="block",
+        ),
+    ],
+)
+def test_ensemble_log_likelihood_takes_structured_noise(make_noise):
+    obs_particles = jr.normal(jr.PRNGKey(3), (12, 4))
+    innovation = jr.normal(jr.PRNGKey(4), (4,))
+    noise = make_noise()
+    S = flx.innovation_covariance(obs_particles, noise).as_matrix()
+    np.testing.assert_allclose(
+        ensemble_log_likelihood(obs_particles, innovation, noise),
+        _dense_log_likelihood(innovation, S),
+        rtol=1e-10,
     )

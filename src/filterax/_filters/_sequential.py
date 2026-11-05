@@ -41,7 +41,7 @@ import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
 from filterax._checks import check_ensemble_size
-from filterax._primitives._likelihood import innovation_covariance, log_likelihood
+from filterax._primitives._likelihood import ensemble_log_likelihood
 from filterax._primitives._localization import gaspari_cohn
 from filterax._primitives._statistics import ensemble_anomalies, ensemble_mean
 from filterax._protocols import (
@@ -69,7 +69,7 @@ def _innovation_log_likelihood(
 ) -> Float[Array, ""]:
     """``log 𝒩(y − ȳ; 0, Cᴴᴴ + R)``, the log-likelihood every analysis reports."""
     innovation = obs - ensemble_mean(obs_particles)
-    return log_likelihood(innovation, innovation_covariance(obs_particles, obs_noise))
+    return ensemble_log_likelihood(obs_particles, innovation, obs_noise)
 
 
 def _etkf_analysis(
@@ -508,8 +508,7 @@ class LETKF(AbstractSequentialFilter, strict=True):
         mean_a = einx.add("x, x -> x", x_bar, mean_correction)
         particles_a = mean_a[None, :] + pert_correction
 
-        S = innovation_covariance(obs_particles, obs_noise)
-        log_p = log_likelihood(innovation, S)
+        log_p = _innovation_log_likelihood(obs_particles, obs, obs_noise)
         return AnalysisResult(particles=particles_a, log_likelihood=log_p)
 
 
@@ -704,8 +703,7 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
         N_y = obs.shape[0]
         particles_a, _ = jax.lax.scan(step, particles, jnp.arange(N_y))
 
-        S = innovation_covariance(initial_obs_particles, obs_noise)
-        log_p = log_likelihood(obs - ensemble_mean(initial_obs_particles), S)
+        log_p = _innovation_log_likelihood(initial_obs_particles, obs, obs_noise)
         return AnalysisResult(particles=particles_a, log_likelihood=log_p)
 
 
