@@ -86,10 +86,7 @@ breaks the mean or loses positive semi-definiteness. filterax's `EnSRF`
 (chapter 7) uses exactly the same symmetric transform for its
 perturbation half.
 
-## Differentiability — the QR + small-eigh spectrum
-
-This subsection is the reason filterax carries its own ETKF core rather
-than delegating to `gaussx.etkf_transform`.
+## Differentiability — a closed-form `eigh` derivative
 
 The textbook recipe eigendecomposes the full $N_e \times N_e$ matrix
 $\tilde{C}$. But $Y' R^{-1} Y'^\top$ has rank at most $N_y$, so
@@ -100,29 +97,7 @@ $\lambda_i - \lambda_j$, and repeated eigenvalues produce `NaN`
 gradients. Any training loop that backpropagates through the analysis
 (chapter 14) would die on the very first step.
 
-filterax sidesteps the degenerate subspace instead of regularising it:
-
-1. Thin QR: $Y' = Q\, R_{qr}$ with $Q \in \mathbb{R}^{N_e \times N_y}$.
-2. Form the small symmetric PSD matrix
-   $M_y = R_{qr} R^{-1} R_{qr}^\top \in \mathbb{R}^{N_y \times N_y}$
-   and eigendecompose it: $M_y = V \operatorname{diag}(\lambda_i) V^\top$.
-3. Lift: $U_y = Q V$ gives
-   $Y' R^{-1} Y'^\top = U_y \operatorname{diag}(\lambda_i) U_y^\top$.
-
-Every matrix function of $\tilde{C}$ then takes the rank-$N_y$
-correction form
-
-$$
-g(\tilde{C}) = g(N_e - 1)\, I
-    + U_y\, \operatorname{diag}\!\big(g(N_e - 1 + \lambda_i) - g(N_e - 1)\big)\, U_y^{\top},
-$$
-
-used twice per analysis: $g(\lambda) = 1/\lambda$ for $T$ and
-$g(\lambda) = \sqrt{(N_e-1)/\lambda}$ for $W$. The degenerate
-eigenvalues never meet an `eigh`, the small $(N_y, N_y)$ problem has
-generically distinct eigenvalues, and `jax.grad` through the whole
-analysis is finite. The solve $R^{-1} Y'$ routes through gaussx
-structural dispatch, so a diagonal $R$ never densifies.
+`gaussx.etkf_transform` keeps the $N_e \times N_e$ eigendecomposition and replaces that derivative. It computes $T = \tilde{C}^{-1}$ and $W$ from one `eigh`, and differentiates them in closed form in the eigenbasis (Daleckii–Krein). That form uses divided differences of the matrix function, which stay finite at a repeated eigenvalue, so `jax.grad` through the whole analysis is finite whether $N_y$ is below or above $N_e$. The solve $R^{-1} Y'$ routes through gaussx structural dispatch, so a diagonal $R$ never densifies.
 
 ## ETKF_Livings — breaking the deterministic symmetry
 
@@ -178,7 +153,7 @@ jnp.allclose(
     rotated.particles.mean(axis=0), result.particles.mean(axis=0), atol=1e-5
 )  # True
 
-# The analysis is differentiable end-to-end (the QR + small-eigh core).
+# The analysis is differentiable end-to-end (a closed-form eigh derivative).
 import jax
 
 def posterior_spread(scale):
@@ -195,13 +170,7 @@ loop (chapter 16).
 
 ## Cost
 
-Per analysis: $O(N_e N_y^2)$ for the thin QR and the small eigh,
-$O(N_e^2 N_y)$ for assembling the weights, $O(N_e^2 N_x)$ for applying
-them — all independent of $N_x^2$. The transform never touches an
-$N_x \times N_x$ or (for structured $R$) an $N_y \times N_y$ dense
-matrix. For $N_y > N_e$ the QR-based spectrum no longer applies
-directly; batch the observations or use domain localization
-(chapter 8), which makes every local $N_y$ small.
+Per analysis: $O(N_e^2 N_y)$ for assembling $\tilde{C}$, $O(N_e^3)$ for its eigendecomposition, and $O(N_e^2 N_x)$ for applying the weights — all independent of $N_x^2$. The transform never touches an $N_x \times N_x$ or (for structured $R$) an $N_y \times N_y$ dense matrix.
 
 ## When ETKF is the right answer
 

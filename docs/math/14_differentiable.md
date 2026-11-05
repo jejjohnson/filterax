@@ -104,14 +104,7 @@ ensemble-space matrix $\tilde{C} = (N_e-1) I + Y' R^{-1} Y'^\top$.
 When $N_y < N_e$ — the usual case — $\tilde{C}$ has $N_e - N_y$
 eigenvalues *structurally repeated* at $N_e - 1$, and the
 reverse-mode derivative of `jnp.linalg.eigh` divides by eigenvalue
-gaps: repeated eigenvalues give **NaN gradients**. filterax's ETKF
-instead extracts the rank-$N_y$ spectrum of $Y' R^{-1} Y'^\top$ via a
-thin QR plus a small $(N_y, N_y)$ `eigh`, and applies all matrix
-functions of $\tilde{C}$ in identity-plus-low-rank form — no
-degenerate eigenvectors are ever differentiated. See
-[chapter 6](06_etkf.md) for the full derivation; the practical
-consequence here is simply that `jax.grad` through the ETKF is
-NaN-free whenever $Y'$ has full column rank.
+gaps: repeated eigenvalues give **NaN gradients**. filterax's ETKF runs `gaussx.etkf_transform`, which differentiates the eigendecomposition in closed form, so the gaps never appear in a denominator. See [chapter 6](06_etkf.md); the practical consequence here is simply that `jax.grad` through the ETKF is NaN-free.
 
 ## ROAD-EnKF: local gradients
 
@@ -219,8 +212,7 @@ serviceable descent direction at a fraction of the memory.
 
 ## Where next
 
-- [Chapter 6 — ETKF](06_etkf.md): the rank-$N_y$ QR + small-`eigh`
-  spectrum that makes the transform gradient-safe.
+- [Chapter 6 — ETKF](06_etkf.md): the closed-form `eigh` derivative that makes the transform gradient-safe.
 - [Chapter 13 — Diagnostics & likelihood](13_diagnostics.md): the
   innovation log-likelihood used as the loss, and its structured
   $O(N_e^2 N_y + N_e^3)$ evaluation.

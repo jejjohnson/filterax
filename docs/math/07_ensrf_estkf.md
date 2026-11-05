@@ -31,8 +31,7 @@ $$
 
 so the batch EnSRF and the ETKF are numerically the same filter — the
 symmetric square root is the unique PSD- and mean-preserving choice
-(chapter 6), and both classes share the differentiable QR + small-eigh
-core. The two classes coexist so you can use whichever phrasing is
+(chapter 6), and both classes run `gaussx.etkf_transform`. The two classes coexist so you can use whichever phrasing is
 idiomatic in your community: "mean from $K$, perturbations from a
 square root" (EnSRF) versus "weights in ensemble space" (ETKF).
 
@@ -120,13 +119,7 @@ $$
 X_a = \mathbf{1}\bar{x}_a^{\top} + L\, \tilde{W} \tilde{X}.
 $$
 
-The relation to ETKF: identical analysis mean and covariance, with the
-eigen-problem shrunk from $N_e^3$ to $(N_e-1)^3$ and the degenerate
-$\mathbf{1}$ direction removed *by construction* rather than handled as
-a known eigenvector. filterax's implementation reuses the same
-rank-$N_y$ QR + small-eigh spectrum as ETKF (the reduced anomalies
-$\tilde{Y}$ have the same rank-deficiency story), so gradients stay
-finite here too. ESTKF is the analysis core of the PDAF ecosystem, and
+The relation to ETKF: identical analysis mean and covariance. Because $X'$ and $Y'$ are orthogonal to $\mathbf{1}$, $L L^\top$ acts on them as the identity, so the reduced update above equals the ETKF's. filterax therefore runs the ESTKF through `gaussx.etkf_transform` as well, and gives the same results as `ETKF`. ESTKF is the analysis core of the PDAF ecosystem, and
 matching it matters when cross-validating against PDAF-based
 experiments.
 
