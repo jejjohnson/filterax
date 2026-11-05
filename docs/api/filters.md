@@ -23,12 +23,7 @@ standard cycle does not fit (custom inflation schedules, pipekit cycling,
 differentiable training).
 
 !!! note "ETKF analysis core"
-    filterax's ETKF keeps its own rank-`N_y` QR + `eigh` analysis core —
-    a thin QR of the observation anomalies followed by a small
-    `(N_y, N_y)` symmetric eigendecomposition — rather than delegating to
-    `gaussx.etkf_transform`. The decomposition is of a symmetric PSD
-    matrix, which keeps the transform differentiability-safe under
-    `jax.grad` (see [Differentiable training](differentiable.md)).
+    `ETKF`, `EnSRF` and `ESTKF` run `gaussx.etkf_transform`, which takes one `(N_e, N_e)` symmetric eigendecomposition. Its derivative is taken in closed form, so it stays finite under `jax.grad` at the repeated eigenvalues of the transform (see [Differentiable training](differentiable.md)).
 
 For the specialised deterministic variants (`ESTKF`, `ETKF_Livings`,
 `EnSRF_Serial`) see [Advanced filters](filters_advanced.md).

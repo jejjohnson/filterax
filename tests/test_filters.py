@@ -8,6 +8,7 @@ covariance of the input ensemble*, so the assertions are algebraic
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
@@ -307,3 +308,100 @@ def test_l2_etkf_with_inflator(getkey):
     # RTPS relaxes toward the forecast spread, so analysis_spread should
     # be bounded between the pure-analysis spread and the forecast spread.
     assert jnp.all(analysis_spread <= forecast_spread + 1e-6)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# gaussx-backed analyses
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _analysis_problem(num_members, state_size, obs_size):
+    keys = jr.split(jr.PRNGKey(21), 3)
+    particles = jr.normal(keys[0], (num_members, state_size))
+    obs_operator = jr.normal(keys[1], (obs_size, state_size))
+    obs = jr.normal(keys[2], (obs_size,))
+    obs_noise = lx.DiagonalLinearOperator(jnp.linspace(0.2, 1.0, obs_size))
+    return particles, obs_operator, obs, obs_noise
+
+
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(20, 3), (6, 6), (5, 12)], ids=str
+)
+def test_etkf_ensrf_and_estkf_compute_the_same_analysis(num_members, obs_size):
+    particles, obs_operator, obs, obs_noise = _analysis_problem(
+        num_members, 4, obs_size
+    )
+    expected = flx.filters.ETKF().analysis(
+        particles, obs, lambda x: obs_operator @ x, obs_noise
+    )
+    for variant in (flx.filters.EnSRF(), flx.filters.ESTKF()):
+        result = variant.analysis(particles, obs, lambda x: obs_operator @ x, obs_noise)
+        np.testing.assert_allclose(result.particles, expected.particles, atol=1e-10)
+        np.testing.assert_allclose(result.log_likelihood, expected.log_likelihood)
+
+
+def test_etkf_matches_the_kalman_posterior_and_keeps_anomalies_centred():
+    """For linear H and Nₑ > Nₓ, the analysis moments are the Kalman moments."""
+    num_members, state_size, obs_size = 20, 4, 3
+    particles, obs_operator, obs, obs_noise = _analysis_problem(
+        num_members, state_size, obs_size
+    )
+    result = flx.filters.ETKF().analysis(
+        particles, obs, lambda x: obs_operator @ x, obs_noise
+    )
+    anomalies = particles - particles.mean(0)
+    prior_cov = anomalies.T @ anomalies / (num_members - 1)
+    noise = jnp.diag(lx.diagonal(obs_noise))
+    innovation_cov = obs_operator @ prior_cov @ obs_operator.T + noise
+    gain = prior_cov @ obs_operator.T @ jnp.linalg.inv(innovation_cov)
+    post_mean = particles.mean(0) + gain @ (obs - obs_operator @ particles.mean(0))
+    post_cov = prior_cov - gain @ obs_operator @ prior_cov
+
+    new_mean = result.particles.mean(0)
+    new_anomalies = result.particles - new_mean
+    np.testing.assert_allclose(new_mean, post_mean, atol=1e-10)
+    np.testing.assert_allclose(
+        new_anomalies.T @ new_anomalies / (num_members - 1), post_cov, atol=1e-10
+    )
+
+
+@pytest.mark.parametrize("obs_size", [2, 6], ids=["few_obs", "many_obs"])
+@pytest.mark.parametrize(
+    "make_filter",
+    [
+        pytest.param(lambda: flx.filters.ETKF(), id="ETKF"),
+        pytest.param(lambda: flx.filters.EnSRF(), id="EnSRF"),
+        pytest.param(lambda: flx.filters.ESTKF(), id="ESTKF"),
+        pytest.param(lambda: flx.filters.ETKF_Livings(key=jr.PRNGKey(0)), id="Livings"),
+        pytest.param(lambda: flx.filters.StochasticEnKF(key=0), id="StochasticEnKF"),
+    ],
+)
+def test_analysis_gradient_matches_central_differences(make_filter, obs_size):
+    """Four members, with fewer and with more observations than members."""
+    particles, obs_operator, obs, obs_noise = _analysis_problem(4, 3, obs_size)
+    analysis_filter = make_filter()
+
+    def loss(forecast):
+        result = analysis_filter.analysis(
+            forecast, obs, lambda x: obs_operator @ x, obs_noise
+        )
+        return jnp.sum(result.particles**2)
+
+    gradient = jax.grad(loss)(particles)
+    assert bool(jnp.all(jnp.isfinite(gradient)))
+    direction = jr.normal(jr.PRNGKey(5), particles.shape)
+    step = 1e-6
+    central = loss(particles + step * direction) - loss(particles - step * direction)
+    central = central / (2.0 * step)
+    np.testing.assert_allclose(jnp.sum(gradient * direction), central, rtol=1e-6)
+
+
+@pytest.mark.parametrize("filter_name", ["ETKF", "EnSRF", "ESTKF", "StochasticEnKF"])
+@pytest.mark.parametrize("num_members", [0, 1])
+def test_analysis_rejects_a_degenerate_ensemble(filter_name, num_members):
+    analysis_filter = getattr(flx.filters, filter_name)()
+    obs_noise = lx.DiagonalLinearOperator(jnp.ones(2))
+    with pytest.raises(ValueError, match=r"J >= 2|at least one particle"):
+        analysis_filter.analysis(
+            jnp.zeros((num_members, 3)), jnp.zeros(2), lambda x: x[:2], obs_noise
+        )

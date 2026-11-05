@@ -74,8 +74,7 @@ Each local solve is a complete, independent ETKF — $N_x$ of them, with
 no data dependencies. filterax `jax.vmap`s the per-point weight
 computation over `state_coords` and contracts all the weight matrices
 against the anomalies in two einsum calls. Each local transform uses
-the same differentiable QR + small-eigh spectrum as the global ETKF,
-so the localized analysis remains gradient-safe.
+a thin QR of $Y'$ plus a small $(N_y, N_y)$ `eigh`, rather than the global ETKF's `gaussx.etkf_transform`, because that does not yet take observation weights. The degenerate eigenvalues never meet an `eigh`, so the localized analysis remains gradient-safe.
 
 ## B-localization versus R-localization
 

@@ -13,7 +13,7 @@ slot into the same Layer-2 loops and pipekit adapters.
 |---|---|---|
 | [`filterax.filters.ETKF_Livings`][filterax.filters.ETKF_Livings] | Deterministic, randomised | When the symmetric-sqrt ETKF develops preferred ensemble directions over long runs — the random mean-preserving rotation averages out the degeneracy. |
 | [`filterax.filters.EnSRF_Serial`][filterax.filters.EnSRF_Serial] | Deterministic, scalar-serial | When ``R`` is diagonal and you want to avoid any ``N_y × N_y`` solve. Cost ``O(N_e N_x N_y)`` with no matrix inversion. |
-| [`filterax.filters.ESTKF`][filterax.filters.ESTKF] | Deterministic, reduced-rank | When you want exact mean preservation by construction and a modest constant-factor speedup over ETKF — the eigendecomposition is ``(N_e − 1)³`` rather than ``N_e³``. |
+| [`filterax.filters.ESTKF`][filterax.filters.ESTKF] | Deterministic, reduced-rank | When you think in error-subspace terms or cross-validate against PDAF. It runs the same analysis as ETKF, and gives the same results. |
 
 For the parametric (non-ensemble)
 [`SquareRootKF`][filterax.filters.SquareRootKF] — linear-Gaussian baselines
