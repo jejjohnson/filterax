@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import warnings
+
+import gaussx
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
@@ -182,3 +185,100 @@ def test_square_root_kf_tracks_random_walk():
     var_obs = result.filtered_covs[:, 0, 0]
     var_unobs = result.filtered_covs[:, 1, 1]
     assert bool(jnp.all(var_unobs > var_obs))
+
+
+def _square_root_model(dtype=None):
+    transition = jnp.asarray([[1.0, 0.1, 0.0], [0.0, 0.9, 0.1], [0.05, 0.0, 0.95]])
+    obs_model = jnp.asarray([[1.0, 0.0, 0.5], [0.0, 1.0, -0.3]])
+    process_noise = 0.1 * jnp.eye(3) + 0.02
+    obs_noise = 0.2 * jnp.eye(2)
+    observations = jr.normal(jr.PRNGKey(3), (12, 2))
+    return tuple(
+        jnp.asarray(array, dtype)
+        for array in (transition, obs_model, process_noise, obs_noise, observations)
+    )
+
+
+def test_square_root_kf_matches_the_covariance_form():
+    transition, obs_model, process_noise, obs_noise, observations = _square_root_model()
+    init_mean, init_cov = jnp.zeros(3), jnp.eye(3)
+    expected = gaussx.parallel_kalman_filter(
+        transition,
+        obs_model,
+        process_noise,
+        obs_noise,
+        observations,
+        init_mean,
+        init_cov,
+    )
+    result = flx.filters.SquareRootKF(
+        transition=transition,
+        obs_model=obs_model,
+        process_noise=process_noise,
+        obs_noise=obs_noise,
+    ).filter(observations, init_mean, init_cov)
+    for name in (
+        "filtered_means",
+        "filtered_covs",
+        "predicted_means",
+        "predicted_covs",
+        "log_likelihood",
+    ):
+        np.testing.assert_allclose(
+            getattr(result, name), getattr(expected, name), atol=1e-10
+        )
+
+
+def test_square_root_kf_raises_no_gaussx_deprecation():
+    transition, obs_model, process_noise, obs_noise, observations = _square_root_model()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        flx.filters.SquareRootKF(
+            transition=transition,
+            obs_model=obs_model,
+            process_noise=process_noise,
+            obs_noise=obs_noise,
+        ).filter(observations, jnp.zeros(3), jnp.eye(3))
+
+
+def test_square_root_kf_stays_psd_in_float32_near_singular():
+    """Here the covariance form returns an indefinite covariance and a NaN."""
+    dtype = jnp.float32
+    transition = jnp.asarray([[1.0, 0.1], [0.0, 1.0]], dtype)
+    obs_model = jnp.asarray([[1.0, 0.0]], dtype)
+    process_noise = 1e-12 * jnp.eye(2, dtype=dtype)
+    obs_noise = 1e-10 * jnp.eye(1, dtype=dtype)
+    observations = jnp.sin(jnp.linspace(0.0, 5.0, 64, dtype=dtype))[:, None]
+    result = flx.filters.SquareRootKF(
+        transition=transition,
+        obs_model=obs_model,
+        process_noise=process_noise,
+        obs_noise=obs_noise,
+    ).filter(observations, jnp.zeros(2, dtype), 100.0 * jnp.eye(2, dtype=dtype))
+    assert result.filtered_covs.dtype == dtype
+    covariances = 0.5 * (
+        result.filtered_covs + jnp.swapaxes(result.filtered_covs, -1, -2)
+    )
+    assert float(jnp.min(jnp.linalg.eigvalsh(covariances))) > 0.0
+
+
+def test_square_root_kf_is_accurate_in_float32_on_a_well_conditioned_model():
+    """The float32 limit in the docstring starts far from this conditioning."""
+    transition, obs_model, process_noise, obs_noise, observations = _square_root_model()
+
+    def run(dtype):
+        return flx.filters.SquareRootKF(
+            transition=jnp.asarray(transition, dtype),
+            obs_model=jnp.asarray(obs_model, dtype),
+            process_noise=jnp.asarray(process_noise, dtype),
+            obs_noise=jnp.asarray(obs_noise, dtype),
+        ).filter(
+            jnp.asarray(observations, dtype),
+            jnp.zeros(3, dtype),
+            jnp.eye(3, dtype=dtype),
+        )
+
+    single, double = run(jnp.float32), run(jnp.float64)
+    np.testing.assert_allclose(single.filtered_means, double.filtered_means, atol=1e-4)
+    np.testing.assert_allclose(single.filtered_covs, double.filtered_covs, atol=1e-4)
+    np.testing.assert_allclose(single.log_likelihood, double.log_likelihood, atol=1e-3)
