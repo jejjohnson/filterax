@@ -75,11 +75,11 @@ def test_ensemble_mean_shape_parametrized(getkey, N_e):
 @pytest.mark.parametrize("N_e", [0, 1])
 def test_ensemble_covariance_rejects_degenerate_ensemble(N_e):
     # N_e < 2 would divide by zero in the Bessel correction; fail fast.
-    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+    with pytest.raises(ValueError, match=r"at least one particle|J >= 2"):
         flx.ensemble_covariance(jnp.zeros((N_e, 4)))
 
 
 @pytest.mark.parametrize("N_e", [0, 1])
 def test_cross_covariance_rejects_degenerate_ensemble(N_e):
-    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+    with pytest.raises(ValueError, match=r"at least one particle|J >= 2"):
         flx.cross_covariance(jnp.zeros((N_e, 4)), jnp.zeros((N_e, 3)))

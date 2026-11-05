@@ -43,7 +43,7 @@ def test_kalman_gain_shape(getkey):
 @pytest.mark.parametrize("N_e", [0, 1])
 def test_kalman_gain_rejects_degenerate_ensemble(N_e):
     R = lx.DiagonalLinearOperator(jnp.ones(2))
-    with pytest.raises(ValueError, match="at least 2 ensemble members"):
+    with pytest.raises(ValueError, match=r"at least one particle|J >= 2"):
         flx.kalman_gain(jnp.zeros((N_e, 4)), jnp.zeros((N_e, 2)), R)
 
 
@@ -92,3 +92,33 @@ class TestLocalizedKalmanGain:
                 jnp.ones((2, 1)),
                 jnp.ones((1, 1)),
             )
+
+
+@pytest.mark.parametrize("dense_innovation", [None, True, False])
+@pytest.mark.parametrize(("num_members", "obs_size"), [(20, 3), (4, 6)], ids=str)
+def test_kalman_gain_routes_agree_with_the_dense_formula(
+    getkey, dense_innovation, num_members, obs_size
+):
+    particles = jr.normal(getkey(), (num_members, 5))
+    obs_particles = jr.normal(getkey(), (num_members, obs_size))
+    variances = jnp.linspace(0.5, 2.0, obs_size)
+    R = lx.DiagonalLinearOperator(variances)
+    state_anomalies = particles - particles.mean(0)
+    obs_anomalies = obs_particles - obs_particles.mean(0)
+    cross = state_anomalies.T @ obs_anomalies / (num_members - 1)
+    S = obs_anomalies.T @ obs_anomalies / (num_members - 1) + jnp.diag(variances)
+    gain = flx.kalman_gain(
+        particles, obs_particles, R, dense_innovation=dense_innovation
+    )
+    np.testing.assert_allclose(gain, cross @ jnp.linalg.inv(S), atol=1e-10)
+
+
+def test_kalman_gain_dense_innovation_handles_semi_definite_noise(getkey):
+    """Woodbury solves against ``R`` itself, so only the dense route allows this."""
+    particles = jr.normal(getkey(), (20, 3))
+    obs_particles = jr.normal(getkey(), (20, 2))
+    R = lx.MatrixLinearOperator(
+        jnp.diag(jnp.asarray([0.5, 0.0])), lx.positive_semidefinite_tag
+    )
+    gain = flx.kalman_gain(particles, obs_particles, R, dense_innovation=True)
+    assert bool(jnp.all(jnp.isfinite(gain)))
