@@ -406,35 +406,19 @@ def sigma_points(
     \end{aligned}
     $$
 
-    ``√Σ`` comes from :func:`gaussx.root_decomposition` so structured
-    ``Σ`` (diagonal, low-rank, …) skips the dense Cholesky.
+    Thin wrapper over :func:`gaussx.sigma_points`, keeping filterax's default
+    ``α = 1``. At that default the centre mean weight is zero, where gaussx's
+    default ``α = 1e-3`` recovers the moments by cancelling weights of order
+    ``1e6``. ``√Σ`` is the principal root from :func:`gaussx.sqrt`, so a
+    structured ``Σ`` keeps its own root and the points do not depend on the
+    order of the parameters.
 
     Returns:
         ``(points, mean_weights, cov_weights)`` with shapes
-        ``(2 Nₚ + 1, Nₚ)``, ``(2 Nₚ + 1,)``, ``(2 Nₚ + 1,)``.
+        ``(2 Nₚ + 1, Nₚ)``, ``(2 Nₚ + 1,)``, ``(2 Nₚ + 1,)``, in the dtype of
+        ``mean``.
     """
-    N_p = mean.shape[0]
-    lam = alpha**2 * (N_p + kappa) - N_p
-    c = jnp.sqrt(N_p + lam)
-
-    # Sigma offsets — columns of c · √Σ. UKI is parametric so Σ is
-    # always a (Nₚ, Nₚ) dense or diagonal block, and Cholesky is both
-    # cheap and exact. (The Lanczos default in gaussx is meant for huge
-    # operators and produces NaN here on small exactly-isotropic Σ.)
-    root = gaussx.root_decomposition(cov, method="cholesky").root
-    offsets = c * root  # (Nₚ, Nₚ); column j is c · [√Σ]_{:,j}.
-
-    # χ⁺ⱼ = μ + [c√Σ]_{:,j} — transpose so each row is one sigma point.
-    plus = offsets.T + mean[None, :]
-    minus = -offsets.T + mean[None, :]
-    points = jnp.concatenate([mean[None, :], plus, minus], axis=0)
-
-    w0_mean = lam / (N_p + lam)
-    w0_cov = w0_mean + (1.0 - alpha**2 + beta)
-    w_other = 1.0 / (2.0 * (N_p + lam))
-    weights_mean = jnp.concatenate([jnp.asarray([w0_mean]), jnp.full(2 * N_p, w_other)])
-    weights_cov = jnp.concatenate([jnp.asarray([w0_cov]), jnp.full(2 * N_p, w_other)])
-    return points, weights_mean, weights_cov
+    return gaussx.sigma_points(mean, cov, alpha=alpha, beta=beta, kappa=kappa)
 
 
 class UKI(AbstractProcess, strict=True):
@@ -448,12 +432,14 @@ class UKI(AbstractProcess, strict=True):
     $$
     \begin{aligned}
     \mu_{n+1} &= \mu_n
-        + C^{\theta y} S_n^{-1} \big(y - \hat{y}_0\big) \\
+        + C^{\theta y} S_n^{-1} \big(y - \bar{y}\big) \\
     \Sigma_{n+1} &= \Sigma_n
         - C^{\theta y} S_n^{-1} C^{\theta y \top},
         \qquad S_n = C^{yy} + \Delta t^{-1} \Gamma
     \end{aligned}
     $$
+
+    where ``ȳ = Σₖ Wᵐₖ ŷₖ`` is the weighted mean of the evaluations.
 
     Deterministic (no sampling noise), no ensemble collapse, and the
     covariance ``Σₙ`` gives a calibrated posterior in the linear-Gaussian
