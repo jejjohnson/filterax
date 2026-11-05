@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
@@ -67,10 +68,7 @@ def test_innovation_statistics_keys_and_shapes(getkey):
 
 
 def test_innovation_statistics_normalised_innovation_is_whitened():
-    # The normalized innovation must be a whitening of the innovation:
-    # ``z = S^{-1/2} v`` for some valid sqrt, so the Mahalanobis squared
-    # ``vᵀ S^{-1} v`` equals ``zᵀ z``. We don't assume a particular sqrt
-    # (gaussx returns a non-Cholesky factor) — we just check the invariant.
+    # The normalized innovation must whiten the innovation: ``zᵀ z = vᵀ S⁻¹ v``.
     N_e, N_x, N_y = 30, 6, 4
     key = jr.PRNGKey(42)
     k1, k2 = jr.split(key)
@@ -109,3 +107,71 @@ def test_innovation_statistics_rejects_degenerate_ensemble(N_e):
             lambda x: x[:2],
             R,
         )
+
+
+def _whitening_problem(num_members, obs_size, noise):
+    keys = jr.split(jr.PRNGKey(7), 3)
+    obs_particles = jr.normal(keys[0], (num_members, obs_size))
+    obs = jr.normal(keys[1], (obs_size,))
+    if noise == "diagonal":
+        obs_noise = lx.DiagonalLinearOperator(jnp.logspace(-2, 0, obs_size))
+    else:
+        factor = jr.normal(keys[2], (obs_size, obs_size))
+        dense = factor @ factor.T / obs_size + 0.1 * jnp.eye(obs_size)
+        obs_noise = lx.MatrixLinearOperator(dense, lx.positive_semidefinite_tag)
+    return obs_particles, obs, obs_noise
+
+
+@pytest.mark.parametrize("noise", ["diagonal", "dense"])
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(30, 4), (4, 6), (20, 60)], ids=str
+)
+def test_innovation_statistics_returns_the_principal_whitener(
+    num_members, obs_size, noise
+):
+    """``z = S⁻¹ᐟ² v`` and the log-likelihood, against a dense eigendecomposition.
+
+    ``(30, 4)`` takes the dense route; the other two take Woodbury.
+    """
+    obs_particles, obs, obs_noise = _whitening_problem(num_members, obs_size, noise)
+    stats = flx.innovation_statistics(obs_particles, obs, lambda x: x, obs_noise)
+
+    S = stats["innovation_cov"].as_matrix()
+    innovation = stats["innovation"]
+    eigenvalues, eigenvectors = jnp.linalg.eigh(S)
+    root_inverse = (eigenvectors / jnp.sqrt(eigenvalues)) @ eigenvectors.T
+    whitened = stats["normalized_innovation"]
+    np.testing.assert_allclose(whitened, root_inverse @ innovation, atol=1e-10)
+
+    mahalanobis = innovation @ jnp.linalg.solve(S, innovation)
+    np.testing.assert_allclose(whitened @ whitened, mahalanobis, rtol=1e-10)
+
+    expected_log_prob = -0.5 * (
+        obs_size * jnp.log(2.0 * jnp.pi) + jnp.linalg.slogdet(S)[1] + mahalanobis
+    )
+    np.testing.assert_allclose(stats["log_likelihood"], expected_log_prob, rtol=1e-10)
+
+
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(30, 4), (4, 6)], ids=["dense", "woodbury"]
+)
+def test_innovation_statistics_whitener_has_finite_gradients(num_members, obs_size):
+    obs_particles, obs, obs_noise = _whitening_problem(
+        num_members, obs_size, "diagonal"
+    )
+
+    def squared_norm(particles):
+        stats = flx.innovation_statistics(particles, obs, lambda x: x, obs_noise)
+        return stats["normalized_innovation"] @ stats["normalized_innovation"]
+
+    def mahalanobis(particles):
+        stats = flx.innovation_statistics(particles, obs, lambda x: x, obs_noise)
+        S = stats["innovation_cov"].as_matrix()
+        return stats["innovation"] @ jnp.linalg.solve(S, stats["innovation"])
+
+    np.testing.assert_allclose(
+        jax.grad(squared_norm)(obs_particles),
+        jax.grad(mahalanobis)(obs_particles),
+        rtol=1e-8,
+        atol=1e-8,
+    )

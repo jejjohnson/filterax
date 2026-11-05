@@ -1,10 +1,10 @@
 """Innovation log-likelihood and diagnostics.
 
-The innovation covariance ``S = H P H ᵀ + R`` is always built as a
-:class:`gaussx.LowRankUpdate` so logdets and solves dispatch through the
-matrix-determinant lemma and Woodbury identity respectively. We never
-materialise the dense ``(Nᵧ, Nᵧ)`` matrix on the differentiable training
-path — see ``filterax/features/differentiable_da.md``.
+The innovation covariance ``S = H P H ᵀ + R`` is built as a
+:class:`gaussx.LowRankUpdate`, so logdets and solves can dispatch through the
+matrix-determinant lemma and Woodbury identity respectively. Only
+:func:`innovation_statistics` forms the ``(Nᵧ, Nᵧ)`` matrix, and only when it
+is smaller than the ``(Nₑ, Nₑ)`` Woodbury capacitance.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TypedDict
 
+import einx
 import gaussx
 import jax
 import lineax as lx
@@ -102,7 +103,6 @@ def innovation_covariance(
         >>> S.as_matrix()  # 0.5 + 0.1
         Array([[0.6]], dtype=float32)
     """
-    check_ensemble_size(obs_particles.shape[0])
     cov = gaussx.ensemble_covariance(obs_particles, bessel=True)
     return gaussx.LowRankUpdate(obs_noise, cov.U)
 
@@ -138,10 +138,17 @@ def innovation_statistics(
     Desroziers-style consistency checks (under correctly-specified ``S``
     each component is unit-variance Gaussian).
 
-    The whitening solve goes through ``S.root_inv_decomposition()`` —
-    structural dispatch in gaussx picks either Woodbury for
-    :class:`gaussx.LowRankUpdate` or Cholesky for dense ``S``, so the
-    dense matrix is *not* materialised in the common case.
+    The whitened residual uses the principal root through
+    :func:`gaussx.sqrt_inv_matmul`, a contour quadrature of shifted solves, so
+    it does not depend on the order of the observations. With 30 nodes, its
+    squared norm matches ``vᵀ S⁻¹ v`` to about ``1e-10`` (relative, float64) up
+    to a condition number of ``1e6``.
+
+    With fewer members than observations, every solve goes through Woodbury and
+    ``S`` is never materialised. Otherwise each Woodbury solve would factor the
+    larger ``(Nₑ, Nₑ)`` capacitance, so ``S`` is formed densely, the same rule
+    as :func:`gaussx.ensemble_kalman_gain`. Passing ``solver`` keeps the
+    structured operator for the log-likelihood.
 
     Args:
         particles: Forecast ensemble, shape ``(Nₑ, Nₓ)``.
@@ -149,7 +156,8 @@ def innovation_statistics(
         obs_op: ``H`` applied to a single state vector. ``vmap``'d over
             the ensemble internally.
         obs_noise: Observation error covariance ``R``.
-        solver: Optional solver strategy (used for both logdet and solve).
+        solver: Optional solver strategy for the log-likelihood's logdet and
+            solve. The whitened residual always uses structural dispatch.
 
     Returns:
         :class:`InnovationStatistics` mapping with ``innovation``,
@@ -171,21 +179,30 @@ def innovation_statistics(
         >>> stats["log_likelihood"]
         Array(-1.1216711, dtype=float32)
     """
+    # ensemble_mean runs first, and einx cannot size an empty ensemble.
     check_ensemble_size(particles.shape[0])
     obs_particles = jax.vmap(obs_op)(particles)
     innovation = obs - ensemble_mean(obs_particles)
 
     S = innovation_covariance(obs_particles, obs_noise)
-    log_prob = log_likelihood(innovation, S, solver=solver)
+    num_members, obs_size = obs_particles.shape
+    # At Nₑ = 1000, Nᵧ = 3 the 30 Woodbury solves below take 100 s against
+    # milliseconds for the (Nᵧ, Nᵧ) matrix.
+    solve_operator = S
+    if solver is None and num_members >= obs_size:
+        solve_operator = lx.MatrixLinearOperator(
+            S.as_matrix(), lx.positive_semidefinite_tag
+        )
+    log_prob = log_likelihood(innovation, solve_operator, solver=solver)
 
-    # z = L⁻¹ v with L the Cholesky of the (small) Nᵧ × Nᵧ matrix.
-    # Cholesky gives a true whitening (z has identity covariance) — the
-    # gaussx structural-sqrt path returns a factor with L Lᵀ = S⁻¹ but
-    # ``M v`` for that M is *not* a proper whitener. The (Nᵧ, Nᵧ) cost
-    # is acceptable here: ``Nᵧ`` is the per-window observation count,
-    # not the state dimension.
-    L = jax.numpy.linalg.cholesky(S.as_matrix())
-    normalized = jax.scipy.linalg.solve_triangular(L, innovation, lower=True)
+    # z = S⁻¹ᐟ² v. The default 15 nodes leave a relative error of 1e-5 in zᵀ z
+    # at a condition number of 6.5e6.
+    normalized = gaussx.sqrt_inv_matmul(
+        solve_operator,
+        einx.id("obs -> obs 1", innovation),
+        num_quadrature=30,
+    )
+    normalized = einx.id("obs 1 -> obs", normalized)
 
     return InnovationStatistics(
         innovation=innovation,

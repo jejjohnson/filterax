@@ -24,8 +24,6 @@ import einx
 import gaussx
 from jaxtyping import Array, Float
 
-from filterax._checks import check_ensemble_size
-
 
 def ensemble_mean(
     particles: Float[Array, "N_e N_x"],
@@ -113,7 +111,6 @@ def ensemble_covariance(
         >>> P.as_matrix().shape
         (2, 2)
     """
-    check_ensemble_size(particles.shape[0])
     return gaussx.ensemble_covariance(particles, bessel=True)
 
 
@@ -150,5 +147,4 @@ def cross_covariance(
         Array([[1.],
                [1.]], dtype=float32)
     """
-    check_ensemble_size(particles.shape[0])
     return gaussx.ensemble_cross_covariance(particles, obs_particles, bessel=True)

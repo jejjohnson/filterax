@@ -6,8 +6,6 @@ import gaussx
 import lineax as lx
 from jaxtyping import Array, Float
 
-from filterax._checks import check_ensemble_size
-
 
 def kalman_gain(
     particles: Float[Array, "N_e N_x"],
@@ -15,13 +13,14 @@ def kalman_gain(
     obs_noise: lx.AbstractLinearOperator,
     *,
     solver: gaussx.AbstractSolverStrategy | None = None,
+    dense_innovation: bool | None = None,
 ) -> Float[Array, "N_x N_y"]:
     r"""Ensemble Kalman gain ``K = Cˣᴴ (Cᴴᴴ + R)⁻¹``.
 
     Thin wrapper over :func:`gaussx.ensemble_kalman_gain` with the EnKF
-    Bessel convention. The innovation covariance ``S = Cᴴᴴ + R`` is
-    assembled as a :class:`gaussx.LowRankUpdate` so structural dispatch
-    routes the solve through the Woodbury identity:
+    Bessel convention. With fewer members than observations, the innovation
+    covariance ``S = Cᴴᴴ + R`` is assembled as a :class:`gaussx.LowRankUpdate`
+    so structural dispatch routes the solve through the Woodbury identity:
 
     $$
     S^{-1} = R^{-1} - R^{-1} U
@@ -31,14 +30,12 @@ def kalman_gain(
     U = \frac{(HX)^{\prime\top}}{\sqrt{N_{e} - 1}}.
     $$
 
-    Total cost
-    ``O(Nₑ² Nᵧ + Nₑ³)`` for low-rank Woodbury, instead of ``O(Nᵧ³)`` for
-    the dense fallback. The Woodbury route is not unconditional: from
-    gaussx v0.6.5, :func:`gaussx.ensemble_kalman_gain` forms the ``(Nᵧ, Nᵧ)``
-    innovation densely and solves it directly when ``Nₑ ≥ Nᵧ``, and uses
-    Woodbury only otherwise; the two routes agree to rounding. On the
-    Woodbury route the dense ``(Nᵧ, Nᵧ)`` matrix is never materialised when
-    ``R`` carries structure (diagonal, low-rank, Toeplitz, …).
+    That route costs ``O(Nₑ² Nᵧ + Nₑ³)`` and never materialises the dense
+    ``(Nᵧ, Nᵧ)`` matrix when ``R`` carries structure (diagonal, low-rank,
+    Toeplitz, …). When ``Nₑ ≥ Nᵧ``, the default instead forms ``S`` densely and
+    solves it directly at ``O(Nₑ Nᵧ² + Nᵧ³)``, because the capacitance would be
+    the larger matrix. The two routes agree to rounding, and
+    ``dense_innovation`` overrides the choice.
 
     Args:
         particles: Prior ensemble in state space, shape ``(Nₑ, Nₓ)``.
@@ -48,7 +45,12 @@ def kalman_gain(
         obs_noise: Observation error covariance ``R`` as a linear operator.
         solver: Optional :class:`gaussx.AbstractSolverStrategy`. ``None``
             lets gaussx pick by operator type (Woodbury for low-rank +
-            structured base, dense Cholesky otherwise).
+            structured base, dense Cholesky otherwise). A matrix-free strategy
+            wants ``dense_innovation=False``, so that it gets the structured
+            operator.
+        dense_innovation: Whether to form the ``(Nᵧ, Nᵧ)`` innovation densely.
+            ``None`` chooses by shape, dense when ``Nₑ ≥ Nᵧ``. ``True`` also
+            handles a positive semi-definite ``R``, which Woodbury cannot.
 
     Returns:
         Dense Kalman gain of shape ``(Nₓ, Nᵧ)``. Materialising ``K`` is
@@ -69,9 +71,13 @@ def kalman_gain(
         Array([[0.6666666],
                [0.       ]], dtype=float32)
     """
-    check_ensemble_size(particles.shape[0])
     return gaussx.ensemble_kalman_gain(
-        particles, obs_particles, obs_noise, solver=solver, bessel=True
+        particles,
+        obs_particles,
+        obs_noise,
+        solver=solver,
+        bessel=True,
+        dense_innovation=dense_innovation,
     )
 
 
@@ -131,7 +137,6 @@ def localized_kalman_gain(
         >>> bool(jnp.allclose(K_loc, kalman_gain(particles, obs_particles, R)))
         True
     """
-    check_ensemble_size(particles.shape[0])
     return gaussx.localized_kalman_gain(
         particles, obs_particles, obs_noise, rho_xy, rho_yy, solver=solver, bessel=True
     )

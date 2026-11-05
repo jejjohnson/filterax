@@ -285,7 +285,11 @@ def inflate_adaptive(
         61, 72-83.
     """
     N_y = innovation.shape[0]
-    chi2 = innovation @ jnp.linalg.solve(innovation_cov, innovation)
+    # χ² = dᵀ S⁻¹ d
+    chi2 = gaussx.quadratic_form(
+        lx.MatrixLinearOperator(innovation_cov, lx.positive_semidefinite_tag),
+        innovation,
+    )
     chi2_norm = chi2 / N_y
     # Data-implied λ; clamped to keep the estimator from running away
     # on outlier innovations.

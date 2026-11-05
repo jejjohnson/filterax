@@ -37,8 +37,6 @@ from gaussx import (
 )
 from jaxtyping import Array, Float
 
-from filterax._checks import check_ensemble_size
-
 
 def localization_matrix(
     coords_a: Float[Array, "N_a D"],
@@ -333,23 +331,20 @@ def adaptive_localization(
         filter.* Physica D, 230, 99-111.
     """
     N_e = state_particles.shape[0]
-    # √(N_e − 2) appears in the sampling-noise denominator; we also
-    # rely on the Bessel-corrected std (N_e ≥ 2). Demand N_e ≥ 3.
-    check_ensemble_size(N_e)
+    # √(N_e − 2) appears in the sampling-noise denominator, which also
+    # covers the N_e ≥ 2 the Bessel-corrected std needs.
     if N_e < 3:
         raise ValueError(
             "adaptive_localization needs N_e ≥ 3 so the √(N_e − 2) "
             f"sampling-noise floor is defined; got N_e={N_e}."
         )
-    state_mean = jnp.mean(state_particles, axis=0)
-    obs_mean = jnp.mean(obs_particles, axis=0)
-    state_anom = state_particles - state_mean[None, :]
-    obs_anom = obs_particles - obs_mean[None, :]
     state_std = jnp.std(state_particles, axis=0, ddof=1)
     obs_std = jnp.std(obs_particles, axis=0, ddof=1)
 
     # Sample cross-correlation r_{ij} (Bessel-corrected).
-    cross_cov = jnp.einsum("ex,ey->xy", state_anom, obs_anom) / (N_e - 1)
+    cross_cov = gaussx.ensemble_cross_covariance(
+        state_particles, obs_particles, bessel=True
+    )
     denom = jnp.maximum(jnp.outer(state_std, obs_std), 1e-30)
     corr = cross_cov / denom
     # Sampling-noise floor; the (1 − r²) factor uses the absolute
