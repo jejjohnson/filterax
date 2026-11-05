@@ -8,10 +8,9 @@ square-root reference implementations are available without leaving
 filterax.
 
 The :class:`SquareRootKF` here is a thin wrapper over
-:func:`gaussx.parallel_kalman_filter` with ``form='sqrt'``: it
-propagates the Cholesky factor ``S`` such that ``P = S Sᵀ``, never
-materialising ``P`` directly so the analysis covariance stays PSD
-under floating-point error (Maybeck 1979 §7.4).
+:func:`gaussx.parallel_kalman_filter` with ``square_root=True``: it
+propagates a factor ``L`` with ``P = L Lᵀ`` through the scan, so the
+covariance stays PSD under floating-point error (Yaghoobi et al. 2022).
 
 The :class:`KalmanSmoother` here is the exact counterpart of the
 ensemble smoothers: the Kalman filter and Rauch–Tung–Striebel smoother
@@ -32,7 +31,7 @@ from jaxtyping import Array, Bool, Float
 
 
 class SquareRootKF(eqx.Module, strict=True):
-    r"""Square-root parametric Kalman filter (Maybeck 1979 / gaussx).
+    r"""Square-root parametric Kalman filter (Yaghoobi et al. 2022 / gaussx).
 
     Propagates a Gaussian belief through a linear-Gaussian model:
 
@@ -44,12 +43,22 @@ class SquareRootKF(eqx.Module, strict=True):
     $$
 
     The forecast and analysis steps are both rewritten in *square-root*
-    form on the Cholesky factor ``S`` of ``P`` so the covariance stays
-    PSD by construction. Internally this delegates to
-    :func:`gaussx.parallel_kalman_filter` (``form='sqrt'``), which runs
+    form on a factor ``L`` with ``P = L Lᵀ``, so the covariance stays PSD
+    by construction. Internally this delegates to
+    :func:`gaussx.parallel_kalman_filter` (``square_root=True``), which runs
     Blelloch's parallel scan along the time axis — cost
     ``O(log T · (Nₓ² Nᵧ + Nₓ³))`` on hardware that can exploit the
-    parallelism.
+    parallelism. The factors stay internal: the result reports the
+    covariances ``L Lᵀ``.
+
+    In float64 this matches the covariance form to rounding on a
+    well-conditioned model.
+
+    Warning:
+        A PSD covariance does not mean an accurate mean. In float32, once
+        ``R`` is about ``1e8`` times smaller than ``P₀``, the means and the
+        log-likelihood can be far worse than the covariance form's, while
+        the covariances still look healthy. Use float64 for such models.
 
     The constructor stores the (time-invariant) ``Φ``, ``H``, ``Q``,
     ``R`` and lets the user push observations through :meth:`filter`.
@@ -62,6 +71,11 @@ class SquareRootKF(eqx.Module, strict=True):
         obs_model: Observation operator ``H``.
         process_noise: Process-noise covariance ``Q``.
         obs_noise: Observation-noise covariance ``R``.
+
+    References:
+        Yaghoobi, Corenflos, Hassan & Särkkä (2022), *Parallel square-root
+        statistical linear regression for inference in nonlinear state space
+        models*, arXiv:2207.00426.
     """
 
     transition: Float[Array, "N N"] | lx.AbstractLinearOperator
@@ -95,7 +109,7 @@ class SquareRootKF(eqx.Module, strict=True):
             observations,
             init_mean,
             init_cov,
-            form="sqrt",
+            square_root=True,
         )
         return SquareRootFilterResult(
             filtered_means=state.filtered_means,
@@ -354,7 +368,7 @@ class KalmanSmoother(eqx.Module, strict=True):
             solver=gaussx.DenseSolver(),
         )
         smoothed_means, smoothed_covs = gaussx.rts_smoother(
-            state, transition, process_noise, solver=gaussx.DenseSolver()
+            state, transition, solver=gaussx.DenseSolver()
         )
 
         # --- log-likelihood ---

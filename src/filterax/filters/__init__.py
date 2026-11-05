@@ -7,7 +7,7 @@ Wave 4 additions:
 * :class:`ETKF_Livings` — ETKF + mean-preserving random rotation
 * :class:`EnSRF_Serial` — scalar serial sqrt updates
 * :class:`ESTKF` — error-subspace transform
-* :class:`SquareRootKF` — parametric Cholesky filter (lives in
+* :class:`SquareRootKF` — parametric square-root filter (lives in
   ``filterax._filters._parametric`` for namespacing; re-exported here for
   convenience).
 """
