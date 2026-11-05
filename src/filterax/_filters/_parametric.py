@@ -368,7 +368,7 @@ class KalmanSmoother(eqx.Module, strict=True):
             solver=gaussx.DenseSolver(),
         )
         smoothed_means, smoothed_covs = gaussx.rts_smoother(
-            state, transition, process_noise, solver=gaussx.DenseSolver()
+            state, transition, solver=gaussx.DenseSolver()
         )
 
         # --- log-likelihood ---
