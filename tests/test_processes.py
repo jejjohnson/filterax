@@ -23,7 +23,7 @@ import numpy as np
 import pytest
 
 import filterax as flx
-from filterax import ProcessConfig
+from filterax import ProcessConfig, optax as filterax_optax
 
 
 def _linear_inverse_problem():
@@ -588,3 +588,115 @@ def test_gnki_solves_a_structured_prior_like_its_dense_form():
         lx.MatrixLinearOperator(jnp.diag(variances), lx.positive_semidefinite_tag)
     )
     np.testing.assert_allclose(structured, dense, rtol=1e-10)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# UKI on gaussx.sigma_points
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _psd(matrix):
+    return lx.MatrixLinearOperator(matrix, lx.positive_semidefinite_tag)
+
+
+def _uki_forward(theta):
+    return jnp.asarray(
+        [
+            theta[0] + 0.1 * theta[1] ** 3,
+            theta[1] + 0.2 * jnp.sin(theta[0]),
+            theta[0] * theta[1],
+        ]
+    )
+
+
+NONLINEAR_OBS = jnp.asarray([0.8, -0.5, -0.3])
+NONLINEAR_PRIOR_COV = jnp.asarray([[1.0, 0.4], [0.4, 1.0]])
+
+
+def _run_l1_uki(num_steps=4, dt=0.25):
+    noise_cov = lx.DiagonalLinearOperator(0.1 * jnp.ones(3))
+    process = flx.processes.UKI(scheduler=flx.FixedScheduler(dt=dt))
+    state = process.init_parametric(
+        jnp.zeros(2), _psd(NONLINEAR_PRIOR_COV), NONLINEAR_OBS, noise_cov
+    )
+    for _ in range(num_steps):
+        points, _, _ = flx.processes.sigma_points(state.mean, state.covariance)
+        evals = jax.vmap(_uki_forward)(points)
+        state = process.update_parametric(
+            state,
+            evals,
+            obs=NONLINEAR_OBS,
+            noise_cov=noise_cov,
+            dt=jnp.asarray(dt),
+        )
+    return state
+
+
+def test_sigma_points_use_the_principal_root():
+    """χ⁺ⱼ − μ = √(Nₚ + λ) [Σ^{1/2}]_{:,j}, with Σ^{1/2} the symmetric root."""
+    covariance = jnp.asarray([[2.0, 0.5, 0.0], [0.5, 1.0, 0.2], [0.0, 0.2, 1.5]])
+    mean = jnp.asarray([1.0, -1.0, 0.5])
+    points, _, _ = flx.processes.sigma_points(mean, _psd(covariance))
+    eigenvalues, eigenvectors = jnp.linalg.eigh(covariance)
+    root = (eigenvectors * jnp.sqrt(eigenvalues)) @ eigenvectors.T
+    # α = 1 and κ = 0 give Nₚ + λ = Nₚ.
+    np.testing.assert_allclose(points[1:4] - mean, jnp.sqrt(3.0) * root.T, atol=1e-10)
+    np.testing.assert_allclose(points[4:7] - mean, -jnp.sqrt(3.0) * root.T, atol=1e-10)
+
+
+def test_sigma_point_weights_keep_the_input_dtype():
+    mean = jnp.zeros(2, dtype=jnp.float32)
+    covariance = lx.DiagonalLinearOperator(jnp.ones(2, dtype=jnp.float32))
+    points, mean_weights, cov_weights = flx.processes.sigma_points(mean, covariance)
+    assert points.dtype == jnp.float32
+    assert mean_weights.dtype == jnp.float32
+    assert cov_weights.dtype == jnp.float32
+
+
+def test_sigma_point_gradient_is_finite_at_an_isotropic_covariance():
+    """UKI starts from σ² I, where a plain eigh gradient would be NaN."""
+
+    def loss(covariance):
+        points, mean_weights, _ = flx.processes.sigma_points(
+            jnp.zeros(3), _psd(covariance)
+        )
+        return mean_weights @ jnp.sum(jnp.tanh(points) ** 2, axis=-1)
+
+    gradient = jax.grad(loss)(0.5 * jnp.eye(3))
+    assert bool(jnp.all(jnp.isfinite(gradient)))
+
+
+def test_uki_nonlinear_posterior_is_pinned():
+    """Recorded for the principal root; Cholesky differed by up to 2.8e-3."""
+    state = _run_l1_uki()
+    np.testing.assert_allclose(
+        state.mean, [0.71218330016186, -0.48378544925327], atol=1e-10
+    )
+    np.testing.assert_allclose(
+        state.covariance.as_matrix(),
+        [
+            [0.08092196941865, -0.00150706084194],
+            [-0.00150706084194, 0.06996919420458],
+        ],
+        atol=1e-10,
+    )
+
+
+def test_optax_uki_agrees_with_the_l1_process_on_a_nonlinear_model():
+    expected = _run_l1_uki()
+    transform = filterax_optax.uki(
+        _uki_forward,
+        NONLINEAR_OBS,
+        lx.DiagonalLinearOperator(0.1 * jnp.ones(3)),
+        init_cov=NONLINEAR_PRIOR_COV,
+        scheduler=flx.FixedScheduler(dt=0.25),
+    )
+    params = jnp.zeros(2)
+    state = transform.init(params)
+    for _ in range(4):
+        updates, state = transform.update(None, state, params)
+        params = params + updates
+    np.testing.assert_allclose(state.mean, expected.mean, atol=1e-12)
+    np.testing.assert_allclose(
+        state.covariance.as_matrix(), expected.covariance.as_matrix(), atol=1e-12
+    )
