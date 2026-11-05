@@ -62,27 +62,6 @@ def _apply_obs_op(
     return jax.vmap(obs_op)(particles)
 
 
-def _etkf_update(
-    particles: Float[Array, "N_e N_x"],
-    obs_particles: Float[Array, "N_e N_y"],
-    obs: Float[Array, " N_y"],
-    obs_noise: lx.AbstractLinearOperator,
-) -> tuple[Float[Array, " N_x"], Float[Array, "N_e N_x"]]:
-    r"""Analysis mean and anomalies from :func:`gaussx.etkf_transform`.
-
-    x̄ₐ = x̄ + w̄ X′ and X′ₐ = W X′, with w̄ and W the ensemble-space weights.
-    """
-    # First, so a degenerate ensemble raises gaussx's error rather than einx's.
-    mean_weights, transform = gaussx.etkf_transform(obs_particles, obs, obs_noise)
-    anomalies = ensemble_anomalies(particles)
-    # x̄ₐ = x̄ + w̄ X′
-    mean_increment = einx.dot("e, e x -> x", mean_weights, anomalies)
-    analysis_mean = einx.add("x, x -> x", ensemble_mean(particles), mean_increment)
-    # X′ₐ = W X′
-    analysis_anomalies = einx.dot("i e, e x -> i x", transform, anomalies)
-    return analysis_mean, analysis_anomalies
-
-
 def _innovation_log_likelihood(
     obs_particles: Float[Array, "N_e N_y"],
     obs: Float[Array, " N_y"],
@@ -102,11 +81,8 @@ def _etkf_analysis(
     """The batch ETKF analysis that :class:`ETKF`, :class:`EnSRF` and
     :class:`ESTKF` all compute."""
     obs_particles = _apply_obs_op(obs_op, particles)
-    analysis_mean, analysis_anomalies = _etkf_update(
-        particles, obs_particles, obs, obs_noise
-    )
     # Xₐ = x̄ₐ 𝟙ᵀ + X′ₐ
-    particles_a = einx.add("x, e x -> e x", analysis_mean, analysis_anomalies)
+    particles_a = gaussx.etkf_analysis(particles, obs_particles, obs, obs_noise)
     log_p = _innovation_log_likelihood(obs_particles, obs, obs_noise)
     return AnalysisResult(particles=particles_a, log_likelihood=log_p)
 
@@ -294,12 +270,12 @@ class ETKF(AbstractSequentialFilter, strict=True):
         + X'^{\top} \big(\bar{w}_a \mathbf{1}^{\top} + W_a\big)
     $$
 
-    :func:`gaussx.etkf_transform` computes ``w̄ₐ`` and ``Wₐ`` from one
-    ``(Nₑ, Nₑ)`` eigendecomposition of ``C̃``, whose closed-form derivative
-    stays finite at its repeated eigenvalues.
-
-    Complexity ``O(Nₑ² Nᵧ + Nₑ³)`` per analysis — the inner solve is
-    routed through gaussx so structured ``R`` does not densify.
+    :func:`gaussx.etkf_analysis` computes the update. With ``Nᵧ < Nₑ`` it uses
+    a thin QR of ``Y′`` and an ``(Nᵧ, Nᵧ)`` eigendecomposition, costs
+    ``O(Nₑ Nᵧ² + Nₑ Nᵧ Nₓ)`` and forms no ``(Nₑ, Nₑ)`` matrix. Otherwise it
+    eigendecomposes ``C̃`` at ``O(Nₑ² Nᵧ + Nₑ³)``. Both routes have closed-form
+    derivatives that stay finite at repeated eigenvalues, and the inner solve
+    is routed through gaussx so structured ``R`` does not densify.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -633,9 +609,9 @@ class ETKF_Livings(AbstractSequentialFilter, strict=True):
     ) -> AnalysisResult:
         rot_key = self.key if key is None else key
         obs_particles = _apply_obs_op(obs_op, particles)
-        analysis_mean, analysis_anomalies = _etkf_update(
-            particles, obs_particles, obs, obs_noise
-        )
+        analysis = gaussx.etkf_analysis(particles, obs_particles, obs, obs_noise)
+        analysis_mean = ensemble_mean(analysis)
+        analysis_anomalies = ensemble_anomalies(analysis)
 
         # Apply the mean-preserving rotation Θ on the *left* of W_a X′:
         # Θ leaves 𝟙 fixed, so the column-mean (== analysis mean) is
@@ -770,7 +746,7 @@ class ESTKF(AbstractSequentialFilter, strict=True):
 
     Because ``X′`` and ``Y′`` are orthogonal to ``𝟙``, ``L Lᵀ`` acts on them as
     the identity, so this gives the same ``w̄`` and ``W X′`` as :class:`ETKF`.
-    It runs that analysis through :func:`gaussx.etkf_transform`, and keeps its
+    It runs that analysis through :func:`gaussx.etkf_analysis`, and keeps its
     name and formulation for users coming from the error-subspace literature.
     """
 

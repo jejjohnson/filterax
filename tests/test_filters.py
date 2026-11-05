@@ -8,6 +8,7 @@ covariance of the input ensemble*, so the assertions are algebraic
 
 from __future__ import annotations
 
+import gaussx
 import jax
 import jax.numpy as jnp
 import jax.random as jr
@@ -405,3 +406,63 @@ def test_analysis_rejects_a_degenerate_ensemble(filter_name, num_members):
         analysis_filter.analysis(
             jnp.zeros((num_members, 3)), jnp.zeros(2), lambda x: x[:2], obs_noise
         )
+
+
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(20, 3), (6, 6), (5, 12)], ids=str
+)
+def test_etkf_matches_a_dense_transform(num_members, obs_size):
+    """x̄ + w̄ X′ + W X′, from the transform's full-rank route, on all three shapes."""
+    particles, obs_operator, obs, obs_noise = _analysis_problem(
+        num_members, 4, obs_size
+    )
+    obs_particles = particles @ obs_operator.T
+    mean_weights, transform = gaussx.etkf_transform(
+        obs_particles, obs, obs_noise, low_rank=False
+    )
+    mean = particles.mean(0)
+    anomalies = particles - mean
+    expected = mean + mean_weights @ anomalies + transform @ anomalies
+    result = flx.filters.ETKF().analysis(
+        particles, obs, lambda x: obs_operator @ x, obs_noise
+    )
+    np.testing.assert_allclose(result.particles, expected, atol=1e-10)
+
+
+def test_etkf_livings_keeps_the_analysis_mean():
+    """The rotation fixes 𝟙, so it moves the anomalies and not the mean."""
+    particles, obs_operator, obs, obs_noise = _analysis_problem(20, 4, 3)
+
+    def observe(x):
+        return obs_operator @ x
+
+    plain = flx.filters.ETKF().analysis(particles, obs, observe, obs_noise)
+    rotated = flx.filters.ETKF_Livings(key=jr.PRNGKey(0)).analysis(
+        particles, obs, observe, obs_noise
+    )
+    np.testing.assert_allclose(
+        rotated.particles.mean(0), plain.particles.mean(0), atol=1e-10
+    )
+    assert float(jnp.max(jnp.abs(rotated.particles - plain.particles))) > 1e-3
+
+
+@pytest.mark.parametrize("filter_name", ["ETKF", "EnSRF", "ESTKF"])
+def test_analysis_gradient_with_a_constant_observation_channel(filter_name):
+    """A constant channel leaves Y′ rank deficient, which QR's derivative can't take."""
+    particles, obs_operator, obs, obs_noise = _analysis_problem(8, 3, 3)
+    obs_operator = obs_operator.at[1].set(0.0)
+    analysis_filter = getattr(flx.filters, filter_name)()
+
+    def loss(forecast):
+        result = analysis_filter.analysis(
+            forecast, obs, lambda x: obs_operator @ x, obs_noise
+        )
+        return jnp.sum(result.particles**2)
+
+    gradient = jax.grad(loss)(particles)
+    assert bool(jnp.all(jnp.isfinite(gradient)))
+    direction = jr.normal(jr.PRNGKey(5), particles.shape)
+    step = 1e-6
+    central = loss(particles + step * direction) - loss(particles - step * direction)
+    central = central / (2.0 * step)
+    np.testing.assert_allclose(jnp.sum(gradient * direction), central, rtol=1e-6)

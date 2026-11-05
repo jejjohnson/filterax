@@ -19,7 +19,7 @@ Both refuse stochastic filters (`StochasticEnKF`,
 [`ETKF_Livings`](filters_advanced.md)) and the stochastic
 `AdditiveInflator` at call time — randomness in the analysis breaks the
 deterministic tape these strategies rely on. The deterministic
-[ETKF analysis core](filters.md) (`gaussx.etkf_transform`, with a closed-form `eigh` derivative) is what
+[ETKF analysis core](filters.md) (`gaussx.etkf_analysis`, with a closed-form derivative) is what
 keeps the exact-gradient path differentiability-safe.
 
 ## Full-tape assimilation

@@ -97,7 +97,7 @@ $\lambda_i - \lambda_j$, and repeated eigenvalues produce `NaN`
 gradients. Any training loop that backpropagates through the analysis
 (chapter 14) would die on the very first step.
 
-`gaussx.etkf_transform` keeps the $N_e \times N_e$ eigendecomposition and replaces that derivative. It computes $T = \tilde{C}^{-1}$ and $W$ from one `eigh`, and differentiates them in closed form in the eigenbasis (Daleckii–Krein). That form uses divided differences of the matrix function, which stay finite at a repeated eigenvalue, so `jax.grad` through the whole analysis is finite whether $N_y$ is below or above $N_e$. The solve $R^{-1} Y'$ routes through gaussx structural dispatch, so a diagonal $R$ never densifies.
+`gaussx.etkf_analysis` avoids both problems. $\tilde{C}$ exceeds $(N_e - 1) I$ by rank at most $N_y$, so with $N_y < N_e$ a thin QR of $Y'$ and an $N_y \times N_y$ eigendecomposition give $U$ and $\lambda$ with $Y' R^{-1} Y'^\top = U \operatorname{diag}(\lambda) U^\top$, and every matrix function of $\tilde{C}$ follows without forming an $N_e \times N_e$ matrix. With $N_y \ge N_e$ it eigendecomposes $\tilde{C}$ directly. On either route the derivative is taken in closed form in the eigenbasis (Daleckii–Krein), using divided differences that stay finite at a repeated eigenvalue, so `jax.grad` through the whole analysis is finite whether $N_y$ is below or above $N_e$. The solve $R^{-1} Y'$ routes through gaussx structural dispatch, so a diagonal $R$ never densifies.
 
 ## ETKF_Livings — breaking the deterministic symmetry
 
@@ -170,7 +170,7 @@ loop (chapter 16).
 
 ## Cost
 
-Per analysis: $O(N_e^2 N_y)$ for assembling $\tilde{C}$, $O(N_e^3)$ for its eigendecomposition, and $O(N_e^2 N_x)$ for applying the weights — all independent of $N_x^2$. The transform never touches an $N_x \times N_x$ or (for structured $R$) an $N_y \times N_y$ dense matrix.
+Per analysis, with $N_y < N_e$: $O(N_e N_y^2)$ for the thin QR and the small eigendecomposition, and $O(N_e N_y N_x)$ for applying the weights. With $N_y \ge N_e$: $O(N_e^2 N_y)$ for assembling $\tilde{C}$, $O(N_e^3)$ for its eigendecomposition, and $O(N_e^2 N_x)$ for applying the weights. The transform never touches an $N_x \times N_x$ or (for structured $R$) an $N_y \times N_y$ dense matrix.
 
 ## When ETKF is the right answer
 
