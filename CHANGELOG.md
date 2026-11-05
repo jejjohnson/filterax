@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.8](https://github.com/jejjohnson/filterax/compare/v0.0.7...v0.0.8) (2026-11-05)
+
+
+### Features
+
+* **processes:** make ETKI the ETKF square-root transform ([40e7e96](https://github.com/jejjohnson/filterax/commit/40e7e9695b6ea301d9f46d13717d43fe1d7860ea))
+
+
+### Bug Fixes
+
+* **filters:** make SquareRootKF the square-root filter it documents ([ae77861](https://github.com/jejjohnson/filterax/commit/ae778616e1fa3050561c1ac2052a2690cee101eb))
+* **filters:** take the gaussx square_root float32 fix and drop the SquareRootKF warning ([#146](https://github.com/jejjohnson/filterax/issues/146)) ([57574dd](https://github.com/jejjohnson/filterax/commit/57574dd16ca4f1ed52a3a0c91288a682b1f47c98)), closes [#141](https://github.com/jejjohnson/filterax/issues/141)
+* **primitives:** make innovation_statistics return the whitener it documents ([d91155b](https://github.com/jejjohnson/filterax/commit/d91155bb65b02f753125bb5400f6e67dd0246261))
+* **primitives:** take the ensemble log-likelihood from a QR of its factors ([#148](https://github.com/jejjohnson/filterax/issues/148)) ([ba3a325](https://github.com/jejjohnson/filterax/commit/ba3a3254b3e8d8617b3d041225106e4e8b3d0f22)), closes [#143](https://github.com/jejjohnson/filterax/issues/143)
+* **processes:** generate UKI sigma points with gaussx's principal root ([e9202fb](https://github.com/jejjohnson/filterax/commit/e9202fbc10351f22f18265b7e58b21db45244c6b))
+
 ## [0.0.7](https://github.com/jejjohnson/filterax/compare/v0.0.6...v0.0.7) (2026-11-05)
 
 
