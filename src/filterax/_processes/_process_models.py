@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import equinox as eqx
+import gaussx
 import jax
 import jax.numpy as jnp
 import lineax as lx
@@ -97,16 +98,6 @@ def _resolve_n_iterations(config: ProcessConfig | None, default: int) -> int:
     return config.n_iterations if config is not None else default
 
 
-def _ensemble_cov_dense(
-    particles: Float[Array, "J N_p"],
-) -> Float[Array, "N_p N_p"]:
-    """Materialise the (small) ensemble covariance for the result struct."""
-    J, _ = particles.shape
-    mean = jnp.mean(particles, axis=0)
-    anom = particles - mean[None, :]
-    return anom.T @ anom / (J - 1)
-
-
 # ──────────────────────────────────────────────────────────────────────
 # Ensemble-typed L2 wrappers — EKI, EKS
 # ──────────────────────────────────────────────────────────────────────
@@ -140,7 +131,7 @@ def _run_ensemble(
 
     particles_final = state.particles
     mean = jnp.mean(particles_final, axis=0)
-    cov_dense = _ensemble_cov_dense(particles_final)
+    cov_dense = gaussx.ensemble_covariance(particles_final, bessel=True).as_matrix()
     return ProcessResult(
         particles=particles_final,
         mean=mean,

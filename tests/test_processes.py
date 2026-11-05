@@ -14,11 +14,13 @@ converge to ``(μ_post, Σ_post)`` after burn-in.
 
 from __future__ import annotations
 
+import gaussx
 import jax
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
 import numpy as np
+import pytest
 
 import filterax as flx
 from filterax import ProcessConfig
@@ -422,3 +424,167 @@ def test_eks_preserves_spread_on_nonlinear_problem():
     final_trace = float(jnp.trace(result.covariance.as_matrix()))
     assert final_trace > 1e-3
     assert bool(jnp.all(jnp.isfinite(result.particles)))
+
+
+# ──────────────────────────────────────────────────────────────────────
+# gaussx-backed updates
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _inverse_problem_for_gaussx(num_members, obs_size, param_size=3):
+    keys = jr.split(jr.PRNGKey(11), 3)
+    forward = jr.normal(keys[0], (obs_size, param_size)) / jnp.sqrt(param_size)
+    obs = jr.normal(keys[1], (obs_size,))
+    particles = jr.normal(keys[2], (num_members, param_size))
+    return forward, obs, particles
+
+
+@pytest.mark.parametrize(
+    ("num_members", "obs_size"), [(30, 5), (5, 12)], ids=["dense", "woodbury"]
+)
+def test_eki_step_matches_the_dense_formula_on_both_routes(num_members, obs_size):
+    """θ⁺ = θ + Cᶿᴳ (Cᴳᴳ + Γ / Δt)⁻¹ (y − G), formed densely."""
+    forward, obs, particles = _inverse_problem_for_gaussx(num_members, obs_size)
+    variances = jnp.linspace(0.2, 1.0, obs_size)
+    noise_cov = lx.DiagonalLinearOperator(variances)
+    dt = 0.3
+    process = flx.processes.EKI(scheduler=flx.FixedScheduler(dt=dt))
+    evals = particles @ forward.T
+    new = process.update(process.init(particles, obs, noise_cov), evals).particles
+
+    param_anomalies = particles - particles.mean(0)
+    obs_anomalies = evals - evals.mean(0)
+    cross = param_anomalies.T @ obs_anomalies / (num_members - 1)
+    obs_cov = obs_anomalies.T @ obs_anomalies / (num_members - 1)
+    innovation_cov = obs_cov + jnp.diag(variances) / dt
+    expected = particles + (obs - evals) @ jnp.linalg.solve(innovation_cov, cross.T)
+    np.testing.assert_allclose(new, expected, rtol=1e-10, atol=1e-12)
+
+
+def test_eki_update_is_a_no_op_at_zero_step():
+    forward, obs, particles = _inverse_problem_for_gaussx(10, 5)
+    noise_cov = lx.DiagonalLinearOperator(jnp.ones(5))
+    for make_process in (flx.processes.EKI, flx.processes.ETKI):
+        process = make_process(scheduler=flx.FixedScheduler(dt=0.0))
+        state = process.init(particles, obs, noise_cov)
+        new = process.update(state, particles @ forward.T).particles
+        np.testing.assert_allclose(new, particles, atol=1e-12)
+
+
+def test_teki_keeps_a_kronecker_noise_structured(monkeypatch):
+    """Γ̃ is a BlockDiag, and a Kronecker Γ is never materialised on Woodbury."""
+    obs_size, param_size, num_members = 6, 3, 5
+    forward, obs, particles = _inverse_problem_for_gaussx(
+        num_members, obs_size, param_size
+    )
+    left = lx.MatrixLinearOperator(
+        jnp.asarray([[1.0, 0.3], [0.3, 1.0]]), lx.positive_semidefinite_tag
+    )
+    right = lx.DiagonalLinearOperator(jnp.asarray([0.5, 1.0, 2.0]))
+    noise_cov = gaussx.Kronecker(left, right)
+    prior_cov = lx.DiagonalLinearOperator(jnp.ones(param_size))
+    process = flx.processes.TEKI(
+        scheduler=flx.FixedScheduler(dt=0.5),
+        prior_mean=jnp.zeros(param_size),
+        prior_cov=prior_cov,
+    )
+    state = process.init(particles, obs, noise_cov)
+    assert isinstance(state.noise_cov, gaussx.BlockDiag)
+    noise_dense = noise_cov.as_matrix()
+
+    def _refuse(self):
+        raise AssertionError("the Kronecker noise was materialised")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(gaussx.Kronecker, "as_matrix", _refuse)
+        new = process.update(state, particles @ forward.T).particles
+
+    # The same step with a dense Γ̃ = blockdiag(Γ, Σ₀), formed by hand.
+    aug_noise = jnp.block(
+        [
+            [noise_dense, jnp.zeros((obs_size, param_size))],
+            [jnp.zeros((param_size, obs_size)), jnp.eye(param_size)],
+        ]
+    )
+    aug_evals = jnp.concatenate([particles @ forward.T, particles], axis=1)
+    aug_obs = jnp.concatenate([obs, jnp.zeros(param_size)])
+    param_anomalies = particles - particles.mean(0)
+    obs_anomalies = aug_evals - aug_evals.mean(0)
+    cross = param_anomalies.T @ obs_anomalies / (num_members - 1)
+    obs_cov = obs_anomalies.T @ obs_anomalies / (num_members - 1)
+    innovation_cov = obs_cov + aug_noise / 0.5
+    expected = particles + (aug_obs - aug_evals) @ jnp.linalg.solve(
+        innovation_cov, cross.T
+    )
+    np.testing.assert_allclose(new, expected, rtol=1e-9, atol=1e-10)
+
+
+def test_etki_matches_a_dense_etkf_transform():
+    """x̄⁺ = x̄ + w̄ X′ and X′⁺ = W X′, with Ĉ = (J − 1) I + Y′ (Γ / Δt)⁻¹ Y′ᵀ."""
+    num_members, obs_size = 10, 4
+    forward, obs, particles = _inverse_problem_for_gaussx(num_members, obs_size)
+    variances = jnp.linspace(0.2, 1.0, obs_size)
+    dt = 0.4
+    process = flx.processes.ETKI(scheduler=flx.FixedScheduler(dt=dt))
+    noise_cov = lx.DiagonalLinearOperator(variances)
+    evals = particles @ forward.T
+    new = process.update(process.init(particles, obs, noise_cov), evals).particles
+
+    param_anomalies = particles - particles.mean(0)
+    obs_anomalies = evals - evals.mean(0)
+    weighted = obs_anomalies * (dt / variances)
+    capacitance = (num_members - 1) * jnp.eye(num_members)
+    capacitance = capacitance + weighted @ obs_anomalies.T
+    eigenvalues, eigenvectors = jnp.linalg.eigh(capacitance)
+    mean_weights = jnp.linalg.solve(capacitance, weighted @ (obs - evals.mean(0)))
+    root = jnp.sqrt((num_members - 1) / eigenvalues)
+    transform = (eigenvectors * root) @ eigenvectors.T
+    expected = (
+        particles.mean(0) + mean_weights @ param_anomalies + transform @ param_anomalies
+    )
+    np.testing.assert_allclose(new, expected, rtol=1e-10, atol=1e-12)
+
+
+def test_etki_schedule_lands_on_the_gaussian_posterior():
+    """With Σ Δt = 1 and J > Nₚ, the ensemble's moments are the exact posterior."""
+    num_members, obs_size = 12, 5
+    forward, obs, particles = _inverse_problem_for_gaussx(num_members, obs_size)
+    gamma = 0.3
+    noise_cov = lx.DiagonalLinearOperator(gamma * jnp.ones(obs_size))
+    prior_mean = particles.mean(0)
+    prior_anomalies = particles - prior_mean
+    prior_cov = prior_anomalies.T @ prior_anomalies / (num_members - 1)
+    precision = jnp.linalg.inv(prior_cov) + forward.T @ forward / gamma
+    post_cov = jnp.linalg.inv(precision)
+    post_mean = prior_mean + post_cov @ forward.T @ (obs - forward @ prior_mean) / gamma
+
+    process = flx.processes.ETKI(scheduler=flx.FixedScheduler(dt=0.25))
+    state = process.init(particles, obs, noise_cov)
+    for _ in range(4):
+        state = process.update(state, state.particles @ forward.T)
+    new_anomalies = state.particles - state.particles.mean(0)
+    np.testing.assert_allclose(state.particles.mean(0), post_mean, atol=1e-10)
+    np.testing.assert_allclose(
+        new_anomalies.T @ new_anomalies / (num_members - 1), post_cov, atol=1e-10
+    )
+
+
+def test_gnki_solves_a_structured_prior_like_its_dense_form():
+    forward, obs, particles = _inverse_problem_for_gaussx(30, 6)
+    noise_cov = lx.DiagonalLinearOperator(0.2 * jnp.ones(6))
+    variances = jnp.asarray([0.5, 1.0, 2.0])
+
+    def run(prior_cov):
+        process = flx.processes.GNKI(
+            scheduler=flx.FixedScheduler(dt=0.5),
+            prior_mean=jnp.zeros(3),
+            prior_cov=prior_cov,
+        )
+        state = process.init(particles, obs, noise_cov)
+        return process.update(state, particles @ forward.T).particles
+
+    structured = run(lx.DiagonalLinearOperator(variances))
+    dense = run(
+        lx.MatrixLinearOperator(jnp.diag(variances), lx.positive_semidefinite_tag)
+    )
+    np.testing.assert_allclose(structured, dense, rtol=1e-10)

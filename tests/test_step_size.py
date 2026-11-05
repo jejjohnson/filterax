@@ -88,7 +88,6 @@ def test_uki_optax_recovers_posterior_for_any_split(dt, n):
     "make_process",
     [
         pytest.param(lambda s: EKIProcess(scheduler=s), id="EKI"),
-        pytest.param(lambda s: ETKI(scheduler=s), id="ETKI"),
         pytest.param(
             lambda s: SparseInversion(scheduler=s, penalty_weight=0.0),
             id="SparseInversion",
@@ -111,6 +110,26 @@ def test_increment_tends_to_euler_step(make_process):
     # The gap is O(Δt ‖Cᴳᴳ‖ / γ) relative to the step: ≈ 1e-5 here. The old
     # double-Δt increment was a further factor Δt smaller, so its gap was ≈ 1.
     gap = jnp.max(jnp.abs(delta - euler)) / jnp.max(jnp.abs(euler))
+    assert float(gap) < 1e-4
+
+
+def test_etki_increment_tends_to_the_half_rate_transform():
+    """The mean takes EKI's Euler step, and the anomalies half of it."""
+    F, y, Gamma, m0, S0, _, _ = _problem()
+    particles = m0 + jax.random.normal(jax.random.key(2), (40, N_P)) @ jnp.sqrt(S0)
+    evals = particles @ F.T
+    dt = 1e-8
+    process = ETKI(scheduler=flx.FixedScheduler(dt=dt))
+    state = process.init(particles, y, Gamma)
+    delta = process.update(state, evals).particles - particles
+    # Δt Cᶿᴳ Γ⁻¹ (y − G⁽ʲ⁾)
+    anom_p = particles - particles.mean(0)
+    anom_g = evals - evals.mean(0)
+    C_pg = anom_p.T @ anom_g / (particles.shape[0] - 1)
+    euler = dt * (y[None, :] - evals) @ C_pg.T / GAMMA
+    euler_mean = euler.mean(0)
+    expected = euler_mean + 0.5 * (euler - euler_mean)
+    gap = jnp.max(jnp.abs(delta - expected)) / jnp.max(jnp.abs(euler))
     assert float(gap) < 1e-4
 
 
