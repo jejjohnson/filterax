@@ -20,8 +20,8 @@ Notation
 The state-space gain is rank ``≤ Nₑ − 1`` (the forecast covariance is
 estimated from ``Nₑ`` members), so the inverse is taken in the Moore-
 Penrose sense. We never materialise the ``Nₓ × Nₓ`` covariance — the
-backward step factors through ``F Fᵀ ∈ ℝ^{Nₑ × Nₑ}`` instead, giving
-``O(Nₑ² Nₓ + Nₑ³)`` per step.
+backward step works in the ``ℝ^{Nₑ × Nₑ}`` ensemble space instead, giving
+``O(Nₑ² Nₓ + Nₑ³)`` per step when ``Nₑ ≤ Nₓ``.
 """
 
 from __future__ import annotations
@@ -56,69 +56,15 @@ def _pinv_threshold(eigvals: Float[Array, " N_e"]) -> Float[Array, ""]:
     return jnp.maximum(eigvals[-1], 0.0) * eigvals.shape[0] * eps
 
 
-def _smoother_step(
-    smoothed_next: Float[Array, "N_e N_x"],
-    analysis_t: Float[Array, "N_e N_x"],
-    forecast_t1: Float[Array, "N_e N_x"],
-) -> Float[Array, "N_e N_x"]:
-    r"""One backward smoother step.
-
-    Applies the per-member update
-
-    $$
-    X^s_t[j] = X^a_t[j] + G_t \big(X^s_{t+1}[j] - X^f_{t+1}[j]\big)
-    $$
-
-    using the ensemble-space factorisation
-
-    $$
-    G_t \big(X^s_{t+1} - X^f_{t+1}\big) = D F^{\top} (F F^{\top})^{+} A
-    $$
-
-    where ``A = X^a_t − x̄^a_t``, ``F = X^f_{t+1} − x̄^f_{t+1}``, and
-    ``D = X^s_{t+1} − X^f_{t+1}`` are arranged with rows as members. The
-    pseudoinverse is computed via :func:`jax.numpy.linalg.eigh` on the
-    symmetrised ``F Fᵀ`` with a dtype-aware relative threshold to
-    discard the rank-deficient null direction.
-    """
-    # Anomaly matrices share the analysis / forecast row layout.
-    a_mean = einx.mean("e x -> x", analysis_t)
-    A = einx.subtract("e x, x -> e x", analysis_t, a_mean)
-    f_mean = einx.mean("e x -> x", forecast_t1)
-    F = einx.subtract("e x, x -> e x", forecast_t1, f_mean)
-
-    # Per-member discrepancy used as input to the smoother gain.
-    D = smoothed_next - forecast_t1
-
-    # F Fᵀ is rank ≤ Nₑ − 1; eigh + relative threshold handles the null direction.
-    M = einx.dot("e x, f x -> e f", F, F)
-    M = 0.5 * (M + jnp.swapaxes(M, -1, -2))
-    eigvals, eigvecs = jnp.linalg.eigh(M)
-    # eigh returns eigvals in ascending order; eigvals[-1] is the largest.
-    threshold = _pinv_threshold(eigvals)
-    inv_lambda = jnp.where(eigvals > threshold, 1.0 / eigvals, 0.0)
-
-    # B = D Fᵀ in ensemble space.
-    B = einx.dot("e x, f x -> e f", D, F)
-
-    # G̃ = B (F Fᵀ)⁺ = B U diag(1/λ) Uᵀ. Three factored matmuls.
-    BU = einx.dot("e a, a b -> e b", B, eigvecs)
-    BU_scaled = einx.multiply("e a, a -> e a", BU, inv_lambda)
-    G_tilde = einx.dot("e a, b a -> e b", BU_scaled, eigvecs)
-
-    delta = einx.dot("e f, f x -> e x", G_tilde, A)
-    return einx.add("e x, e x -> e x", analysis_t, delta)
-
-
 def _enks_backward(
     analysis_history: Float[Array, "T N_e N_x"],
     forecast_history: Float[Array, "T N_e N_x"],
 ) -> Float[Array, "T N_e N_x"]:
     r"""Full backward pass over a stored filter history.
 
-    Initialises ``X^s_{T-1} = X^a_{T-1}`` and runs :func:`_smoother_step`
-    for ``t = T-2, …, 0``. Implemented as a reversed :func:`jax.lax.scan`
-    so the whole pass stays JIT-friendly.
+    Initialises ``X^s_{T-1} = X^a_{T-1}`` and runs
+    :func:`gaussx.ensemble_rts_step` for ``t = T-2, …, 0``. Implemented as a
+    reversed :func:`jax.lax.scan` so the whole pass stays JIT-friendly.
     """
     T = analysis_history.shape[0]
     init = analysis_history[-1]
@@ -126,7 +72,7 @@ def _enks_backward(
     def step(
         carry: Float[Array, "N_e N_x"], idx: Int[Array, ""]
     ) -> tuple[Float[Array, "N_e N_x"], Float[Array, "N_e N_x"]]:
-        smoothed_t = _smoother_step(
+        smoothed_t = gaussx.ensemble_rts_step(
             carry,
             analysis_history[idx],
             forecast_history[idx + 1],
@@ -313,7 +259,7 @@ class FixedLagSmoother(eqx.Module, strict=True):
                 t_safe = jnp.maximum(t, 0)
                 analysis_t = analysis_history[t_safe]
                 forecast_t1 = forecast_history[t_safe + 1]
-                candidate = _smoother_step(carry, analysis_t, forecast_t1)
+                candidate = gaussx.ensemble_rts_step(carry, analysis_t, forecast_t1)
                 next_carry = jnp.where(valid, candidate, carry)
                 return next_carry, None
 
