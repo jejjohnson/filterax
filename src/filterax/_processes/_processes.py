@@ -511,27 +511,19 @@ class UKI(AbstractProcess, strict=True):
             beta=self.beta,
             kappa=self.kappa,
         )
-        # Weighted obs-space mean.
-        y_mean = einx.dot("k, k d -> d", w_mean, forward_evals)
-        # Weighted cross-covariance Cᶿʸ = Σₖ Wcₖ (χₖ − μ) (ŷₖ − ȳ)ᵀ.
-        theta_anom = einx.subtract("k p, p -> k p", points, state.mean)
-        y_anom = einx.subtract("k d, d -> k d", forward_evals, y_mean)
-        weighted_theta = einx.multiply("k p, k -> k p", theta_anom, w_cov)
-        C_theta_y = einx.dot("k p, k d -> p d", weighted_theta, y_anom)
-        # Sᵧᵧ = Σₖ Wcₖ (ŷₖ − ȳ)(ŷₖ − ȳ)ᵀ + Δt⁻¹ Γ.
-        weighted_y = einx.multiply("k d, k -> k d", y_anom, w_cov)
-        S_dense = einx.dot("k a, k b -> a b", weighted_y, y_anom)
-        # Tempered Kalman solve.
-        S_tempered = S_dense + _safe_inv_dt(dt) * noise_cov.as_matrix()
-        innovation = obs - y_mean
-        K = jnp.linalg.solve(S_tempered.T, C_theta_y.T).T  # (Nₚ, N_d)
-
-        mean_new = state.mean + einx.dot("p d, d -> p", K, innovation)
-        # Σ_{n+1} = Σ̂ − K S_tempered Kᵀ; Δt enters once, through Δt⁻¹ Γ in S.
-        Sigma_dense = state.covariance.as_matrix()
-        K_S = einx.dot("p a, a b -> p b", K, S_tempered)  # (Nₚ, N_d)
-        Sigma_new = Sigma_dense - einx.dot("p d, q d -> p q", K_S, K)
-        Sigma_new = 0.5 * (Sigma_new + Sigma_new.T)
+        # Δt enters once, through Δt⁻¹ Γ in the innovation covariance. The standard
+        # covariance form, since UKI's joint moments are its definition.
+        mean_new, Sigma_new, _ = gaussx.sigma_point_kalman_update(
+            points,
+            forward_evals,
+            state.mean,
+            state.covariance,
+            obs,
+            _safe_inv_dt(dt) * noise_cov.as_matrix(),
+            mean_weights=w_mean,
+            cov_weights=w_cov,
+            joseph=False,
+        )
         return UKIState(
             mean=mean_new,
             covariance=lx.MatrixLinearOperator(
