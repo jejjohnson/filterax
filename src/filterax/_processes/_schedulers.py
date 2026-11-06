@@ -185,16 +185,11 @@ class EKSStableScheduler(AbstractScheduler, strict=True):
     target_stiffness: float = eqx.field(static=True, default=0.1)
 
     def get_dt(self, state: ProcessState) -> Float[Array, ""]:
-        # Cheap spectral-norm estimate via the (J, J) Gram of the
-        # anomalies — the nonzero eigenvalues of (J−1)⁻¹ X′ᵀ X′ match
-        # those of (J−1)⁻¹ X′ X′ᵀ.
-        particles = state.particles
-        J = particles.shape[0]
-        mean = jnp.mean(particles, axis=0)
-        anom = particles - mean[None, :]  # (J, N_p)
-        gram = anom @ anom.T / (J - 1)  # (J, J)
-        # The Frobenius bound on top eigenvalue: ‖A‖₂ ≤ ‖A‖_F.
-        spectral_bound = jnp.sqrt(jnp.sum(gram * gram))
+        # The Frobenius bound on top eigenvalue: ‖A‖₂ ≤ ‖A‖_F, computed by gaussx
+        # in the (J, J) ensemble space.
+        spectral_bound = gaussx.frobenius_norm(
+            gaussx.ensemble_covariance(state.particles, bessel=True)
+        )
         dt_stable = self.target / jnp.maximum(spectral_bound, 1e-12)
         # target_stiffness / ‖S‖_F
         dt_stiffness = self.target_stiffness / _posterior_stiffness_norm(state)

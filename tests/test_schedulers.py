@@ -172,6 +172,19 @@ def test_eks_stable_scheduler_shrinks_for_spread_ensembles():
     assert 0 < dt < 1.0  # well below max_dt
 
 
+def test_eks_stable_scheduler_uses_the_frobenius_norm_of_the_covariance():
+    sched = flx.EKSStableScheduler(max_dt=1e6, target=1.0, target_stiffness=1e6)
+    particles = jr.normal(jr.PRNGKey(0), (6, 20))
+    state = _state_with_evals(
+        particles, jnp.zeros((6, 2)), lx.DiagonalLinearOperator(jnp.ones(2))
+    )
+    anomalies = particles - particles.mean(axis=0)
+    covariance = anomalies.T @ anomalies / 5
+    expected = 1.0 / jnp.sqrt(jnp.sum(covariance * covariance))
+    # Round-off through one (20, 20) product against one (6, 6) product
+    assert jnp.allclose(sched.get_dt(state), expected, rtol=1e-5)
+
+
 def _stiffness_state(gamma=0.1, prior_variance=None, scale=1.0, num_members=40):
     """A linear model's state, with its dense stiffness ``S`` and ``Cᶿᶿ H``."""
     F = jnp.asarray([[1.0, 0.5], [-0.3, 1.2], [0.7, 0.1]]) / scale
