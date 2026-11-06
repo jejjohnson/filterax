@@ -484,3 +484,75 @@ def test_analysis_forms_no_ensemble_sized_matrix(filter_name):
 
     jaxpr = str(jax.make_jaxpr(run)(jnp.zeros((num_members, 4))))
     assert f"[{num_members},{num_members}]" not in jaxpr
+
+
+def test_letkf_matches_a_dense_local_etkf_at_each_grid_point():
+    num_members, num_state, num_obs, radius = 12, 5, 3, 3.0
+    particles = jr.normal(jr.PRNGKey(0), (num_members, num_state))
+    state_coords = jnp.linspace(0.0, 4.0, num_state)[:, None]
+    obs_coords = jnp.array([[0.5], [2.0], [3.5]])
+    obs_map = jr.normal(jr.PRNGKey(1), (num_obs, num_state))
+    variances = jnp.array([0.2, 0.5, 0.1])
+    obs = jr.normal(jr.PRNGKey(2), (num_obs,))
+    result = flx.filters.LETKF(radius=radius).analysis(
+        particles,
+        obs,
+        lambda x: obs_map @ x,
+        lx.DiagonalLinearOperator(variances),
+        state_coords=state_coords,
+        obs_coords=obs_coords,
+    )
+
+    anomalies = particles - particles.mean(axis=0)
+    obs_anomalies = anomalies @ obs_map.T
+    innovation = obs - (particles.mean(axis=0) @ obs_map.T)
+    distances = jnp.abs(state_coords - obs_coords.T)
+    expected = []
+    for point in range(num_state):
+        rho = jnp.where(
+            distances[point] <= radius, flx.gaspari_cohn(distances[point], radius), 0.0
+        )
+        precision = jnp.diag(rho / variances)
+        scatter = obs_anomalies @ precision @ obs_anomalies.T
+        eigenvalues, vectors = jnp.linalg.eigh(
+            (num_members - 1) * jnp.eye(num_members) + scatter
+        )
+        covariance = (vectors / eigenvalues) @ vectors.T
+        transform = jnp.sqrt(num_members - 1.0) * (
+            (vectors / jnp.sqrt(eigenvalues)) @ vectors.T
+        )
+        mean_weights = covariance @ obs_anomalies @ precision @ innovation
+        analysis_mean = (
+            particles.mean(axis=0)[point] + mean_weights @ anomalies[:, point]
+        )
+        expected.append(analysis_mean + transform @ anomalies[:, point])
+    # Float64 round-off through one eigendecomposition of a matrix with a small
+    # condition number on each side
+    assert jnp.allclose(result.particles, jnp.stack(expected, axis=1), atol=1e-10)
+
+
+def test_letkf_keeps_float32_accuracy_with_mixed_observation_variances():
+    # 10⁻⁶ to 1 in R, with the same well-observed members in both precisions.
+    particles = jr.normal(jr.PRNGKey(0), (20, 30))
+    state_coords = jnp.linspace(0.0, 10.0, 30)[:, None]
+    obs_coords = jnp.linspace(0.0, 10.0, 10)[:, None]
+    obs_map = jnp.exp(-0.5 * ((obs_coords - state_coords.T) / 1.5) ** 2)
+    obs = obs_map @ jr.normal(jr.PRNGKey(1), (30,))
+    variances = jnp.logspace(-6.0, 0.0, 10)
+
+    def run(dtype):
+        return (
+            flx.filters.LETKF(radius=3.0)
+            .analysis(
+                particles.astype(dtype),
+                obs.astype(dtype),
+                lambda x: obs_map.astype(dtype) @ x,
+                lx.DiagonalLinearOperator(variances.astype(dtype)),
+                state_coords=state_coords.astype(dtype),
+                obs_coords=obs_coords.astype(dtype),
+            )
+            .particles
+        )
+
+    # Measured at 2.2e-2 here, and at 0.50 through the earlier per-point spectrum.
+    assert jnp.abs(run(jnp.float32) - run(jnp.float64)).max() < 0.2

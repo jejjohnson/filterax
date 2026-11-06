@@ -87,84 +87,6 @@ def _etkf_analysis(
     return AnalysisResult(particles=particles_a, log_likelihood=log_p)
 
 
-def _etkf_inner_spectrum(
-    obs_anom: Float[Array, "K N_y"],
-    R_inv_Y: Float[Array, "K N_y"],
-) -> tuple[Float[Array, " N_y"], Float[Array, "K N_y"]]:
-    r"""Rank-``Nᵧ`` spectrum of the inner product ``Y′ R⁻¹ Y′ᵀ``.
-
-    The decomposition
-
-    $$
-    Y' R^{-1} Y'^{\top} = U_y \,\mathrm{diag}(\lambda_i)\, U_y^{\top}
-    $$
-
-    holds with ``U_y ∈ ℝ^{K × Nᵧ}`` an
-    orthonormal basis for the column span of ``Y′`` (the only directions
-    where the outer product has non-trivial action). The remaining
-    ``K − Nᵧ`` eigenvalues are all zero; they correspond to a degenerate
-    null subspace that downstream matrix-function evaluations short-
-    circuit through ``g(K_base)`` and never need explicit eigenvectors
-    for.
-
-    Computed via thin QR + a small ``(Nᵧ, Nᵧ)`` eigh:
-
-    1. ``Y′ = Q R_qr`` (thin QR; ``Q ∈ ℝ^{K × Nᵧ}``, ``R_qr ∈ ℝ^{Nᵧ × Nᵧ}``).
-    2. ``M_y = Qᵀ (Y′ R⁻¹) R_qrᵀ = R_qr R⁻¹ R_qrᵀ`` (symmetric PSD,
-       ``Nᵧ × Nᵧ``).
-    3. ``M_y = V_M diag(λ_i) V_Mᵀ`` via eigh on the small matrix.
-    4. ``U_y = Q V_M``.
-
-    This avoids the ``(K, K)`` eigh of the design-doc form
-    ``(Nₑ − 1) I + Y′ R⁻¹ Y′ᵀ`` whose ``K − Nᵧ`` structurally-repeated
-    eigenvalues give ``NaN`` reverse-mode gradients in JAX (issue #82).
-
-    Used by ``LETKF`` per grid point, until ``gaussx.etkf_transform`` takes
-    observation weights (jejjohnson/gaussx#690).
-
-    Assumes ``Nᵧ ≤ K``; gradient-stable when ``Y′`` has full column
-    rank (i.e. observations are linearly independent across the
-    ensemble), which is the typical ensemble-filtering setting.
-    """
-    Q, R_qr = jnp.linalg.qr(obs_anom)  # Q: (K, N_y), R_qr: (N_y, N_y)
-    # Qᵀ (Y′ R⁻¹) = R_qr R⁻¹ (since Qᵀ Y′ = R_qr).
-    R_qr_R_inv = einx.dot("e a, e b -> a b", Q, R_inv_Y)  # (N_y, N_y)
-    M_y = einx.dot("a b, c b -> a c", R_qr_R_inv, R_qr)  # (N_y, N_y)
-    M_y = 0.5 * (M_y + jnp.swapaxes(M_y, -1, -2))
-    eigvals, V_M = jnp.linalg.eigh(M_y)
-    # ``M_y`` is PSD by construction; tiny negative round-off is clipped.
-    eigvals = jnp.maximum(eigvals, 0.0)
-    U_y = einx.dot("e a, a b -> e b", Q, V_M)
-    return eigvals, U_y
-
-
-def _apply_ctilde_func(
-    U_y: Float[Array, "K N_y"],
-    g_diff: Float[Array, " N_y"],
-    g_base: Float[Array, ""],
-    v: Float[Array, "K ..."],
-) -> Float[Array, "K ..."]:
-    r"""Apply ``g(C̃)`` to ``v`` via the rank-``Nᵧ`` correction form.
-
-    $$
-    g(\tilde{C}) = g_{\mathrm{base}} \cdot I
-        + U_y \,\mathrm{diag}(g_{\mathrm{diff}})\, U_y^{\top}
-    $$
-
-    with ``g_diff[i] = g((Nₑ − 1) + λ_i) − g_base`` and
-    ``g_base = g(Nₑ − 1)``. The caller supplies the precomputed
-    differences so the same ``U_y`` / ``λ`` decomposition can be reused
-    across multiple matrix functions in one analysis step.
-
-    ``v`` is a vector ``(K,)`` or matrix ``(K, …)``; the leading axis is
-    the one ``g(C̃)`` acts on.
-    """
-    Ut_v = einx.dot("e a, e ... -> a ...", U_y, v)
-    scaled = einx.multiply("a, a ... -> a ...", g_diff, Ut_v)
-    correction = einx.dot("e a, a ... -> e ...", U_y, scaled)
-    return g_base * v + correction
-
-
 class StochasticEnKF(AbstractSequentialFilter, strict=True):
     r"""Stochastic Ensemble Kalman Filter (Evensen 1994).
 
@@ -448,13 +370,8 @@ class LETKF(AbstractSequentialFilter, strict=True):
             )
 
         obs_particles = _apply_obs_op(obs_op, particles)  # Y ∈ ℝ^{Nₑ×Nᵧ}
-        obs_anom = ensemble_anomalies(obs_particles)
         anom = ensemble_anomalies(particles)
         x_bar = ensemble_mean(particles)
-        innovation = obs - ensemble_mean(obs_particles)
-
-        # Diagonal of R extracted without ever materialising the dense matrix.
-        R_diag = lx.diagonal(obs_noise)
         radius = self.radius
 
         def per_point(
@@ -472,29 +389,8 @@ class LETKF(AbstractSequentialFilter, strict=True):
             within = dist <= radius
             rho = jnp.where(within, self.taper_fn(dist, radius), 0.0)
 
-            # R⁻¹_loc = ρ ⊙ R⁻¹ (diagonal, no matrix materialisation).
-            inv_R_loc = jnp.where(within, rho / R_diag, 0.0)  # (Nᵧ,)
-
-            # Local ETKF in ensemble space.
-            # R⁻¹_loc Y′ — broadcasted elementwise over the obs axis.
-            R_inv_Y = einx.multiply("e y, y -> e y", obs_anom, inv_R_loc)
-            eigvals_loc, U_y_loc = _etkf_inner_spectrum(obs_anom, R_inv_Y)
-
-            inv_base = jnp.asarray(1.0 / (N_e - 1), dtype=anom.dtype)
-            inv_diff = 1.0 / ((N_e - 1) + eigvals_loc) - inv_base
-            sqrt_base = jnp.asarray(1.0, dtype=anom.dtype)
-            sqrt_diff = jnp.sqrt((N_e - 1) / ((N_e - 1) + eigvals_loc)) - sqrt_base
-
-            # w̄ᵢ = T (Y′ R⁻¹_loc v); T = (1/(Nₑ−1)) I + rank-Nᵧ correction.
-            Y_R_inv_v = einx.dot("e y, y -> e", R_inv_Y, innovation)
-            w_bar_i = _apply_ctilde_func(U_y_loc, inv_diff, inv_base, Y_R_inv_v)
-            # Wᵢ = I + U_y_loc diag(sqrt_diff) U_y_locᵀ — materialise the
-            # (Nₑ, Nₑ) transform so the outer ``einx`` can fuse over grid
-            # points without re-invoking per-point spectra.
-            scaled_U = einx.multiply("e a, a -> e a", U_y_loc, sqrt_diff)
-            correction = einx.dot("e a, f a -> e f", scaled_U, U_y_loc)
-            W_i = jnp.eye(N_e, dtype=anom.dtype) + correction
-            return w_bar_i, W_i
+            # R⁻¹_loc = ρ ⊙ R⁻¹, as a weight on each observation.
+            return gaussx.etkf_transform(obs_particles, obs, obs_noise, obs_weights=rho)
 
         # vmap over state grid points → per-point (w̄ᵢ, Wᵢ).
         w_bars, Ws = jax.vmap(per_point)(state_coords)  # (Nₓ, Nₑ), (Nₓ, Nₑ, Nₑ)
