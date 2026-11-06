@@ -55,6 +55,7 @@ def _iglesias_yang_candidates(residuals, noise_variance):
     return accuracy, uncertainty
 
 
+@pytest.mark.slow
 def test_data_misfit_controller_matches_iglesias_yang_closed_form():
     """Regression for #116: the old step was M times too small on this problem."""
     n_members, n_params, n_obs = 50, 10, 100
@@ -130,6 +131,7 @@ def test_data_misfit_controller_runs_under_jit():
     np.testing.assert_allclose(jax.jit(controller.get_dt)(state), eager, rtol=1e-12)
 
 
+@pytest.mark.slow
 def test_eki_with_data_misfit_controller_reaches_time_one_in_few_iterations():
     """Regression for #116: at M = 100 the old controller needed about M times more."""
     n_members, n_params, n_obs = 50, 10, 100
@@ -147,6 +149,7 @@ def test_eki_with_data_misfit_controller_reaches_time_one_in_few_iterations():
     assert result.converged
 
 
+@pytest.mark.slow
 def test_eks_stable_scheduler_clips_to_max_dt():
     sched = flx.EKSStableScheduler(max_dt=0.1, target=1.0)
     # Tight ensemble → small ‖Cᶿᶿ‖ → would give large dt, but max_dt caps.
@@ -159,6 +162,7 @@ def test_eks_stable_scheduler_clips_to_max_dt():
     assert float(sched.get_dt(state)) == pytest.approx(0.1, abs=1e-9)
 
 
+@pytest.mark.slow
 def test_eks_stable_scheduler_shrinks_for_spread_ensembles():
     # Large ensemble spread → large ‖Cᶿᶿ‖ → small dt.
     import jax.random as jr
@@ -172,6 +176,7 @@ def test_eks_stable_scheduler_shrinks_for_spread_ensembles():
     assert 0 < dt < 1.0  # well below max_dt
 
 
+@pytest.mark.slow
 def test_eks_stable_scheduler_uses_the_frobenius_norm_of_the_covariance():
     sched = flx.EKSStableScheduler(max_dt=1e6, target=1.0, target_stiffness=1e6)
     particles = jr.normal(jr.PRNGKey(0), (6, 20))
@@ -216,6 +221,7 @@ def _stiffness_state(gamma=0.1, prior_variance=None, scale=1.0, num_members=40):
 _ONLY_STIFFNESS = {"max_dt": 1e6, "target": 1e6}
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("prior_variance", [None, 0.5], ids=["flat", "prior"])
 def test_eks_stable_scheduler_is_bounded_by_the_dense_stiffness(prior_variance):
     state, stiffness, _ = _stiffness_state(prior_variance=prior_variance)
@@ -261,6 +267,7 @@ def test_eks_stable_scheduler_settles_at_the_same_step_at_any_scale(gamma, scale
     assert float(sched.get_dt(state)) == pytest.approx(0.1 / jnp.sqrt(2.0), rel=1e-8)
 
 
+@pytest.mark.slow
 def test_eks_stable_scheduler_gradient_is_finite_at_zero_stiffness():
     particles = jr.normal(jr.PRNGKey(3), (10, 2))
     noise_cov = lx.DiagonalLinearOperator(jnp.ones(3))

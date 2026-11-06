@@ -168,6 +168,7 @@ def test_fixed_lag_full_lookahead_matches_enks(getkey):
     )
 
 
+@pytest.mark.slow
 def test_fixed_lag_partial_window_differs_from_enks(getkey):
     """A short lag changes the earliest position (had room for some
     correction) but less than the full EnKS pass."""
@@ -197,6 +198,7 @@ def test_fixed_lag_t_equals_one_with_positive_lag(getkey):
     np.testing.assert_array_equal(np.asarray(out.particles), np.asarray(analysis[-1]))
 
 
+@pytest.mark.slow
 def test_fixed_lag_huge_lag_matches_enks(getkey):
     """``lag >> T-1`` is clamped to ``T-1`` and still matches EnKS."""
     forecast, analysis = _synth_history(getkey, T=4)
@@ -224,6 +226,7 @@ def test_enks_smooth_under_jit(getkey):
     np.testing.assert_allclose(np.asarray(jitted), np.asarray(eager), atol=1e-12)
 
 
+@pytest.mark.slow
 def test_enks_smooth_is_differentiable(getkey):
     """The backward pass is a chain of linear-algebra primitives — it
     must be JAX-differentiable for Wave 5.B."""
@@ -239,6 +242,7 @@ def test_enks_smooth_is_differentiable(getkey):
     assert grad != 0.0
 
 
+@pytest.mark.slow
 def test_fixed_lag_smooth_under_jit(getkey):
     forecast, analysis = _synth_history(getkey, T=5)
     fl = flx.FixedLagSmoother(lag=3)
@@ -306,6 +310,7 @@ def test_sqrt_smoother_preserves_final_time_analysis(getkey):
     )
 
 
+@pytest.mark.slow
 def test_sqrt_smoother_perturbations_in_analysis_column_space(getkey):
     """The sqrt smoother applies ``Wᵀ A`` to produce smoothed anomalies,
     so the smoothed perts live in the row span of the analysis anomalies.
@@ -437,6 +442,8 @@ def _linear_gaussian_problem(n_members: int, n_params: int = 2):
     return A, y, R, prior, posterior_mean, posterior_covariance
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.parametrize("n_iterations", [1, 2, 5, 20])
 def test_ies_converges_to_linear_gaussian_posterior_mean(n_iterations):
     """Regression for #117: the iteration fell back toward the prior mean."""
@@ -456,6 +463,7 @@ def test_ies_matches_linear_gaussian_posterior_covariance():
     assert jnp.max(relative_error) < 0.05
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(("n_members", "n_params"), [(50, 2), (8, 20)])
 def test_ies_first_iterate_is_a_fixed_point_for_linear_forward(n_members, n_params):
     """For linear G every member's innovation is d^j − A θ_0^j at all iterations,
@@ -467,6 +475,7 @@ def test_ies_first_iterate_is_a_fixed_point_for_linear_forward(n_members, n_para
     np.testing.assert_allclose(np.asarray(later), np.asarray(first), atol=1e-7)
 
 
+@pytest.mark.slow
 def test_ies_damped_iteration_reaches_the_undamped_fixed_point():
     A, y, R, prior, _, _ = _linear_gaussian_problem(100)
     forward = lambda th: A @ th
@@ -477,6 +486,8 @@ def test_ies_damped_iteration_reaches_the_undamped_fixed_point():
     )
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_ies_recovers_nonlinear_posterior_against_grid_oracle():
     """G(θ) = θ + 0.3 θ³ per component, so the posterior factorises on a 1-D grid."""
     truth = jnp.asarray([1.2, -0.7])
@@ -503,6 +514,7 @@ def test_ies_recovers_nonlinear_posterior_against_grid_oracle():
     np.testing.assert_allclose(np.asarray(out.std(axis=0)), exact_std, rtol=0.1)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(("n_members", "n_params"), [(50, 2), (8, 20)])
 def test_ies_gradient_matches_central_differences(n_members, n_params):
     A, y, R, prior, _, _ = _linear_gaussian_problem(n_members, n_params)
@@ -573,6 +585,7 @@ def test_ies_solve_under_jit(getkey):
     np.testing.assert_allclose(np.asarray(jitted), np.asarray(eager), atol=1e-12)
 
 
+@pytest.mark.slow
 def test_enks_keeps_a_weak_state_direction_in_float32():
     # σ₂ / σ₁ ≈ 10⁻⁴ puts σ₂² below the rounding of F Fᵀ in float32.
     scales = jnp.array([1.0, 1e-4])

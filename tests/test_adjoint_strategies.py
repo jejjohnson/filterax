@@ -59,18 +59,21 @@ def _loss(a, adjoint=None, checkpoint=False, T=6):
 
 
 class TestEquivalences:
+    @pytest.mark.slow
     def test_forward_identical_across_strategies(self):
         a = jnp.asarray(0.9)
         base = _loss(a, adjoint=DirectAdjoint())
         for adj in (RecursiveCheckpointAdjoint(), TruncatedAdjoint(k=2)):
             assert jnp.allclose(base, _loss(a, adjoint=adj))
 
+    @pytest.mark.slow
     def test_direct_matches_legacy_default(self):
         a = jnp.asarray(0.9)
         g_new = jax.grad(lambda a: _loss(a, adjoint=DirectAdjoint()))(a)
         g_old = jax.grad(lambda a: _loss(a))(a)
         assert jnp.allclose(g_new, g_old)
 
+    @pytest.mark.slow
     def test_checkpoint_strategy_matches_legacy_flag(self):
         a = jnp.asarray(0.9)
         g_new = jax.grad(lambda a: _loss(a, adjoint=RecursiveCheckpointAdjoint()))(a)
@@ -78,18 +81,21 @@ class TestEquivalences:
             g_old = jax.grad(lambda a: _loss(a, checkpoint=True))(a)
         assert jnp.allclose(g_new, g_old)
 
+    @pytest.mark.slow
     def test_truncated_full_window_matches_direct(self):
         a = jnp.asarray(0.9)
         g_full = jax.grad(lambda a: _loss(a, adjoint=DirectAdjoint()))(a)
         g_trunc = jax.grad(lambda a: _loss(a, adjoint=TruncatedAdjoint(k=6)))(a)
         assert jnp.allclose(g_full, g_trunc)
 
+    @pytest.mark.slow
     def test_truncated_differs_from_direct_when_cutting(self):
         a = jnp.asarray(0.9)
         g_full = jax.grad(lambda a: _loss(a, adjoint=DirectAdjoint()))(a)
         g_k1 = jax.grad(lambda a: _loss(a, adjoint=TruncatedAdjoint(k=1)))(a)
         assert not jnp.allclose(g_full, g_k1)
 
+    @pytest.mark.slow
     def test_pipekit_shaped_spec_accepted(self):
         """Structurally identical foreign specs work (duck-typed dispatch)."""
 
@@ -105,6 +111,7 @@ class TestEquivalences:
 
 
 class TestLocalGradientSemantics:
+    @pytest.mark.slow
     def test_early_windows_contribute_locally_under_k1(self):
         """Per-cycle outputs keep local gradients (ROAD-EnKF semantics).
 
@@ -137,6 +144,7 @@ class TestLocalGradientSemantics:
 
 
 class TestChaoticTaming:
+    @pytest.mark.slow
     def test_truncated_gradient_bounded_on_expanding_dynamics(self):
         """On expanding dynamics the truncated gradient is far tamer."""
         a = jnp.asarray(1.6)  # |a| > 1: each window amplifies perturbations

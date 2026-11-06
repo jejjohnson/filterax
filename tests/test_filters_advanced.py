@@ -72,6 +72,7 @@ def _check_against_kalman(particles_a, mean_ref, P_ref, atol_mean, atol_cov):
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_etkf_livings_matches_kalman_in_linear_gaussian(linear_gaussian):
     particles, y, obs_op, R, mean_ref, P_ref = linear_gaussian
     result = flx.filters.ETKF_Livings(key=jr.PRNGKey(0)).analysis(
@@ -82,6 +83,7 @@ def test_etkf_livings_matches_kalman_in_linear_gaussian(linear_gaussian):
     )
 
 
+@pytest.mark.slow
 def test_etkf_livings_different_keys_yield_different_ensembles(linear_gaussian):
     particles, y, obs_op, R, *_ = linear_gaussian
     a = flx.filters.ETKF_Livings(key=jr.PRNGKey(1)).analysis(particles, y, obs_op, R)
@@ -152,6 +154,7 @@ def test_estkf_preserves_ensemble_mean_consistency():
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_square_root_kf_tracks_random_walk():
     """Parametric KF on a 2-D random walk with one observed component.
 
@@ -199,6 +202,7 @@ def _square_root_model(dtype=None):
     )
 
 
+@pytest.mark.slow
 def test_square_root_kf_matches_the_covariance_form():
     transition, obs_model, process_noise, obs_noise, observations = _square_root_model()
     init_mean, init_cov = jnp.zeros(3), jnp.eye(3)
@@ -229,6 +233,7 @@ def test_square_root_kf_matches_the_covariance_form():
         )
 
 
+@pytest.mark.slow
 def test_square_root_kf_raises_no_gaussx_deprecation():
     transition, obs_model, process_noise, obs_noise, observations = _square_root_model()
     with warnings.catch_warnings():
@@ -266,6 +271,7 @@ def _strong_observation_model(process_var, obs_var, prior_var, dtype):
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("process_var", "obs_var", "prior_var", "max_mean_error", "max_loglik_error"),
     [
@@ -294,6 +300,7 @@ def test_square_root_kf_float32_matches_a_float64_reference(
     assert jnp.min(jnp.linalg.eigvalsh(single.filtered_covs)) > 0.0
 
 
+@pytest.mark.slow
 def test_square_root_kf_is_accurate_in_float32_on_a_well_conditioned_model():
     """Close agreement at ordinary conditioning, beyond the strong cases above."""
     transition, obs_model, process_noise, obs_noise, observations = _square_root_model()

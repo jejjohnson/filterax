@@ -66,6 +66,7 @@ def test_localize_schur_product():
 class TestLocalizationMatrix:
     """localization_matrix + the re-exported gaussx distance metrics."""
 
+    @pytest.mark.slow
     def test_matches_gaspari_cohn_on_pairwise_distances(self):
         from filterax import euclidean_distance, gaspari_cohn, localization_matrix
 
@@ -74,6 +75,7 @@ class TestLocalizationMatrix:
         expected = gaspari_cohn(euclidean_distance(coords, coords), radius=1.0)
         assert jnp.allclose(rho, expected)
 
+    @pytest.mark.slow
     def test_unit_diagonal_and_compact_support(self):
         from filterax import localization_matrix
 

@@ -61,6 +61,7 @@ def _obs():
     return jnp.asarray(OBS)[:, None]
 
 
+@pytest.mark.slow
 def test_matches_the_dense_conditional():
     result = _ou_smoother(0.8, 1.5).smooth(_obs())
     mean, variance, log_likelihood = _dense_conditional(
@@ -73,6 +74,7 @@ def test_matches_the_dense_conditional():
     np.testing.assert_allclose(result.filtered_means[-1, 0], mean[-1], rtol=1e-10)
 
 
+@pytest.mark.slow
 def test_from_sde_matches_the_hand_discretisation():
     sde = gaussx.MaternSDE(
         variance=jnp.asarray(0.64), lengthscale=jnp.asarray(1.5), order=0
@@ -90,6 +92,7 @@ def test_from_sde_matches_the_hand_discretisation():
     )
 
 
+@pytest.mark.slow
 def test_from_sde_matern32_matches_the_dense_gp():
     # Matérn-3/2: k(τ) = σ² (1 + √3 τ / ℓ) exp(−√3 τ / ℓ), state (f, f′)
     variance, length = 0.64, 1.5
@@ -112,6 +115,7 @@ def test_from_sde_matern32_matches_the_dense_gp():
     np.testing.assert_allclose(result.log_likelihood, log_likelihood, rtol=1e-8)
 
 
+@pytest.mark.slow
 def test_one_time_is_the_blue_analysis():
     B = jnp.array([[1.0, 0.3], [0.3, 0.5]])
     H = jnp.array([[1.0, 0.0], [1.0, 1.0], [0.0, 2.0]])
@@ -134,6 +138,7 @@ def test_one_time_is_the_blue_analysis():
     )
 
 
+@pytest.mark.slow
 def test_a_fully_masked_time_is_skipped_and_filled():
     observed = np.ones(8, bool)
     observed[3] = False
@@ -152,6 +157,7 @@ def test_a_fully_masked_time_is_skipped_and_filled():
     np.testing.assert_allclose(result.log_likelihood, log_likelihood, rtol=1e-10)
 
 
+@pytest.mark.slow
 def test_a_masked_channel_equals_deleting_it():
     # two sensors see the same OU state; the second drops out at times 2 and 5
     smoother = _ou_smoother(0.8, 1.5)
@@ -185,6 +191,7 @@ def test_a_masked_channel_equals_deleting_it():
     np.testing.assert_allclose(result.log_likelihood, log_likelihood, rtol=1e-10)
 
 
+@pytest.mark.slow
 def test_jit_and_vmap_match_a_loop():
     smoother = _ou_smoother(0.8, 1.5)
     obs = jnp.asarray(OBS)
@@ -200,6 +207,7 @@ def test_jit_and_vmap_match_a_loop():
         )
 
 
+@pytest.mark.slow
 def test_gradients_match_central_differences():
     def loss(params):
         sigma, length = params

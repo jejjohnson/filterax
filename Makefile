@@ -10,7 +10,9 @@
 # QUICK START:
 #   make help          # Show all available commands
 #   make install       # Install all dependency groups
-#   make test          # Run tests
+#   make test          # Run every test
+#   make test-fast     # Run the fast tier, as PR CI does
+#   make test-slow     # Run the slow and integration tiers
 #   make lint          # Lint with ruff
 #   make format        # Format with ruff
 #
@@ -61,7 +63,7 @@ check-env-%:
 # ---------------------------------------------------------------------------
 # Phony declarations
 # ---------------------------------------------------------------------------
-.PHONY: help install lint format typecheck test test-cov \
+.PHONY: help install lint format typecheck test test-fast test-slow test-cov \
         precommit build clean version docs docs-serve docs-deploy \
         gh-labels gh-sub gh-block gh-show
 
@@ -132,6 +134,16 @@ test: ## 🧪 Run tests with pytest (no coverage)
 	@printf "$(YELLOW)>>> Running tests (no coverage)...$(RESET)\n"
 	uv run pytest -v -o addopts=
 	@printf "$(GREEN)>>> ✅ Tests passed!$(RESET)\n"
+
+test-fast: ## ⚡ Run fast unit tests (skips slow + integration; matches PR CI)
+	@printf "$(YELLOW)>>> Running fast tests...$(RESET)\n"
+	uv run pytest -v -o addopts=--strict-markers -m "not slow and not integration"
+	@printf "$(GREEN)>>> ✅ Fast tests passed!$(RESET)\n"
+
+test-slow: ## 🐢 Run only the slow + integration tests
+	@printf "$(YELLOW)>>> Running slow and integration tests...$(RESET)\n"
+	uv run pytest -v -o addopts=--strict-markers -m "slow or integration"
+	@printf "$(GREEN)>>> ✅ Slow and integration tests passed!$(RESET)\n"
 
 test-cov: ## 📊 Run tests with coverage report
 	@printf "$(YELLOW)>>> Running tests with coverage...$(RESET)\n"

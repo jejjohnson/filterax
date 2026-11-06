@@ -17,6 +17,7 @@ def _dense_gain(P, H, R):
     return P @ H.T @ np.linalg.inv(S)
 
 
+@pytest.mark.slow
 def test_kalman_gain_matches_analytic_linear(getkey):
     N_e, N_x, N_y = 200, 6, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -94,6 +95,7 @@ class TestLocalizedKalmanGain:
             )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("dense_innovation", [None, True, False])
 @pytest.mark.parametrize(("num_members", "obs_size"), [(20, 3), (4, 6)], ids=str)
 def test_kalman_gain_routes_agree_with_the_dense_formula(
