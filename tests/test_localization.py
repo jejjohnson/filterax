@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -89,3 +90,12 @@ class TestLocalizationMatrix:
         pole_s = jnp.array([[-jnp.pi / 2, 0.0]])
         d = haversine_distance(pole_n, pole_s, radius=1.0)
         assert jnp.allclose(d, jnp.pi, atol=1e-6)
+
+
+@pytest.mark.parametrize("taper", [flx.gaussian_taper, flx.soar_taper])
+def test_taper_is_zero_with_zero_slopes_beyond_the_floating_point_range(taper):
+    distance = jnp.asarray(1e30, dtype=jnp.float32)
+    radius = jnp.asarray(1e-10, dtype=jnp.float32)
+    assert taper(distance, radius) == 0.0
+    slopes = jax.grad(taper, argnums=(0, 1))(distance, radius)
+    assert all(slope == 0.0 for slope in slopes)
