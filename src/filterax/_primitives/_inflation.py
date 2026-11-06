@@ -357,23 +357,6 @@ def ledoit_wolf_shrinkage(
         for large-dimensional covariance matrices.* J. Multivariate
         Anal., 88, 365-411.
     """
-    N_e, N_x = particles.shape
-    check_ensemble_size(N_e)
-    mean = jnp.mean(particles, axis=0)
-    centered = particles - mean[None, :]
-    sample = centered.T @ centered / (N_e - 1)  # (Nₓ, Nₓ)
-    mu = jnp.trace(sample) / N_x
-    target = mu * jnp.eye(N_x, dtype=particles.dtype)
-
-    # d² and b² as in Ledoit-Wolf 2004 §3.2.
-    diff = sample - target
-    d2 = jnp.sum(diff * diff)
-    # Per-sample rank-one deviation from sample covariance.
-    per_sample = centered[:, :, None] * centered[:, None, :]  # (Nₑ, Nₓ, Nₓ)
-    b2_terms = jnp.sum((per_sample - sample[None, :, :]) ** 2, axis=(1, 2))
-    b2 = jnp.mean(b2_terms) / N_e
-    shrinkage = jnp.minimum(
-        jnp.asarray(1.0, dtype=particles.dtype), b2 / jnp.maximum(d2, 1e-30)
-    )
-    shrunk = (1.0 - shrinkage) * sample + shrinkage * target
-    return shrunk, shrinkage
+    check_ensemble_size(particles.shape[0])
+    shrunk, shrinkage = gaussx.ledoit_wolf_shrinkage(particles)
+    return shrunk.as_matrix(), shrinkage
