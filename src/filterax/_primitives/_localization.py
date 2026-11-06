@@ -146,7 +146,7 @@ def gaussian_taper(
     r"""Gaussian taper ``ρ(d) = exp(−d² / (2 r²))``.
 
     Infinitely smooth (``C^∞``) and positive definite, but **not**
-    compactly supported — decays exponentially but never reaches zero.
+    compactly supported — decays exponentially until it rounds to zero.
     Useful as a simpler alternative to Gaspari-Cohn when compact support
     is not required (e.g., adjoint sensitivity studies).
 
@@ -155,7 +155,7 @@ def gaussian_taper(
         radius: Positive characteristic length scale ``r``.
 
     Returns:
-        Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+        Taper weights in ``[0, 1]`` with the same shape as ``distances``.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -163,7 +163,7 @@ def gaussian_taper(
         >>> gaussian_taper(jnp.array([0.0, 1.0]), radius=1.0)
         Array([1.        , 0.60653067], dtype=float32)
     """
-    return jnp.exp(-(distances**2) / (2.0 * radius**2))
+    return gaussx.gaussian_taper(distances, radius)
 
 
 def hard_cutoff(
@@ -254,7 +254,7 @@ def soar_taper(
         radius: Positive characteristic length scale ``r``.
 
     Returns:
-        Taper weights in ``(0, 1]`` with the same shape as ``distances``.
+        Taper weights in ``[0, 1]`` with the same shape as ``distances``.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -266,8 +266,7 @@ def soar_taper(
         Thiebaux, H. J. & Pedder, M. A. (1987). *Spatial Objective
         Analysis.* Academic Press.
     """
-    z = distances / radius
-    return (1.0 + z) * jnp.exp(-z)
+    return gaussx.soar_taper(distances, radius)
 
 
 def adaptive_localization(
