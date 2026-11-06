@@ -547,7 +547,7 @@ wheels = [
 
 [[package]]
 name = "filterax"
-version = "0.0.7"
+version = "0.0.8"
 source = { editable = "." }
 dependencies = [
     { name = "einops" },
@@ -592,7 +592,7 @@ requires-dist = [
     { name = "einops", specifier = ">=0.8" },
     { name = "einx", specifier = ">=0.4.3" },
     { name = "equinox", specifier = ">=0.13.8" },
-    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=v0.6.9" },
+    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=v0.6.10" },
     { name = "jax", specifier = ">=0.10" },
     { name = "jaxlib", specifier = ">=0.10" },
     { name = "jaxtyping", specifier = ">=0.3" },
@@ -674,8 +674,8 @@ wheels = [
 
 [[package]]
 name = "gaussx"
-version = "0.6.9"
-source = { git = "https://github.com/jejjohnson/gaussx?rev=v0.6.9#7f3cc8baf00743a8a3a3d76cc2f78443d087e60e" }
+version = "0.6.10"
+source = { git = "https://github.com/jejjohnson/gaussx?rev=v0.6.10#9f61d092de18332f89ce512e7419dfbeea61b4b7" }
 dependencies = [
     { name = "einx" },
     { name = "equinox" },
