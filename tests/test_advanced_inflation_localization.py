@@ -204,3 +204,13 @@ def test_inflate_additive_dense_noise_above_lanczos_rank():
     ensemble = jr.normal(jr.key(1), (8, 60))
     inflated = flx.inflate_additive(jr.key(2), ensemble, Q)
     assert inflated.shape == (8, 60)
+
+
+def test_ledoit_wolf_shrinkage_has_no_units_in_float32():
+    # The fourth powers of these members leave float32's range.
+    members = jnp.array(
+        [[1.0, 0.0], [-1.0, 0.0], [0.0, 2.0], [0.0, -2.0]], dtype=jnp.float32
+    )
+    for magnitude in (1e-12, 1e10):
+        _, shrinkage = flx.ledoit_wolf_shrinkage(magnitude * members)
+        assert jnp.allclose(shrinkage, 85.0 / 144.0, rtol=1e-5)
