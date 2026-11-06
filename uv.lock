@@ -592,7 +592,7 @@ requires-dist = [
     { name = "einops", specifier = ">=0.8" },
     { name = "einx", specifier = ">=0.4.3" },
     { name = "equinox", specifier = ">=0.13.8" },
-    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=v0.6.10" },
+    { name = "gaussx", git = "https://github.com/jejjohnson/gaussx?rev=v0.6.11" },
     { name = "jax", specifier = ">=0.10" },
     { name = "jaxlib", specifier = ">=0.10" },
     { name = "jaxtyping", specifier = ">=0.3" },
@@ -674,8 +674,8 @@ wheels = [
 
 [[package]]
 name = "gaussx"
-version = "0.6.10"
-source = { git = "https://github.com/jejjohnson/gaussx?rev=v0.6.10#9f61d092de18332f89ce512e7419dfbeea61b4b7" }
+version = "0.6.11"
+source = { git = "https://github.com/jejjohnson/gaussx?rev=v0.6.11#ef887c1ac1432619a1dd5b5da6f6b9e40b700075" }
 dependencies = [
     { name = "einx" },
     { name = "equinox" },
