@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 import filterax as flx
+from filterax._smoothers import _enks_backward
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -570,3 +571,21 @@ def test_ies_solve_under_jit(getkey):
     eager = ies.solve(init, y, R, forward).particles
     jitted = jax.jit(lambda p: ies.solve(p, y, R, forward).particles)(init)
     np.testing.assert_allclose(np.asarray(jitted), np.asarray(eager), atol=1e-12)
+
+
+def test_enks_keeps_a_weak_state_direction_in_float32():
+    # σ₂ / σ₁ ≈ 10⁻⁴ puts σ₂² below the rounding of F Fᵀ in float32.
+    scales = jnp.array([1.0, 1e-4])
+    analysis = jr.normal(jr.PRNGKey(0), (2, 50, 2)) * scales
+    forecast = 0.9 * analysis + 0.1 * jr.normal(jr.PRNGKey(1), (2, 50, 2)) * scales
+    smoothed = forecast[1] + 0.1 * scales * jr.normal(jr.PRNGKey(2), (50, 2))
+    analysis_history = analysis.at[1].set(smoothed)
+
+    def run(dtype):
+        return _enks_backward(analysis_history.astype(dtype), forecast.astype(dtype))[0]
+
+    reference, single = run(jnp.float64), run(jnp.float32)
+    weak_spread = jnp.std(reference[:, 1])
+    # Measured at 1.7e-7 of the spread, and at 1.1e-2 when the pseudo-inverse came
+    # from F Fᵀ.
+    assert jnp.abs(single - reference)[:, 1].max() / weak_spread < 1e-3
