@@ -60,7 +60,7 @@ The recursion starts at the final window, where $\mat{X}_{T \mid T}$ is the anal
 
 The product is contracted through the smaller of $N_\mathcal{E}$ and $D_x$, so no larger square matrix appears, and $\tilde{\mat{X}}_{t+1 \mid t}^{+}$ comes from a singular value decomposition.
 Singular values at or below a cutoff are dropped, by default $N_\mathcal{E} + \sqrt{D_x}$ times the machine epsilon relative to the largest.
-Rounding always leaves one such value, because $\tilde{\mat{X}}_{t+1 \mid t}$ annihilates the constant vector.
+When $N_\mathcal{E} \le D_x$, rounding always leaves one such value, because $\tilde{\mat{X}}_{t+1 \mid t}$ annihilates the constant vector.
 A whole backward pass costs $T$ of these decompositions, each $O(N_\mathcal{E} D_x \min(N_\mathcal{E}, D_x))$.
 Going through singular values rather than $\tilde{\mat{X}} \tilde{\mat{X}}^\top$ matters in float32, which [](#code-smoothers-float32) measures.
 
