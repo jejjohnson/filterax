@@ -226,9 +226,9 @@ Well-conditioned with $J > N_p$ and a hurry → **GNKI**. Otherwise →
   the cross-covariance algebra reused here.
 - [Chapter 10 — Ensemble smoothers](10_smoothers.md): IES, the
   closely-related iterative smoother for time-series inverse problems.
-- [API: Processes](../api/processes.md) ·
-  [API: Schedulers](../api/schedulers.md) ·
-  [API: optax integration](../api/optax.md)
+- [API: Processes](https://jejjohnson.github.io/filterax/reference/processes/) ·
+  [API: Schedulers](https://jejjohnson.github.io/filterax/reference/schedulers/) ·
+  [API: optax integration](https://jejjohnson.github.io/filterax/reference/optax/)
 
 ## References
 

@@ -164,10 +164,10 @@ gain in chapter 4.
   pays off via Woodbury.
 - [Chapter 5 — Stochastic EnKF](05_stochastic_enkf.md): the first
   complete analysis step built on these statistics.
-- [Primitives API](../api/primitives.md) — `ensemble_mean`,
+- [Primitives API](https://jejjohnson.github.io/filterax/reference/primitives/) — `ensemble_mean`,
   `ensemble_anomalies`, `ensemble_covariance`, `cross_covariance`.
-- [Inflation API](../api/inflation.md) and
-  [Localization API](../api/localization.md) — the countermeasures to
+- [Inflation API](https://jejjohnson.github.io/filterax/reference/inflation/) and
+  [Localization API](https://jejjohnson.github.io/filterax/reference/localization/) — the countermeasures to
   sampling noise and rank deficiency.
 
 ## References

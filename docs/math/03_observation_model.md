@@ -194,9 +194,9 @@ windows will see identical perturbations.
   `perturbed_observations` earns its keep.
 - [Chapter 2 — Ensemble representation](02_ensemble_representation.md):
   the mean/anomaly algebra reused here in observation space.
-- [Primitives API](../api/primitives.md) — `innovation_covariance`,
+- [Primitives API](https://jejjohnson.github.io/filterax/reference/primitives/) — `innovation_covariance`,
   `innovation_statistics`, `log_likelihood`, `perturbed_observations`.
-- [Diagnostics API](../api/diagnostics.md) — rank histograms, spread
+- [Diagnostics API](https://jejjohnson.github.io/filterax/reference/diagnostics/) — rank histograms, spread
   and consistency checks built on the innovation statistics.
 
 ## References

@@ -179,9 +179,9 @@ which is what makes the filter usable inside training loops.
   forecast–analysis cycle this step slots into, and the divergence
   failure modes that inflation (chapter 12) and localization
   (chapter 11) address.
-- [Filters API](../api/filters.md) — `filterax.filters.StochasticEnKF`
+- [Filters API](https://jejjohnson.github.io/filterax/reference/filters/) — `filterax.filters.StochasticEnKF`
   (analysis step) and `filterax.StochasticEnKF` (cycling model).
-- [Differentiable training API](../api/differentiable.md) — using the
+- [Differentiable training API](https://jejjohnson.github.io/filterax/reference/differentiable/) — using the
   analysis log-likelihood as a learning signal.
 
 ## References

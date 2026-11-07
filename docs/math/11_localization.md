@@ -228,7 +228,7 @@ toward nearby observations.
 - [Chapter 12 — Inflation](12_inflation.md): localization's companion
   fix; localization itself contributes to spread deficits that
   inflation must repair.
-- [API: Localization](../api/localization.md) — `gaspari_cohn`,
+- [API: Localization](https://jejjohnson.github.io/filterax/reference/localization/) — `gaspari_cohn`,
   `gaussian_taper`, `soar_taper`, `hard_cutoff`,
   `localization_matrix`, `localize`, `localized_kalman_gain`,
   `adaptive_localization`.

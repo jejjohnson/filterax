@@ -204,9 +204,9 @@ the adapter to the direct analysis call in
   the scan-based replacement for the Python loop.
 - [Chapter 15 — Latent-space ensemble DA](15_latent_da.md): the L2
   latent wrappers that reuse this exact loop in $z$-space.
-- [API: pipekit integration](../api/pipekit.md) — adapter reference
+- [API: pipekit integration](https://jejjohnson.github.io/filterax/reference/pipekit/) — adapter reference
   and a full `EnsembleDACycle` example.
-- [API: Protocols & Types](../api/protocols.md) — `AnalysisResult`,
+- [API: Protocols & Types](https://jejjohnson.github.io/filterax/reference/protocols/) — `AnalysisResult`,
   `AssimilationResult`, and the abstract component classes.
 
 ## References

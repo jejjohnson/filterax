@@ -62,8 +62,11 @@ docs = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.3",
-    "mkdocs-jupyter>=0.26.2",
     "jupytext>=1.19.1",
+    # scripts/build_docs.py assembles the MyST prose and the MkDocs API.
+    "cyclopts>=3.0",
+    "loguru>=0.7.2",
+    "ghp-import>=2.1.0",
     "ipykernel>=7.2.0",
     # matplotlib + watermark used by the example notebooks during local
     # re-execution. The guarded watermark cell in each notebook no-ops

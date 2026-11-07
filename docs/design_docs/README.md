@@ -64,4 +64,4 @@ filterX/
 10. **[examples/primitives.md](examples/primitives.md)** → **[components.md](examples/components.md)** → **[models.md](examples/models.md)** → **[integration.md](examples/integration.md)** — see it in action
 11. **[integrations/pipekit.md](integrations/pipekit.md)** → **[integrations/plumax.md](integrations/plumax.md)** → **[integrations/geostack.md](integrations/geostack.md)** — ecosystem integration recipes
 12. **[decisions.md](decisions.md)** — understand the tradeoffs (D1–D16)
-13. **[research/](research/)** — background theory, code audits, operational DA
+13. **[research/](https://github.com/jejjohnson/filterax/tree/main/docs/design_docs/research)** — background theory, code audits, operational DA

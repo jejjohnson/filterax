@@ -59,5 +59,5 @@ P = flx.ensemble_covariance(particles)     # gaussx.LowRankUpdate
 - [API Reference](api/index.md) · [Primitives](api/primitives.md)
 - [Design docs](design_docs/README.md)
 - [Contributing](contributing.md)
-- [Changelog](CHANGELOG.md)
+- [Changelog](https://github.com/jejjohnson/filterax/blob/main/CHANGELOG.md)
 - [GitHub](https://github.com/jejjohnson/filterax)

@@ -196,9 +196,9 @@ observation processing — `EnSRF_Serial`, chapter 7.
   tapered $R^{-1}$.
 - [Chapter 14 — Differentiable assimilation](14_differentiable.md):
   why gradient-safety of the analysis matters.
-- [API: Filters](../api/filters.md) ·
-  [API: Advanced filters](../api/filters_advanced.md) ·
-  [API: Differentiable](../api/differentiable.md)
+- [API: Filters](https://jejjohnson.github.io/filterax/reference/filters/) ·
+  [API: Advanced filters](https://jejjohnson.github.io/filterax/reference/filters_advanced/) ·
+  [API: Differentiable](https://jejjohnson.github.io/filterax/reference/differentiable/)
 
 ## References
 

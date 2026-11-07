@@ -254,7 +254,7 @@ next cycle.
   deterministic trio passes through.
 - [Chapter 16 — The assimilation cycle](16_assimilation_cycle.md):
   where inflation sits in the L2 forecast–analyse–inflate loop.
-- [API: Inflation](../api/inflation.md) — `inflate_multiplicative`,
+- [API: Inflation](https://jejjohnson.github.io/filterax/reference/inflation/) — `inflate_multiplicative`,
   `inflate_rtps`, `inflate_rtpp`, `inflate_additive`,
   `inflate_adaptive`, `ledoit_wolf_shrinkage`, and the
   `AbstractInflator` wrappers.

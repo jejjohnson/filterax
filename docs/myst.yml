@@ -1,0 +1,86 @@
+# ---------------------------------------------------------------------------
+# mystmd builds the prose half of the documentation: home page, maths
+# reference and design docs. The API reference is built separately by MkDocs +
+# mkdocstrings and mounted at `/reference/`. See `docs/README.md`.
+#
+# `references.api` points at a LOCAL server because mystmd only loads
+# intersphinx inventories over http(s). `scripts/build_docs.py` serves the
+# freshly built MkDocs `site/` on this exact port, then rewrites the resulting
+# localhost URLs to the deployed `/reference/` path. Keep the port in sync
+# with API_PORT in that script.
+# ---------------------------------------------------------------------------
+version: 1
+
+project:
+  id: filterax-docs
+  title: filterax
+  description: >-
+    Differentiable ensemble Kalman filters, smoothers and processes for JAX.
+  github: https://github.com/jejjohnson/filterax
+  authors:
+    - name: J. Emmanuel Johnson
+  math:
+    '\vect': '\mathbf{#1}'
+    '\mat': '\mathbf{#1}'
+    '\gvect': '\boldsymbol{#1}'
+    '\gmat': '\boldsymbol{#1}'
+    '\op': '\mathrm{#1}'
+  references:
+    api: http://127.0.0.1:8911/
+  toc:
+    - file: index.md
+    - title: Mathematical reference
+      children:
+        - title: Foundation
+          children:
+            - file: math/01_problem_setting.md
+            - file: math/02_ensemble_representation.md
+            - file: math/03_observation_model.md
+        - title: Analysis methods
+          children:
+            - file: math/04_kalman_update.md
+            - file: math/05_stochastic_enkf.md
+            - file: math/06_etkf.md
+            - file: math/07_ensrf_estkf.md
+            - file: math/08_letkf.md
+            - file: math/09_ensemble_kalman_processes.md
+            - file: math/10_smoothers.md
+        - title: Cross-cutting
+          children:
+            - file: math/11_localization.md
+            - file: math/12_inflation.md
+            - file: math/13_diagnostics.md
+            - file: math/14_differentiable.md
+            - file: math/15_latent_da.md
+            - file: math/16_assimilation_cycle.md
+        - title: Reference
+          children:
+            - file: math/notation.md
+            - file: math/references.md
+    - title: Design docs
+      children:
+        - file: design_docs/README.md
+        - file: design_docs/vision.md
+        - file: design_docs/architecture.md
+        - file: design_docs/boundaries.md
+        - file: design_docs/decisions.md
+    - file: contributing.md
+
+site:
+  title: filterax
+  template: book-theme
+  options:
+    logo: assets/logo-light.svg
+    logo_dark: assets/logo-dark.svg
+    favicon: assets/icon.svg
+    # URLs follow the folder layout, so same-named pages in different folders
+    # do not collide. mystmd still drops a leading number: math/06_etkf.md is
+    # served at /math/etkf/.
+    folders: true
+  # mystmd requires a full URL here, and the theme prepends BASE_URL to any
+  # nav URL starting with `/` on hydration, so the deployed location is
+  # hard-coded. A local preview's nav button therefore points at the deployed
+  # site. See docs/README.md.
+  nav:
+    - title: API reference
+      url: https://jejjohnson.github.io/filterax/reference/

@@ -206,9 +206,9 @@ unpacks one piece of what happens inside it.
   its ensemble estimator.
 - [Chapter 5 — Stochastic EnKF](05_stochastic_enkf.md): the first
   complete filter.
-- [Filters API](../api/filters.md) — the Layer-1 analysis steps and
+- [Filters API](https://jejjohnson.github.io/filterax/reference/filters/) — the Layer-1 analysis steps and
   Layer-2 cycling models.
-- [pipekit integration](../api/pipekit.md) — cycling in larger pipelines.
+- [pipekit integration](https://jejjohnson.github.io/filterax/reference/pipekit/) — cycling in larger pipelines.
 
 ## References
 
