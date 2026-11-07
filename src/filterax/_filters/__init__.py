@@ -1,1 +1,1 @@
-"""Sequential filters: L1 analysis steps and L2 assimilation models."""
+"""Filters: analysis steps, assimilation models, latent wiring and Kalman filters."""
