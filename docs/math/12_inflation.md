@@ -502,11 +502,11 @@ And $\lambda$ is scale-invariant: multiplying the ensemble by $a$ multiplies bot
 ### Computing it without squaring the units
 
 Everything comes from the $N_\mathcal{E} \times N_\mathcal{E}$ Gram matrix $\mat{K}_{\tilde{X} \tilde{X}} = \tilde{\mat{X}} \tilde{\mat{X}}^\top$, with no $D_x \times D_x$ array, at $O(N_\mathcal{E}^2 D_x)$.
-With $c = 1 / (N_\mathcal{E} - 1)$,
+With $c = N_\mathcal{E} - 1$, as in the earlier chapters,
 
-$$\op{tr}(\hat{\gmat{\Sigma}}_x) = c \op{tr}(\mat{K}_{\tilde{X} \tilde{X}}), \qquad \Vert \hat{\gmat{\Sigma}}_x \Vert_F^2 = c^2 \Vert \mat{K}_{\tilde{X} \tilde{X}} \Vert_F^2, \qquad b^2 = \frac{1}{N_\mathcal{E}^2} \left(\sum_e [\mat{K}_{\tilde{X} \tilde{X}}]_{ee}^2 + (N_\mathcal{E} c^2 - 2 c) \Vert \mat{K}_{\tilde{X} \tilde{X}} \Vert_F^2\right).$$ (eq-infl-shrinkage-gram)
+$$\op{tr}(\hat{\gmat{\Sigma}}_x) = \frac{1}{c} \op{tr}(\mat{K}_{\tilde{X} \tilde{X}}), \qquad \Vert \hat{\gmat{\Sigma}}_x \Vert_F^2 = \frac{1}{c^2} \Vert \mat{K}_{\tilde{X} \tilde{X}} \Vert_F^2, \qquad b^2 = \frac{1}{N_\mathcal{E}^2} \left(\sum_e [\mat{K}_{\tilde{X} \tilde{X}}]_{ee}^2 + \left(\frac{N_\mathcal{E}}{c^2} - \frac{2}{c}\right) \Vert \mat{K}_{\tilde{X} \tilde{X}} \Vert_F^2\right).$$ (eq-infl-shrinkage-gram)
 
-The formula for $b^2$ comes from expanding the norm and using $\op{tr}(\tilde{\mat{X}} \hat{\gmat{\Sigma}}_x \tilde{\mat{X}}^\top) = c \Vert \mat{K}_{\tilde{X} \tilde{X}} \Vert_F^2$.
+The formula for $b^2$ comes from expanding the norm and using $\op{tr}(\tilde{\mat{X}} \hat{\gmat{\Sigma}}_x \tilde{\mat{X}}^\top) = \Vert \mat{K}_{\tilde{X} \tilde{X}} \Vert_F^2 / c$.
 But both $b^2$ and $d^2$ hold the fourth power of the anomalies, which leaves the float32 range for quite ordinary units.
 So gaussx first divides the factor by its largest entry, computes $\lambda$ from the unit-scale factor, and restores the scale only in $\tau$.
 That makes the computed $\lambda$ scale-invariant too, as the mathematics says it should be.

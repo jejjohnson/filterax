@@ -174,16 +174,17 @@ It also takes $\varrho \Delta t$ from every active parameter at every step, whil
 The ensemble Kalman sampler in its ALDI form {cite:p}`garbunoinigo2020affine` adds noise and a correction to the continuous flow.
 That makes it an interacting Langevin diffusion, with the posterior as its stationary law:
 
-$$\mathrm{d} \gvect{\theta}^{(e)} = \left[\hat{\gmat{\Sigma}}_{\theta y} \gmat{\Sigma}_\varepsilon^{-1} (\vect{y} - \vect{h}^{(e)}) - \hat{\gmat{\Sigma}}_\theta \gmat{\Sigma}_\theta^{-1} (\gvect{\theta}^{(e)} - \gvect{\mu}_\theta) - \frac{D_\theta + 1}{N_\mathcal{E}} (\gvect{\theta}^{(e)} - \bar{\gvect{\theta}})\right] \mathrm{d} \tau + \sqrt{2 \hat{\gmat{\Sigma}}_\theta} \mathrm{d} \vect{w}^{(e)},$$ (eq-processes-eks)
+$$\mathrm{d} \gvect{\theta}^{(e)} = \left[\hat{\gmat{\Sigma}}_{\theta y} \gmat{\Sigma}_\varepsilon^{-1} (\vect{y} - \vect{h}^{(e)}) - \hat{\gmat{\Sigma}}_\theta \gmat{\Sigma}_\theta^{-1} (\gvect{\theta}^{(e)} - \gvect{\mu}_\theta) + \frac{D_\theta + 1}{N_\mathcal{E}} (\gvect{\theta}^{(e)} - \bar{\gvect{\theta}})\right] \mathrm{d} \tau + \sqrt{2 \hat{\gmat{\Sigma}}_\theta} \mathrm{d} \vect{w}^{(e)},$$ (eq-processes-eks)
 
 where $\vect{w}^{(e)} \in \mathbb{R}^{D_\theta}$ is a Brownian motion.
-The first term is the EKI drift, the second is the prior, the third corrects for the finite ensemble, and the noise keeps the spread alive.
+The first term is the EKI drift, the second is the prior, the third corrects for the finite ensemble by pushing members outward, and the noise keeps the spread alive.
+The third term is the divergence of the ensemble covariance, which noise drawn in ensemble space needs if the posterior is to stay invariant.
 With no prior arguments the second term is absent and the stationary law is the likelihood alone.
 
 The discrete step has four parts:
 
 1. The EKI step [](#eq-processes-eki), whose tempered gain acts as an implicit Euler step on the data term.
-2. The explicit pull $-\Delta t (D_\theta + 1) / N_\mathcal{E} \tilde{\gmat{\Theta}}$.
+2. The explicit push $+\Delta t (D_\theta + 1) / N_\mathcal{E} \tilde{\gmat{\Theta}}$. `EKS_Process` currently subtracts this term instead, which shrinks the stationary variance on a scalar problem with posterior variance 1 to 0.074 at five members and 0.53 at ten ([#173](https://github.com/jejjohnson/filterax/issues/173)). The EKS numbers in this chapter are measured with the code as it stands, so they carry that error.
 3. The noise, drawn in ensemble space. With $\mat{N} \in \mathbb{R}^{N_\mathcal{E} \times N_\mathcal{E}}$ of standard normals, adding $\sqrt{2 \Delta t / c} \mat{N} \tilde{\gmat{\Theta}}$ gives each member the covariance $2 \Delta t \hat{\gmat{\Sigma}}_\theta$, and no $D_\theta \times D_\theta$ Cholesky factor is formed.
 4. The prior, taken implicitly as $\gvect{\theta} \leftarrow \gvect{\theta} - (\mat{I} + \Delta t \hat{\gmat{\Sigma}}_\theta \gmat{\Sigma}_\theta^{-1})^{-1} \Delta t \hat{\gmat{\Sigma}}_\theta \gmat{\Sigma}_\theta^{-1} (\gvect{\theta} - \gvect{\mu}_\theta)$. A push-through identity reduces the solve to $N_\mathcal{E} \times N_\mathcal{E}$, and a prior much tighter than the ensemble then cannot destabilise the step.
 

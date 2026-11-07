@@ -52,7 +52,7 @@ What changes is the rank of the sample covariance, which is at most $\min(N_\mat
 Let $\mat{U} \in \mathbb{R}^{D_x \times D_z}$ have orthonormal columns, with $g_\text{enc}(\vect{x}) = \mat{U}^\top \vect{x}$ and $g_\text{dec}(\vect{z}) = \mat{U} \vect{z}$.
 Suppose every member lies in the range of $\mat{U}$, so that $\mat{X} = \mat{Z} \mat{U}^\top$.
 Then decoding recovers the members exactly, so $\tilde{\mat{H}}$ and $\bar{\vect{r}}$ are the same in both spaces, and so is everything in [](#eq-latent-weights).
-Multiplying [](#eq-latent-analysis) by $\mat{U}^\top$ on the right gives
+Multiplying the mean equation of [](#eq-latent-analysis) by $\mat{U}$ on the left, with $\mat{U} \tilde{\mat{Z}}^\top = \tilde{\mat{X}}^\top$, and the anomaly equation by $\mat{U}^\top$ on the right gives
 
 $$\mat{X}_{t \mid t} = \mat{Z}_{t \mid t} \mat{U}^\top,$$ (eq-latent-reduction)
 

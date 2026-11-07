@@ -98,7 +98,7 @@ It prints `0e+00 0e+00`, because this $\mat{H}$ only selects components and so t
 ## Statistical linearisation
 
 A nonlinear $h$ has no $\mat{H}$, but the anomalies still define one.
-Regress the mapped anomalies on the state anomalies, $\tilde{\vect{h}}^{(e)} = \hat{\mat{H}} \tilde{\vect{x}}^{(e)} + \tilde{\vect{e}}^{(e)}$, with $\hat{\mat{H}} \in \mathbb{R}^{D_y \times D_x}$ chosen by least squares and $\tilde{\vect{e}}^{(e)} \in \mathbb{R}^{D_y}$ the residual.
+Regress the mapped anomalies on the state anomalies, $\tilde{\vect{h}}^{(e)} = \hat{\mat{H}} \tilde{\vect{x}}^{(e)} + \gvect{\delta}^{(e)}$, with $\hat{\mat{H}} \in \mathbb{R}^{D_y \times D_x}$ chosen by least squares and $\gvect{\delta}^{(e)} \in \mathbb{R}^{D_y}$ the residual.
 The normal equations give
 
 $$\hat{\mat{H}} = \hat{\gmat{\Sigma}}_{xy}^\top \hat{\gmat{\Sigma}}_x^{+}, \qquad \hat{\gmat{\Sigma}}_{xy} = \hat{\gmat{\Sigma}}_x \hat{\mat{H}}^\top,$$ (eq-observation-regression)
@@ -117,9 +117,9 @@ An extended Kalman filter would use the Jacobian at the mean, which is a differe
 
 The residual is uncorrelated with the state anomalies by construction, so the mapped covariance splits in two:
 
-$$\hat{\gmat{\Sigma}}_h = \hat{\mat{H}} \hat{\gmat{\Sigma}}_x \hat{\mat{H}}^\top + \hat{\gmat{\Sigma}}_e.$$ (eq-observation-residual)
+$$\hat{\gmat{\Sigma}}_h = \hat{\mat{H}} \hat{\gmat{\Sigma}}_x \hat{\mat{H}}^\top + \hat{\gmat{\Sigma}}_\delta.$$ (eq-observation-residual)
 
-The part of $h$ that no line explains, $\hat{\gmat{\Sigma}}_e$, enters $\hat{\gmat{\Sigma}}_y = \hat{\gmat{\Sigma}}_h + \gmat{\Sigma}_\varepsilon$ exactly like extra observation noise.
+The part of $h$ that no line explains, $\hat{\gmat{\Sigma}}_\delta$, enters $\hat{\gmat{\Sigma}}_y = \hat{\gmat{\Sigma}}_h + \gmat{\Sigma}_\varepsilon$ exactly like extra observation noise.
 Nonlinearity therefore reduces the gain, which is the right instinct as long as the line is a fair description of $h$.
 
 [](#code-observation-stein) checks all of this with $h(\vect{x}) = \tanh(\mat{H} \vect{x})$, on 4000 members with mean $(0.5, -0.2, 1)$ and standard deviation 0.6.
@@ -186,7 +186,7 @@ print(jnp.diag(sample_h).round(4), jnp.diag(explained).round(4))
 It prints `0.689 0.689 0.802`, `0.462 0.470 0.420`, `[0.357 0.66 ] [0.445 0.761]` and `[0.1831 0.0946] [0.1723 0.0794]`.
 The regression sits next to the averaged Jacobian and away from the Jacobian at the mean, as [](#eq-observation-stein) says.
 The third line shows that $\bar{\vect{h}}$ and $h(\bar{\vect{x}})$ differ.
-The last line is [](#eq-observation-residual): the diagonal of $\hat{\gmat{\Sigma}}_h$ exceeds the explained part, and the difference is $\hat{\gmat{\Sigma}}_e$.
+The last line is [](#eq-observation-residual): the diagonal of $\hat{\gmat{\Sigma}}_h$ exceeds the explained part, and the difference is $\hat{\gmat{\Sigma}}_\delta$.
 
 ## Observation operators in filterax
 
