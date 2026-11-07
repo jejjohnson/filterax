@@ -184,8 +184,8 @@ variance underestimation of a finite ensemble.
 - [Chapter 8 — LETKF](08_letkf.md): the localized transform filter.
 - [Chapter 12 — Inflation](12_inflation.md): why square-root filters
   still under-disperse in cycles.
-- [API: Filters](../api/filters.md) ·
-  [API: Advanced filters](../api/filters_advanced.md)
+- [API: Filters](https://jejjohnson.github.io/filterax/reference/filters/) ·
+  [API: Advanced filters](https://jejjohnson.github.io/filterax/reference/filters_advanced/)
 
 ## References
 

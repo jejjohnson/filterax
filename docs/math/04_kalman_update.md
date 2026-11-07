@@ -165,9 +165,9 @@ Cholesky otherwise. Like all primitives, the function is pure,
   why $C^{HH}$ is rank-deficient, and why that is good news here.
 - [Chapter 3 — Observation model](03_observation_model.md): where $Y$,
   $S$, and the innovation come from.
-- [Primitives API](../api/primitives.md) — `kalman_gain`,
+- [Primitives API](https://jejjohnson.github.io/filterax/reference/primitives/) — `kalman_gain`,
   `cross_covariance`, `innovation_covariance`.
-- [Localization API](../api/localization.md) —
+- [Localization API](https://jejjohnson.github.io/filterax/reference/localization/) —
   `localized_kalman_gain`, `gaspari_cohn`, `localization_matrix`.
 
 ## References

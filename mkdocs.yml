@@ -1,8 +1,22 @@
-site_name: filterax
-site_description: Differentiable ensemble Kalman filters, smoothers, and processes for JAX.
+# MkDocs builds only the API reference, from the docstrings, into site/.
+# The prose half (maths reference, design docs) is a MyST site under
+# docs/myst.yml; scripts/build_docs.py builds both and mounts this one at
+# /reference/. See docs/README.md.
+site_name: filterax API reference
+site_description: API reference for filterax, generated from Google-style docstrings.
 site_author: J. Emmanuel Johnson
 repo_url: https://github.com/jejjohnson/filterax
 repo_name: jejjohnson/filterax
+
+docs_dir: docs/api
+site_dir: site
+
+# Links from the API pages into the prose are absolute URLs to the deployed
+# MyST site, which MkDocs cannot see.
+validation:
+  links:
+    unrecognized_links: ignore
+    absolute_links: ignore
 
 theme:
   name: material
@@ -47,53 +61,23 @@ plugins:
             signature_crossrefs: true
             merge_init_into_class: false
             filters: ["!^_"]
-  - mkdocs-jupyter:
-      execute: false
-      ignore_h1_titles: true
 
 nav:
-  - Home: index.md
-  - Mathematical Reference:
-      - Foundation:
-          - 1. Problem Setting: math/01_problem_setting.md
-          - 2. Ensemble Representation: math/02_ensemble_representation.md
-          - 3. Observation Model: math/03_observation_model.md
-      - Analysis Methods:
-          - 4. Kalman Update & Ensemble Gain: math/04_kalman_update.md
-          - 5. Stochastic EnKF: math/05_stochastic_enkf.md
-          - 6. ETKF: math/06_etkf.md
-          - 7. EnSRF & ESTKF: math/07_ensrf_estkf.md
-          - 8. LETKF: math/08_letkf.md
-          - 9. Ensemble Kalman Processes: math/09_ensemble_kalman_processes.md
-          - 10. Ensemble Smoothers: math/10_smoothers.md
-      - Cross-cutting:
-          - 11. Localization: math/11_localization.md
-          - 12. Inflation: math/12_inflation.md
-          - 13. Diagnostics & Likelihood: math/13_diagnostics.md
-          - 14. Differentiable Assimilation: math/14_differentiable.md
-          - 15. Latent-Space Ensemble DA: math/15_latent_da.md
-          - 16. The Assimilation Cycle: math/16_assimilation_cycle.md
-      - Reference:
-          - Notation: math/notation.md
-          - References: math/references.md
-  - API Reference:
-      - Overview: api/index.md
-      - Protocols & Types: api/protocols.md
-      - Primitives: api/primitives.md
-      - Localization: api/localization.md
-      - Inflation: api/inflation.md
-      - Filters: api/filters.md
-      - Advanced filters: api/filters_advanced.md
-      - Smoothers: api/smoothers.md
-      - Processes: api/processes.md
-      - Schedulers: api/schedulers.md
-      - optax integration: api/optax.md
-      - Differentiable training: api/differentiable.md
-      - Diagnostics: api/diagnostics.md
-      - pipekit integration: api/pipekit.md
-      - Integrations: api/integrations.md
-  - Contributing: contributing.md
-  - Changelog: CHANGELOG.md
+  - Overview: index.md
+  - Protocols & Types: protocols.md
+  - Primitives: primitives.md
+  - Localization: localization.md
+  - Inflation: inflation.md
+  - Filters: filters.md
+  - Advanced filters: filters_advanced.md
+  - Smoothers: smoothers.md
+  - Processes: processes.md
+  - Schedulers: schedulers.md
+  - optax integration: optax.md
+  - Differentiable training: differentiable.md
+  - Diagnostics: diagnostics.md
+  - pipekit integration: pipekit.md
+  - Integrations: integrations.md
 
 markdown_extensions:
   - admonition

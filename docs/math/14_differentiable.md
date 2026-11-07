@@ -220,7 +220,7 @@ serviceable descent direction at a fraction of the memory.
   gradients flowing into autoencoder weights.
 - [Chapter 5 — Stochastic EnKF](05_stochastic_enkf.md): why
   perturbed-observation filters are excluded from training loops.
-- [API: Differentiable training](../api/differentiable.md) —
+- [API: Differentiable training](https://jejjohnson.github.io/filterax/reference/differentiable/) —
   `differentiable_assimilate`, `road_enkf_loss_and_grad`,
   `road_enkf_grad_step`.
 

@@ -210,7 +210,7 @@ latent surrogate; nothing else changes.
   coordinates — and hence why `LatentLETKF` skips it.
 - [Chapter 16 — The assimilation cycle](16_assimilation_cycle.md):
   wiring latent filters into pipekit-cycle orchestration.
-- [API: Advanced filters](../api/filters_advanced.md) — `LatentETKF`,
+- [API: Advanced filters](https://jejjohnson.github.io/filterax/reference/filters_advanced/) — `LatentETKF`,
   `LatentLETKF`, `LiftedObs`, `LatentDynamics`, `EncodedDynamics`,
   `identity_latent_map`.
 

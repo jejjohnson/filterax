@@ -257,7 +257,7 @@ windows.
 - [Chapter 3 — Observation model](03_observation_model.md): where $R$
   and $\mathcal{H}$ come from; Desroziers tells you when they're
   wrong.
-- [API: Diagnostics](../api/diagnostics.md) — the full
+- [API: Diagnostics](https://jejjohnson.github.io/filterax/reference/diagnostics/) — the full
   `filterax.utils.*` listing with the three-phase cost pipeline.
 
 ## References

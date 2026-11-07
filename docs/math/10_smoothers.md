@@ -226,8 +226,8 @@ is JIT- and `grad`-compatible (chapter 14).
   backpropagating through filter + smoother chains.
 - [Chapter 16 — The assimilation cycle](16_assimilation_cycle.md):
   where `forecast_history` / `analysis_history` come from.
-- [API: Smoothers](../api/smoothers.md) ·
-  [API: Filters](../api/filters.md)
+- [API: Smoothers](https://jejjohnson.github.io/filterax/reference/smoothers/) ·
+  [API: Filters](https://jejjohnson.github.io/filterax/reference/filters/)
 
 ## References
 

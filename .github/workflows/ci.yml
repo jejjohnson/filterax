@@ -36,3 +36,23 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install mystmd
+        run: npm install -g mystmd
+      - name: Install dependencies
+        run: uv sync --group docs
+      # Both generators in their strict modes, without rendering the theme.
+      - name: Validate the documentation sources
+        env:
+          JAX_PLATFORMS: cpu
+        run: uv run --group docs python scripts/build_docs.py --check

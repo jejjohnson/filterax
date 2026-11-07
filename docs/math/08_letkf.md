@@ -198,8 +198,8 @@ chapters 6-7).
   needs spread maintenance.
 - [Chapter 13 — Diagnostics](13_diagnostics.md): innovation statistics
   for tuning the radius.
-- [API: Filters](../api/filters.md) ·
-  [API: Localization](../api/localization.md)
+- [API: Filters](https://jejjohnson.github.io/filterax/reference/filters/) ·
+  [API: Localization](https://jejjohnson.github.io/filterax/reference/localization/)
 
 ## References
 

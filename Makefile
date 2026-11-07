@@ -64,7 +64,7 @@ check-env-%:
 # Phony declarations
 # ---------------------------------------------------------------------------
 .PHONY: help install lint format typecheck test test-fast test-slow test-cov \
-        precommit build clean version docs docs-serve docs-deploy \
+        precommit build clean version docs docs-check docs-api docs-serve docs-deploy \
         gh-labels gh-sub gh-block gh-show
 
 .DEFAULT_GOAL := help
@@ -180,14 +180,20 @@ clean: ## 🗑️  Remove build artefacts and cache directories
 ##@ Docs
 # ===========================================================================
 
-docs: ## 📖 Build documentation with mkdocs
-	uv run --group docs mkdocs build
+docs: ## 📖 Build the full site (MyST prose + MkDocs API) into public/
+	uv run --group docs python scripts/build_docs.py
 
-docs-serve: ## 🌐 Serve documentation locally
-	uv run --group docs mkdocs serve
+docs-check: ## 🔎 Validate docs sources without rendering the MyST theme
+	uv run --group docs python scripts/build_docs.py --check
 
-docs-deploy: ## 🚀 Deploy documentation to GitHub Pages
-	uv run --group docs mkdocs gh-deploy --force
+docs-api: ## 📚 Build only the MkDocs API reference into site/
+	uv run --group docs mkdocs build --strict
+
+docs-serve: docs ## 🌐 Build the site, then serve public/ at http://127.0.0.1:8000
+	uv run python -m http.server 8000 --directory public
+
+docs-deploy: docs ## 🚀 Deploy public/ to the gh-pages branch
+	uv run --group docs ghp-import --no-jekyll --push --force public
 
 gh-labels: ## 🏷️  Bootstrap the GitHub label taxonomy (type / area / layer / wave / priority)
 	bash .github/scripts/create-labels.sh
