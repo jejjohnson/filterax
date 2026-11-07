@@ -242,9 +242,9 @@ All seven are float64 round-off, so the classes compute the posterior and not an
 ## Irregular times and missing data
 
 `KalmanSmoother` does not need a time grid.
-`KalmanSmoother.from_sde` takes a gaussx SDE kernel and discretises it over the actual gaps $\Delta t_t = t_t - t_{t-1}$:
+`KalmanSmoother.from_sde` takes a gaussx SDE kernel and discretises it over the actual gaps $\Delta \tau_t = \tau_t - \tau_{t-1}$ between the time stamps $\tau_t$:
 
-$$\mat{F}_t = \exp(\mat{A} \Delta t_t), \qquad \gmat{\Sigma}_{\eta,t} = \gmat{\Sigma}_{x,\infty} - \mat{F}_t \gmat{\Sigma}_{x,\infty} \mat{F}_t^\top,$$ (eq-exact-discretise)
+$$\mat{F}_t = \exp(\mat{A} \Delta \tau_t), \qquad \gmat{\Sigma}_{\eta,t} = \gmat{\Sigma}_{x,\infty} - \mat{F}_t \gmat{\Sigma}_{x,\infty} \mat{F}_t^\top,$$ (eq-exact-discretise)
 
 where $\mat{A}$ is the drift of the SDE and $\gmat{\Sigma}_{x,\infty}$ its stationary covariance, which is also the prior of $\vect{x}_1$.
 A Matérn kernel has such a form, and then the smoothed mean is Gaussian process regression.

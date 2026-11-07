@@ -109,9 +109,9 @@ It prints the relative errors in $\gvect{\sigma}$, and then the smoothers:
 
 The weakest mode comes back from the Gram matrix wrong by 230%, and from the matrix itself correct to `4e-05`.
 
-The smoothers then print `7e-11`, `EnKS: 2.7e-04` and `EnsembleSqrtSmoother: 9.5e-02`.
+The smoothers then print `7e-11`, `EnKS: 2.8e-04` and `EnsembleSqrtSmoother: 9.5e-02`.
 In float64 the two means agree to `7e-11`.
-In float32 `EnKS` misses the reference by `2.7e-04` of the size of the smoothed shift and `EnsembleSqrtSmoother` by `9.5e-02`.
+In float32 `EnKS` misses the reference by `2.8e-04` of the size of the smoothed shift and `EnsembleSqrtSmoother` by `9.5e-02`.
 The second drops the mode on purpose: its cutoff is $N_\mathcal{E} \epsilon \sigma_1^2$ on the eigenvalues, which at $N_\mathcal{E} = 12$ removes everything below about $1.2 \times 10^{-3} \sigma_1$.
 So in float32, prefer `EnKS` when a weak direction matters.
 
