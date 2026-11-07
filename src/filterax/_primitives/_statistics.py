@@ -1,21 +1,7 @@
-"""Ensemble statistics primitives.
+"""Ensemble statistics: the sample mean, anomalies and covariances of an ensemble.
 
-Bessel-corrected pure functions over a particle array of shape ``(Nₑ, Nₓ)``.
-The covariance recipes delegate to ``gaussx.ensemble_covariance`` and
-``gaussx.ensemble_cross_covariance`` (``bessel=True``) so the EnKF
-convention ``1 / (Nₑ − 1)`` is the default and structured low-rank outputs
-flow downstream without ever materialising a dense ``(Nₓ, Nₓ)`` block.
-
-Symbol conventions (used throughout filterax):
-
-* ``Nₑ`` — ensemble size
-* ``Nₓ`` — state dimension
-* ``X`` — particle matrix of shape ``(Nₑ, Nₓ)``, rows are members
-* ``x̄ = Nₑ⁻¹ Σⱼ x⁽ʲ⁾`` — ensemble mean
-* ``X′ = X − 𝟙 x̄ᵀ`` — centred anomaly matrix (rows sum to zero)
-* ``P = (Nₑ − 1)⁻¹ X′ᵀ X′`` — sample covariance (rank ≤ Nₑ − 1)
-
-References: Evensen (1994), Vetra-Carvalho et al. (2018).
+Pure functions over particles with one member x⁽ᵉ⁾, e ∈ ℰ, per row. The covariances
+wrap gaussx with the ensemble Kalman divisor N_ℰ − 1.
 """
 
 from __future__ import annotations
@@ -28,89 +14,122 @@ from jaxtyping import Array, Float
 def ensemble_mean(
     particles: Float[Array, "N_e N_x"],
 ) -> Float[Array, " N_x"]:
-    r"""Ensemble mean ``x̄ = Nₑ⁻¹ Σⱼ x⁽ʲ⁾``.
+    """Sample mean of an ensemble.
 
-    Computed as an ``einx`` reduction over the ensemble axis. ``O(Nₑ Nₓ)``.
+        x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾
 
     Args:
-        particles: Ensemble of shape ``(Nₑ, Nₓ)`` with rows as members.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
 
     Returns:
-        Mean vector of shape ``(Nₓ,)``.
+        The ensemble mean x̄.
+
+    Raises:
+        AxisSizeError: From einx, if N_ℰ = 0 or D_x = 0.
 
     Examples:
+        Two members in two dimensions:
+
         >>> import jax.numpy as jnp
-        >>> from filterax import ensemble_mean
-        >>> ens = jnp.array([[0.0, 1.0], [2.0, 3.0]])
-        >>> ensemble_mean(ens)
-        Array([1., 2.], dtype=float32)
+        >>> import filterax
+        >>> particles = jnp.array([[0.0, 1.0], [2.0, 3.0]])
+        >>> filterax.ensemble_mean(particles).tolist()
+        [1.0, 2.0]
+
+        One member is its own mean:
+
+        >>> filterax.ensemble_mean(particles[:1]).tolist()
+        [0.0, 1.0]
     """
+    # x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾
     return einx.mean("e x -> x", particles)
 
 
 def ensemble_anomalies(
     particles: Float[Array, "N_e N_x"],
 ) -> Float[Array, "N_e N_x"]:
-    r"""Centred perturbations ``X′ = X − 𝟙 x̄ᵀ``.
+    """State anomalies of an ensemble about its sample mean.
 
-    The rows of ``X′`` sum to zero by construction. ``X′`` is the
-    fundamental input to the cross-covariance and Kalman-gain recipes:
-    every ensemble Kalman filter is some choice of square root applied to
-    these anomalies.
+        x̃⁽ᵉ⁾ = x⁽ᵉ⁾ − x̄
+
+    The rows of X̃ sum to zero by construction. X̃ is the input to the covariance and
+    gain recipes: every ensemble Kalman filter is some choice of square root applied
+    to these anomalies.
 
     Args:
-        particles: Ensemble of shape ``(Nₑ, Nₓ)``.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
 
     Returns:
-        Centred anomaly matrix of shape ``(Nₑ, Nₓ)``.
+        The anomalies X̃, with rows x̃⁽ᵉ⁾.
+
+    Raises:
+        AxisSizeError: From einx, if N_ℰ = 0 or D_x = 0.
 
     Examples:
+        Two members about their mean:
+
         >>> import jax.numpy as jnp
-        >>> from filterax import ensemble_anomalies
-        >>> ens = jnp.array([[0.0, 1.0], [2.0, 3.0]])
-        >>> ensemble_anomalies(ens)  # rows sum to zero
-        Array([[-1., -1.],
-               [ 1.,  1.]], dtype=float32)
+        >>> import filterax
+        >>> particles = jnp.array([[0.0, 1.0], [2.0, 3.0]])
+        >>> filterax.ensemble_anomalies(particles).tolist()
+        [[-1.0, -1.0], [1.0, 1.0]]
+
+        One member has no spread:
+
+        >>> filterax.ensemble_anomalies(particles[:1]).tolist()
+        [[0.0, 0.0]]
     """
+    # x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾
     mean = ensemble_mean(particles)
+    # x̃⁽ᵉ⁾ = x⁽ᵉ⁾ − x̄
     return einx.subtract("e x, x -> e x", particles, mean)
 
 
 def ensemble_covariance(
     particles: Float[Array, "N_e N_x"],
 ) -> gaussx.LowRankUpdate:
-    r"""Sample covariance ``P = (Nₑ − 1)⁻¹ X′ᵀ X′`` as a low-rank operator.
+    """Sample covariance of an ensemble as a low-rank operator.
 
-    Delegates to :func:`gaussx.ensemble_covariance` with the EnKF Bessel
-    convention. Returns a :class:`gaussx.LowRankUpdate` of rank
-    ``≤ Nₑ − 1``; the dense ``(Nₓ, Nₓ)`` matrix is *never* materialised.
-    Downstream ``solve`` / ``logdet`` calls exploit the low-rank structure
-    via the Woodbury identity and matrix-determinant lemma — see
-    :mod:`gaussx` dispatch.
+        Σ̂_x = X̃ᵀ X̃ / (N_ℰ − 1) = U Uᵀ,   U = X̃ᵀ / √(N_ℰ − 1)
 
-    Complexity: ``O(Nₑ Nₓ)`` to construct; structure-aware solves cost
-    ``O(Nₑ² Nₓ + Nₑ³)`` instead of ``O(Nₓ³)``.
+    Wraps `gaussx.ensemble_covariance` and fixes ``bessel=True``, where gaussx itself
+    defaults to the divisor N_ℰ. The result has rank ≤ N_ℰ − 1 and the (D_x, D_x)
+    matrix is never formed. Construction costs O(N_ℰ D_x), and gaussx's structural
+    dispatch solves it through Woodbury at O(N_ℰ² D_x + N_ℰ³) instead of O(D_x³).
 
     Args:
-        particles: Ensemble of shape ``(Nₑ, Nₓ)``.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
 
     Returns:
-        :class:`gaussx.LowRankUpdate` representing ``P``.
+        A `gaussx.LowRankUpdate` holding Σ̂_x.
 
     Raises:
-        ValueError: if ``Nₑ < 2`` (the Bessel divisor is undefined).
+        ValueError: If N_ℰ < 2, where the divisor N_ℰ − 1 is undefined.
 
     Examples:
+        Three members along a diagonal:
+
         >>> import gaussx
         >>> import jax.numpy as jnp
-        >>> from filterax import ensemble_covariance
-        >>> ens = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
-        >>> P = ensemble_covariance(ens)
-        >>> isinstance(P, gaussx.LowRankUpdate)
+        >>> import filterax
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
+        >>> covariance = filterax.ensemble_covariance(particles)
+        >>> isinstance(covariance, gaussx.LowRankUpdate)
         True
-        >>> P.as_matrix().shape
-        (2, 2)
+        >>> bool(jnp.allclose(covariance.as_matrix(), jnp.ones((2, 2))))
+        True
+
+        One member has no sample covariance:
+
+        >>> filterax.ensemble_covariance(
+        ...     particles[:1]
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        ValueError: Bessel correction requires J >= 2 particles (divisor is J - 1);
+        got J=1. Pass bessel=False for a maximum-likelihood divisor.
     """
+    # Σ̂_x = U Uᵀ
     return gaussx.ensemble_covariance(particles, bessel=True)
 
 
@@ -118,33 +137,42 @@ def cross_covariance(
     particles: Float[Array, "N_e N_x"],
     obs_particles: Float[Array, "N_e N_y"],
 ) -> Float[Array, "N_x N_y"]:
-    r"""Cross-covariance ``Cˣᴴ = (Nₑ − 1)⁻¹ X′ᵀ (HX)′``.
+    """Sample cross-covariance between an ensemble and its image in observation space.
 
-    Returned as a dense ``(Nₓ, Nᵧ)`` array because ``Nᵧ`` is typically
-    small (instrument footprint, point observations). For nonlinear
-    observation operators this *is* the ensemble's implicit derivative-free
-    linearisation of ``∇H`` — see Evensen (2003) §5.
+        Σ̂_xy = X̃ᵀ H̃ / (N_ℰ − 1)
 
-    Complexity: ``O(Nₑ Nₓ Nᵧ)``.
+    Wraps `gaussx.ensemble_cross_covariance` and fixes ``bessel=True``. The result is
+    dense because D_y is typically small, and it costs O(N_ℰ D_x D_y). For a nonlinear
+    h it is the ensemble's derivative-free linearisation of h.
 
     Args:
-        particles: Prior ensemble in state space, shape ``(Nₑ, Nₓ)``.
-        obs_particles: Prior ensemble mapped to obs space, shape
-            ``(Nₑ, Nᵧ)``.
+        particles: Prior ensemble x⁽ᵉ⁾ in state space, one row per member.
+        obs_particles: Its image h⁽ᵉ⁾ = h(x⁽ᵉ⁾) in observation space.
 
     Returns:
-        Dense cross-covariance of shape ``(Nₓ, Nᵧ)``.
+        The dense cross-covariance Σ̂_xy.
 
     Raises:
-        ValueError: if ``Nₑ < 2``.
+        ValueError: If N_ℰ < 2.
 
     Examples:
+        Two members with a linear observation of half the state:
+
         >>> import jax.numpy as jnp
-        >>> from filterax import cross_covariance
+        >>> import filterax
         >>> particles = jnp.array([[0.0, 0.0], [2.0, 2.0]])
         >>> obs_particles = jnp.array([[0.0], [1.0]])
-        >>> cross_covariance(particles, obs_particles)
-        Array([[1.],
-               [1.]], dtype=float32)
+        >>> filterax.cross_covariance(particles, obs_particles).tolist()
+        [[1.0], [1.0]]
+
+        An ensemble against itself is `ensemble_covariance`:
+
+        >>> dense = filterax.ensemble_covariance(particles).as_matrix()
+        >>> bool(jnp.allclose(filterax.cross_covariance(particles, particles), dense))
+        True
+
+    References:
+        Evensen (2003), §5.
     """
+    # Σ̂_xy = X̃ᵀ H̃ / (N_ℰ − 1)
     return gaussx.ensemble_cross_covariance(particles, obs_particles, bessel=True)

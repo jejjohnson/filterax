@@ -1,10 +1,4 @@
-"""Random perturbation generation for stochastic ensemble methods.
-
-The single primitive here, :func:`perturbed_observations`, is the Monte
-Carlo Burgers-van-Leeuwen-Evensen (1998) draw used by the stochastic
-EnKF analysis. Sampling is delegated to :func:`gaussx.sample_mvn`, which draws
-exactly from ``R`` and dispatches on its structure.
-"""
+"""Perturbed observations for the stochastic ensemble Kalman analysis."""
 
 from __future__ import annotations
 
@@ -19,51 +13,60 @@ def perturbed_observations(
     obs_noise: lx.AbstractLinearOperator,
     n_ensemble: int,
 ) -> Float[Array, "N_e N_y"]:
-    r"""Generate perturbed observations for the stochastic EnKF.
+    """One noisy copy of the observations per ensemble member.
 
-    $$
-    y^{(j)}_{\text{pert}} = y + \varepsilon^{(j)},
-    \qquad
-    \varepsilon^{(j)} \sim \mathcal{N}(0, R),
-    \qquad
-    j = 1, \dots, N_{e}.
-    $$
+        y⁽ᵉ⁾ = y + ε⁽ᵉ⁾,   ε⁽ᵉ⁾ ~ 𝒩(0, Σ_ε),   e ∈ ℰ
 
-    Sampling delegates to :func:`gaussx.sample_mvn`. Every path draws
-    ``ε = L z`` with ``z ~ 𝒩(0, I)`` and ``L Lᵀ = R`` exactly, and only the
-    factor depends on the structure of ``R``:
+    Wraps `gaussx.sample_mvn`, which draws ε = L z with z ~ 𝒩(0, I) and L Lᵀ = Σ_ε
+    exactly, and chooses L by the structure of Σ_ε:
 
-    * Diagonal ``R``: ``ε = √diag(R) ⊙ z``. No matrix is ever formed; cost
-      is ``O(Nₑ Nᵧ)``.
-    * ``gaussx`` block-diagonal, Kronecker, Toeplitz and low-rank-update
-      ``R``: a factor that keeps the structure, avoiding the cubic cost.
-    * Any other ``R``: a dense symmetric square root. It costs ``O(Nᵧ³)``
-      once per call and also handles a singular ``R``.
+    - Diagonal: ε = √diag(Σ_ε) ⊙ z. No matrix is formed, and it costs O(N_ℰ D_y).
+    - `gaussx` block-diagonal, Kronecker, Toeplitz and low-rank-update: a factor that
+      keeps the structure, avoiding the cubic cost.
+    - Anything else: a dense symmetric square root. It costs O(D_y³) once per call
+      and also handles a singular Σ_ε.
 
     Args:
         key: PRNG key consumed by this call.
-        obs: Observation vector ``(Nᵧ,)``.
-        obs_noise: Observation error covariance ``R`` as a linear operator.
-        n_ensemble: Number of perturbed copies ``Nₑ``.
+        obs: Observation vector y.
+        obs_noise: Observation-error covariance Σ_ε.
+        n_ensemble: Number of perturbed copies N_ℰ.
 
     Returns:
-        Perturbed observation matrix of shape ``(Nₑ, Nᵧ)``.
+        The perturbed observations y⁽ᵉ⁾, one row per member.
+
+    Raises:
+        ValueError: If ``n_ensemble`` is below 1, or ``obs`` does not match Σ_ε.
 
     Examples:
-        >>> import jax
+        Four copies of two observations:
+
         >>> import jax.numpy as jnp
+        >>> import jax.random as jr
         >>> import lineax as lx
-        >>> from filterax import perturbed_observations
+        >>> import filterax
         >>> obs = jnp.array([1.0, 2.0])
-        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
-        >>> y_pert = perturbed_observations(jax.random.key(0), obs, R, 4)
-        >>> y_pert.shape
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> perturbed = filterax.perturbed_observations(jr.key(0), obs, obs_noise, 4)
+        >>> perturbed.shape
         (4, 2)
 
-    Reference:
-        Burgers, G., van Leeuwen, P. J., & Evensen, G. (1998). *Analysis
-        scheme in the ensemble Kalman filter.* Mon. Wea. Rev., 126,
-        1719–1724.
+        Zero noise returns the observations themselves:
+
+        >>> quiet = lx.DiagonalLinearOperator(jnp.zeros(2))
+        >>> copies = filterax.perturbed_observations(jr.key(0), obs, quiet, 2)
+        >>> copies.tolist()
+        [[1.0, 2.0], [1.0, 2.0]]
+
+        At least one copy is needed:
+
+        >>> filterax.perturbed_observations(jr.key(0), obs, obs_noise, 0)
+        Traceback (most recent call last):
+        ...
+        ValueError: num_samples must be at least 1, got 0.
+
+    References:
+        Burgers, van Leeuwen & Evensen (1998), *Mon. Wea. Rev.* 126, 1719–1724.
     """
-    # y⁽ʲ⁾ = y + L z⁽ʲ⁾, L Lᵀ = R
+    # y⁽ᵉ⁾ = y + L z⁽ᵉ⁾,   L Lᵀ = Σ_ε
     return gaussx.sample_mvn(obs, obs_noise, key=key, num_samples=n_ensemble)

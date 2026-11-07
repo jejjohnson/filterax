@@ -1,18 +1,8 @@
-"""Ensemble inflation primitives.
+"""Inflation primitives: pure functions that restore the spread of an ensemble.
 
-Counteract the systematic spread collapse of finite-ensemble Kalman
-filters. Three compounding effects underdisperse a raw ensemble: finite
-``Nₑ``, model error not represented by the ensemble dynamics, and
-localization side-effects. Without inflation the analysis grows
-overconfident and rejects observations — *filter divergence*.
-
-All primitives here are pure functions of the ensemble matrix. The
-classic trio (multiplicative, RTPS, RTPP) delegates to the gaussx
-ensemble-DA primitives; the advanced primitives (additive, adaptive,
-Ledoit-Wolf) are filterax-specific. The
-:class:`filterax.AbstractInflator` wrappers in
-``filterax._primitives._inflators`` lift them to module form for slotting into
-L2 assimilation loops.
+Finite N_ℰ, unrepresented model error and localization all underdisperse an ensemble,
+and without inflation the analysis grows overconfident and rejects observations. The
+modules in `filterax._primitives._inflators` wrap these for the assimilation loops.
 """
 
 from __future__ import annotations
@@ -23,40 +13,48 @@ import lineax as lx
 from jaxtyping import Array, Float, PRNGKeyArray
 
 from filterax._checks import check_ensemble_size
+from filterax._primitives._perturbations import perturbed_observations
+from filterax._primitives._statistics import ensemble_anomalies
 
 
 def inflate_multiplicative(
     particles: Float[Array, "N_e N_x"],
     factor: float,
 ) -> Float[Array, "N_e N_x"]:
-    r"""Multiplicative inflation ``X′ ← λ X′``.
+    """Multiplicative inflation about the sample mean.
 
-    For each member ``x⁽ʲ⁾_inflated = x̄ + λ (x⁽ʲ⁾ − x̄)``. The inflated
-    covariance is ``λ² P``; the analysis mean is preserved. Typical
-    values ``λ ∈ [1.01, 1.10]`` for operational NWP. Delegates to
-    :func:`gaussx.inflate_multiplicative`.
+        x⁽ᵉ⁾ ← x̄ + ζ (x⁽ᵉ⁾ − x̄)
+
+    Wraps `gaussx.inflate_multiplicative`. The mean is preserved and Σ̂_x becomes
+    ζ² Σ̂_x. Values ζ ∈ [1.01, 1.10] are typical for operational NWP.
 
     Args:
-        particles: Ensemble of shape ``(Nₑ, Nₓ)``.
-        factor: Inflation factor ``λ``. ``1.0`` is the identity;
-            ``λ > 1`` inflates spread; ``λ < 1`` deflates.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
+        factor: Inflation factor ζ. 1 is the identity, ζ > 1 inflates the spread and
+            ζ < 1 deflates it.
 
     Returns:
-        Inflated ensemble of shape ``(Nₑ, Nₓ)``.
+        The inflated ensemble, with the same sample mean.
 
     Examples:
-        >>> import jax.numpy as jnp
-        >>> from filterax import inflate_multiplicative
-        >>> ens = jnp.array([[0.0, 0.0], [2.0, 2.0]])
-        >>> inflate_multiplicative(ens, 1.5)  # mean (1, 1) preserved
-        Array([[-0.5, -0.5],
-               [ 2.5,  2.5]], dtype=float32)
+        The mean (1, 1) is preserved:
 
-    Reference:
-        Anderson, J. L. & Anderson, S. L. (1999). *A Monte Carlo
-        implementation of the nonlinear filtering problem.* Mon. Wea.
-        Rev., 127, 2741–2758.
+        >>> import jax.numpy as jnp
+        >>> import filterax
+        >>> particles = jnp.array([[0.0, 0.0], [2.0, 2.0]])
+        >>> filterax.inflate_multiplicative(particles, 1.5).tolist()
+        [[-0.5, -0.5], [2.5, 2.5]]
+
+        A factor of one changes nothing:
+
+        >>> inflated = filterax.inflate_multiplicative(particles, 1.0)
+        >>> bool(jnp.allclose(inflated, particles))
+        True
+
+    References:
+        Anderson & Anderson (1999), *Mon. Wea. Rev.* 127, 2741–2758.
     """
+    # x⁽ᵉ⁾ ← x̄ + ζ (x⁽ᵉ⁾ − x̄)
     return gaussx.inflate_multiplicative(particles, factor)
 
 
@@ -65,54 +63,50 @@ def inflate_rtps(
     forecast_particles: Float[Array, "N_e N_x"],
     alpha: float,
 ) -> Float[Array, "N_e N_x"]:
-    r"""Relaxation to Prior Spread (Whitaker & Hamill 2012).
+    """Relaxation to prior spread (RTPS).
 
-    Per-variable target spread is a convex blend of analysis and
-    forecast standard deviations:
+        x̃⁽ᵉ⁾_t|t ← x̃⁽ᵉ⁾_t|t ((1 − α) + α σ_x,t|t−1 / σ_x,t|t)
 
-    $$
-    \sigma^{\text{target}}_{i} =
-        (1 - \alpha)\, \sigma^{a}_{i} + \alpha\, \sigma^{f}_{i}.
-    $$
+    Scales each analysis anomaly, per coordinate, so that the analysis spread relaxes
+    toward the forecast spread, keeping the analysis mean. Wraps `gaussx.inflate_rtps`,
+    which calls the coefficient β, takes σ_x with the divisor N_ℰ, and floors the
+    denominator at 1e-12.
 
-    Each analysis anomaly is then rescaled so the resulting standard
-    deviation matches the target:
-
-    $$
-    x^{(j)}_{\text{relaxed}} = \bar{x}^{a}
-        + \frac{\sigma^{\text{target}}_{i}}{\sigma^{a}_{i}}
-          \left( x^{(j)}_{a} - \bar{x}^{a} \right).
-    $$
-
-    Spatially adaptive (per-variable factor), mean-preserving, and
-    parameterised by a single coefficient ``α``. ``α = 0`` is the
-    identity; ``α = 1`` restores the full forecast spread. Delegates to
-    :func:`gaussx.inflate_rtps` (which calls the coefficient ``beta``
-    and writes the equivalent form
-    ``scale = (1 − β) + β σᶠ/σᵃ``).
+    Algorithm:
+        1. Take the analysis sample mean and anomalies.
+        2. Take the per-coordinate spread of both ensembles.
+        3. Scale the anomalies and add the analysis mean back.
 
     Args:
-        analysis_particles: Posterior ensemble ``(Nₑ, Nₓ)``.
-        forecast_particles: Prior (forecast) ensemble ``(Nₑ, Nₓ)``.
-        alpha: Relaxation coefficient in ``[0, 1]``.
+        analysis_particles: Analysis ensemble x⁽ᵉ⁾_t|t.
+        forecast_particles: Forecast ensemble x⁽ᵉ⁾_t|t−1.
+        alpha: Relaxation coefficient α ∈ [0, 1]. 0 is the identity, and 1 restores
+            the full forecast spread.
 
     Returns:
-        Relaxed analysis ensemble of shape ``(Nₑ, Nₓ)``.
+        The relaxed analysis ensemble, with the analysis sample mean.
 
     Examples:
+        A coefficient of one restores the forecast spread:
+
         >>> import jax.numpy as jnp
-        >>> from filterax import inflate_rtps
+        >>> import filterax
         >>> forecast = jnp.array([[-2.0], [2.0]])
         >>> analysis = jnp.array([[-1.0], [1.0]])
-        >>> inflate_rtps(analysis, forecast, alpha=1.0)  # full prior spread
-        Array([[-2.],
-               [ 2.]], dtype=float32)
+        >>> relaxed = filterax.inflate_rtps(analysis, forecast, alpha=1.0)
+        >>> bool(jnp.allclose(relaxed, forecast))
+        True
 
-    Reference:
-        Whitaker, J. S. & Hamill, T. M. (2012). *Evaluating methods to
-        account for system errors in ensemble data assimilation.*
-        Mon. Wea. Rev., 140, 3078–3089.
+        A coefficient of zero keeps the analysis:
+
+        >>> relaxed = filterax.inflate_rtps(analysis, forecast, alpha=0.0)
+        >>> bool(jnp.allclose(relaxed, analysis))
+        True
+
+    References:
+        Whitaker & Hamill (2012), *Mon. Wea. Rev.* 140, 3078–3089.
     """
+    # x̃⁽ᵉ⁾_t|t ← x̃⁽ᵉ⁾_t|t ((1 − α) + α σ_x,t|t−1 / σ_x,t|t)
     return gaussx.inflate_rtps(analysis_particles, forecast_particles, alpha)
 
 
@@ -121,48 +115,49 @@ def inflate_rtpp(
     forecast_particles: Float[Array, "N_e N_x"],
     alpha: float,
 ) -> Float[Array, "N_e N_x"]:
-    r"""Relaxation to Prior Perturbations (Zhang et al. 2004).
+    """Relaxation to prior perturbations (RTPP).
 
-    Convex combination of analysis and forecast anomaly matrices:
+        x̃⁽ᵉ⁾_t|t ← (1 − α) x̃⁽ᵉ⁾_t|t + α x̃⁽ᵉ⁾_t|t−1
 
-    $$
-    X^{\prime}_{\text{relaxed}} =
-        (1 - \alpha)\, X^{\prime}_{a} + \alpha\, X^{\prime}_{f}.
-    $$
+    Blends the analysis anomalies with the forecast ones, keeping the analysis mean.
+    Unlike RTPS, which acts on the spread of each coordinate, RTPP acts on the whole
+    anomalies, so it also blends the correlations between coordinates. Wraps
+    `gaussx.inflate_rtpp`.
 
-    Unlike RTPS (which acts on per-variable spread), RTPP operates on
-    the full anomaly matrix and so blends inter-variable correlation
-    structure between forecast and analysis. Mean-preserving.
-    Delegates to :func:`gaussx.inflate_rtpp`.
+    Algorithm:
+        1. Take the anomalies of each ensemble about its own sample mean.
+        2. Blend them with weights 1 − α and α.
+        3. Add the blend to the analysis sample mean.
 
     Args:
-        analysis_particles: Posterior ensemble ``(Nₑ, Nₓ)``.
-        forecast_particles: Prior (forecast) ensemble ``(Nₑ, Nₓ)``.
-        alpha: Relaxation coefficient in ``[0, 1]``.
+        analysis_particles: Analysis ensemble x⁽ᵉ⁾_t|t.
+        forecast_particles: Forecast ensemble x⁽ᵉ⁾_t|t−1.
+        alpha: Relaxation coefficient α ∈ [0, 1].
 
     Returns:
-        Relaxed analysis ensemble of shape ``(Nₑ, Nₓ)``.
+        The relaxed analysis ensemble, with the analysis sample mean.
 
     Examples:
+        Halfway back to the forecast anomalies:
+
         >>> import jax.numpy as jnp
-        >>> from filterax import inflate_rtpp
+        >>> import filterax
         >>> forecast = jnp.array([[-2.0], [2.0]])
         >>> analysis = jnp.array([[-1.0], [1.0]])
-        >>> inflate_rtpp(analysis, forecast, alpha=0.5)  # blend anomalies
-        Array([[-1.5],
-               [ 1.5]], dtype=float32)
+        >>> filterax.inflate_rtpp(analysis, forecast, alpha=0.5).tolist()
+        [[-1.5], [1.5]]
 
-    Reference:
-        Zhang, F., Snyder, C., & Sun, J. (2004). *Impacts of initial
-        estimate and observation availability on convective-scale data
-        assimilation.* Mon. Wea. Rev., 132, 1238–1253.
+        A coefficient of zero keeps the analysis:
+
+        >>> relaxed = filterax.inflate_rtpp(analysis, forecast, alpha=0.0)
+        >>> bool(jnp.allclose(relaxed, analysis))
+        True
+
+    References:
+        Zhang, Snyder & Sun (2004), *Mon. Wea. Rev.* 132, 1238–1253.
     """
+    # x̃⁽ᵉ⁾_t|t ← (1 − α) x̃⁽ᵉ⁾_t|t + α x̃⁽ᵉ⁾_t|t−1
     return gaussx.inflate_rtpp(analysis_particles, forecast_particles, alpha)
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Advanced inflation primitives (Wave 4.B)
-# ──────────────────────────────────────────────────────────────────────
 
 
 def inflate_additive(
@@ -170,48 +165,70 @@ def inflate_additive(
     particles: Float[Array, "N_e N_x"],
     noise_cov: lx.AbstractLinearOperator,
 ) -> Float[Array, "N_e N_x"]:
-    r"""Additive inflation ``X′ ← X′ + ε,  ε ~ 𝒩(0, Q_add)``.
+    """Additive inflation with centred model noise.
 
-    Injects stochastic model-error perturbations into every ensemble
-    member's anomaly. Unlike multiplicative inflation, the noise
-    direction is set by ``Q_add`` rather than by the ensemble's own
-    spread — useful when the dominant model-error mode is *not*
-    represented by the ensemble (e.g. structurally underdispersive in
-    a particular subspace). Mean-preserving by construction (we
-    subtract the empirical mean of the noise).
+        x⁽ᵉ⁾ ← x⁽ᵉ⁾ + η⁽ᵉ⁾ − η̄,   η⁽ᵉ⁾ ~ 𝒩(0, Σ_η)
 
-    Common sources for ``Q_add``: climatological variability, lagged
-    forecast differences, or stochastic-physics tendency variances.
+    Unlike multiplicative inflation, the direction of the noise comes from Σ_η rather
+    than from the ensemble's own spread, which helps when the dominant model-error mode
+    is not represented in the ensemble. Common sources of Σ_η are climatological
+    variability, lagged forecast differences and stochastic-physics tendencies.
 
-    Sampling delegates to :func:`filterax.perturbed_observations`'s
-    diagonal-aware path, so a diagonal ``Q_add`` never materialises.
+    Subtracting the sample mean η̄ of the noise preserves the ensemble mean exactly,
+    so a single member is returned unchanged. Sampling goes through
+    `perturbed_observations`, so a diagonal Σ_η is never materialised.
+
+    Algorithm:
+        1. Draw one η⁽ᵉ⁾ per member.
+        2. Centre the draws on their sample mean η̄.
+        3. Add them to the members.
 
     Args:
         key: PRNG key consumed by this call.
-        particles: Ensemble of shape ``(Nₑ, Nₓ)``.
-        noise_cov: Additive-noise covariance ``Q_add`` as a linear
-            operator.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
+        noise_cov: Model-error covariance Σ_η.
 
     Returns:
-        Inflated ensemble of shape ``(Nₑ, Nₓ)``.
+        The inflated ensemble, with the same sample mean.
 
-    Reference:
-        Hamill, T. M. & Whitaker, J. S. (2005). *Accounting for the
-        error due to unresolved scales in ensemble data assimilation:
-        A comparison of different approaches.* Mon. Wea. Rev., 133,
-        3132-3147.
+    Raises:
+        ValueError: If N_ℰ = 0, or ``noise_cov`` does not match D_x.
+
+    Examples:
+        Noise spreads a collapsed ensemble and keeps its mean:
+
+        >>> import jax.numpy as jnp
+        >>> import jax.random as jr
+        >>> import lineax as lx
+        >>> import filterax
+        >>> particles = jnp.ones((4, 2))
+        >>> noise_cov = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> inflated = filterax.inflate_additive(jr.key(0), particles, noise_cov)
+        >>> inflated.shape
+        (4, 2)
+        >>> bool(jnp.allclose(filterax.ensemble_mean(inflated), 1.0))
+        True
+        >>> bool(jnp.all(jnp.std(inflated, axis=0) > 0.0))
+        True
+
+        A single member is unchanged, since its noise is its own mean:
+
+        >>> single = filterax.inflate_additive(jr.key(0), particles[:1], noise_cov)
+        >>> single.tolist()
+        [[1.0, 1.0]]
+
+    References:
+        Hamill & Whitaker (2005), *Mon. Wea. Rev.* 133, 3132-3147.
     """
-    from filterax._primitives._perturbations import perturbed_observations
-
-    N_e = particles.shape[0]
-    # Sample N_e draws from 𝒩(0, Q_add).
-    draws = perturbed_observations(
-        key, jnp.zeros(particles.shape[1], dtype=particles.dtype), noise_cov, N_e
-    )
-    # Centre so the empirical mean is exactly zero — keeps the
-    # ensemble mean unchanged after addition.
-    draws = draws - jnp.mean(draws, axis=0, keepdims=True)
-    return particles + draws
+    ensemble_size = particles.shape[0]
+    state_size = particles.shape[1]
+    zero_mean = jnp.zeros(state_size, dtype=particles.dtype)
+    # η⁽ᵉ⁾ ~ 𝒩(0, Σ_η)
+    noise = perturbed_observations(key, zero_mean, noise_cov, ensemble_size)
+    # η⁽ᵉ⁾ − η̄, so that the ensemble mean does not move
+    centred_noise = ensemble_anomalies(noise)
+    # x⁽ᵉ⁾ ← x⁽ᵉ⁾ + η⁽ᵉ⁾ − η̄
+    return particles + centred_noise
 
 
 def inflate_adaptive(
@@ -223,140 +240,163 @@ def inflate_adaptive(
     min_factor: float = 1.0,
     max_factor: float = 1.2,
 ) -> tuple[Float[Array, ""], Float[Array, ""]]:
-    r"""Bayesian update of a multiplicative inflation factor (Anderson 2009).
+    """Bayesian update of a multiplicative inflation factor.
 
-    Treats the inflation factor ``λ`` as a random variable with a
-    Gaussian prior ``λ ~ 𝒩(μ_λ, σ²_λ)`` and updates it from the
-    cycle's *normalised innovation*. The data-implied factor is the
-    clamped Mahalanobis ratio
+        ζ̂_obs = clip(r̄ᵀ Σ_y⁻¹ r̄ / D_y, ζ_min, ζ_max),   σ²_obs = 2 / D_y
+        μ_ζ|y = (σ²_ζ ζ̂_obs + σ²_obs μ_ζ) / (σ²_ζ + σ²_obs)
+        σ²_ζ|y = σ²_ζ σ²_obs / (σ²_ζ + σ²_obs)
 
-    $$
-    \hat{\lambda}_{\text{obs}} = \operatorname{clip}\!\left(
-        \frac{d^{\top} S^{-1} d}{N_{y}},\
-        \lambda_{\min},\ \lambda_{\max}
-    \right)
-    $$
+    Treats ζ as a random variable with the Gaussian prior ζ ~ 𝒩(μ_ζ, σ²_ζ) and updates
+    it from the normalised residual of the window, in a simplified form of Anderson
+    (2009). A correctly specified Σ_y has 𝔼[χ² / D_y] = 1, and an underdispersive
+    ensemble pulls ζ̂_obs above 1. The posterior is the Gaussian product of the prior
+    with a likelihood centred at ζ̂_obs, whose variance σ²_obs is that of χ² / D_y.
 
-    (the simplified Anderson-2009 form — under correct specification
-    ``E[χ²/Nᵧ] = 1``; under-dispersive ensembles overshoot and pull
-    ``λ̂_obs`` above 1). The posterior on ``λ`` is then the Gaussian
-    product of the prior with an "observation likelihood" centred at
-    ``λ̂_obs`` whose variance is the χ²-distribution variance
-    ``σ²_obs = 2 / Nᵧ``:
+    The posterior comes back as JAX scalars, so it can be carried through `jax.jit`,
+    `jax.grad` and `jax.lax.scan` across windows. To inflate an ensemble, pass μ_ζ|y to
+    `inflate_multiplicative`.
 
-    $$
-    \mu_{\text{post}} =
-        \frac{\sigma^{2}_{\lambda}\, \hat{\lambda}_{\text{obs}}
-              + \sigma^{2}_{\text{obs}}\, \mu_{\text{prior}}}
-             {\sigma^{2}_{\lambda} + \sigma^{2}_{\text{obs}}},
-    \qquad
-    \sigma^{2}_{\text{post}} =
-        \frac{\sigma^{2}_{\lambda}\, \sigma^{2}_{\text{obs}}}
-             {\sigma^{2}_{\lambda} + \sigma^{2}_{\text{obs}}}.
-    $$
-
-    Returns the *posterior* ``(μ, σ²)`` as **JAX scalars** so callers
-    can carry the belief through ``jax.jit`` / ``jax.grad`` / ``lax.scan``
-    state across assimilation windows. Actual inflation of an ensemble
-    is one extra call to :func:`inflate_multiplicative` with ``μ_post``
-    as the factor.
+    Algorithm:
+        1. Form χ² = r̄ᵀ Σ_y⁻¹ r̄ with one solve.
+        2. Clamp χ² / D_y to [ζ_min, ζ_max] to get ζ̂_obs.
+        3. Multiply the Gaussian prior by the likelihood.
 
     Args:
-        inflation_mean: Prior mean ``μ_λ`` (scalar or 0-d JAX array).
-        inflation_var: Prior variance ``σ²_λ`` (scalar or 0-d JAX array).
-        innovation: Innovation vector ``d = y − H x̄``.
-        innovation_cov: Dense innovation covariance ``S``.
-            ``(Nᵧ, Nᵧ)`` materialisation is acceptable because the
-            recipe needs ``S⁻¹`` applied to ``d`` — for typical
-            observation counts the dense solve is cheaper than
-            assembling a structured operator. Pass the dense form when
-            you have it; otherwise build it via ``S_op.as_matrix()`` at
-            the call site.
-        min_factor: Clamp lower bound for the data-implied estimate.
-        max_factor: Clamp upper bound.
+        inflation_mean: Prior mean μ_ζ.
+        inflation_var: Prior variance σ²_ζ.
+        innovation: Mean residual r̄ = y − h̄.
+        innovation_cov: Dense innovation covariance Σ_y, taken as positive
+            semi-definite. For typical D_y a dense solve is cheaper than assembling a
+            structured operator; build it with ``as_matrix()`` at the call site.
+        min_factor: Lower clamp ζ_min on the data-implied estimate.
+        max_factor: Upper clamp ζ_max on the data-implied estimate.
 
     Returns:
-        ``(μ_post, σ²_post)`` JAX-scalar posterior on ``λ``, suitable
-        for use as the prior on the next cycle.
+        Tuple ``(posterior_mean, posterior_variance)`` holding μ_ζ|y and σ²_ζ|y, which
+        serve as the prior of the next window.
 
-    Reference:
-        Anderson, J. L. (2009). *Spatially and temporally varying
-        adaptive covariance inflation for ensemble filters.* Tellus A,
-        61, 72-83.
+    Raises:
+        ZeroDivisionError: If D_y = 0.
+
+    Examples:
+        A residual far larger than Σ_y allows pulls the factor up, and the posterior
+        variance shrinks:
+
+        >>> import jax.numpy as jnp
+        >>> import filterax
+        >>> innovation = jnp.array([3.0, -3.0])
+        >>> innovation_cov = jnp.eye(2)
+        >>> mean, variance = filterax.inflate_adaptive(
+        ...     1.0, 0.01, innovation, innovation_cov
+        ... )
+        >>> bool(mean > 1.0), bool(variance < 0.01)
+        (True, True)
+
+        With no prior variance the prior wins:
+
+        >>> mean, variance = filterax.inflate_adaptive(
+        ...     1.05, 0.0, innovation, innovation_cov
+        ... )
+        >>> bool(jnp.allclose(mean, 1.05)), float(variance)
+        (True, 0.0)
+
+        The posterior inflates an ensemble directly:
+
+        >>> particles = jnp.array([[0.0], [2.0]])
+        >>> filterax.inflate_multiplicative(particles, mean).shape
+        (2, 1)
+
+    References:
+        Anderson (2009), *Tellus A* 61, 72-83.
     """
-    N_y = innovation.shape[0]
-    # χ² = dᵀ S⁻¹ d
-    chi2 = gaussx.quadratic_form(
-        lx.MatrixLinearOperator(innovation_cov, lx.positive_semidefinite_tag),
-        innovation,
+    obs_size = innovation.shape[0]
+    covariance_op = lx.MatrixLinearOperator(
+        innovation_cov, lx.positive_semidefinite_tag
     )
-    chi2_norm = chi2 / N_y
-    # Data-implied λ; clamped to keep the estimator from running away
-    # on outlier innovations.
-    lambda_obs = jnp.clip(chi2_norm, min_factor, max_factor)
-    sigma_obs_sq = jnp.asarray(2.0 / N_y, dtype=chi2_norm.dtype)
-    prior_mean = jnp.asarray(inflation_mean, dtype=chi2_norm.dtype)
-    prior_var = jnp.asarray(inflation_var, dtype=chi2_norm.dtype)
-    sigma_sum = prior_var + sigma_obs_sq
-    mu_post = (prior_var * lambda_obs + sigma_obs_sq * prior_mean) / sigma_sum
-    var_post = prior_var * sigma_obs_sq / sigma_sum
-    return mu_post, var_post
+    # χ² = r̄ᵀ Σ_y⁻¹ r̄
+    chi_squared = gaussx.quadratic_form(covariance_op, innovation)
+    # χ² / D_y
+    normalised_chi_squared = chi_squared / obs_size
+    # ζ̂_obs, clamped to keep the estimate from running away on outlier residuals
+    factor_estimate = jnp.clip(normalised_chi_squared, min_factor, max_factor)
+    # σ²_obs = 2 / D_y
+    obs_variance = jnp.asarray(2.0 / obs_size, dtype=normalised_chi_squared.dtype)
+    # μ_ζ
+    prior_mean = jnp.asarray(inflation_mean, dtype=normalised_chi_squared.dtype)
+    # σ²_ζ
+    prior_variance = jnp.asarray(inflation_var, dtype=normalised_chi_squared.dtype)
+    # σ²_ζ + σ²_obs
+    total_variance = prior_variance + obs_variance
+    # σ²_ζ ζ̂_obs
+    weighted_estimate = prior_variance * factor_estimate
+    # σ²_obs μ_ζ
+    weighted_prior = obs_variance * prior_mean
+    # μ_ζ|y = (σ²_ζ ζ̂_obs + σ²_obs μ_ζ) / (σ²_ζ + σ²_obs)
+    posterior_mean = (weighted_estimate + weighted_prior) / total_variance
+    # σ²_ζ σ²_obs
+    variance_product = prior_variance * obs_variance
+    # σ²_ζ|y = σ²_ζ σ²_obs / (σ²_ζ + σ²_obs)
+    posterior_variance = variance_product / total_variance
+    return posterior_mean, posterior_variance
 
 
 def ledoit_wolf_shrinkage(
     particles: Float[Array, "N_e N_x"],
 ) -> tuple[Float[Array, "N_x N_x"], Float[Array, ""]]:
-    r"""Ledoit-Wolf optimal covariance shrinkage (Ledoit & Wolf 2004).
+    """Ledoit-Wolf shrinkage of the sample covariance, as a dense matrix.
 
-    Replaces the sample covariance with a convex combination toward a
-    scalar-multiple-of-identity target:
+        Σ̂_λ = (1 − λ) Σ̂_x + λ μ I,   μ = tr(Σ̂_x) / D_x
+        d² = ‖Σ̂_x − μ I‖_F²
+        b² = (1 / N_ℰ²) ∑ₑ ‖x̃⁽ᵉ⁾ x̃⁽ᵉ⁾ᵀ − Σ̂_x‖_F²
+        λ = min(1, b² / d²)
 
-    $$
-    P_{\text{shrunk}} =
-        (1 - \lambda^{*})\, P_{\text{sample}} + \lambda^{*} \mu I,
-    $$
-
-    where ``μ = tr(P_sample) / Nₓ`` is the average sample eigenvalue
-    and ``λ* ∈ [0, 1]`` is the optimal shrinkage intensity that
-    minimises ``E ‖P_shrunk − P_true‖²_F``. The closed-form
-    Ledoit-Wolf estimator:
-
-    $$
-    \lambda^{*} = \min\!\left( 1,\ \frac{b^{2}}{d^{2}} \right),
-    \qquad
-    d^{2} = \lVert P_{\text{sample}} - \mu I \rVert^{2}_{F},
-    \qquad
-    b^{2} = \frac{1}{N_{e}^{2}} \sum_{j}
-        \lVert x^{(j)} x^{(j)\top} - P_{\text{sample}} \rVert^{2}_{F},
-    $$
-
-    where ``d²`` is the sample deviation from the target and ``b²`` is
-    the oracle approximation, capped at ``d²`` so ``λ* ≤ 1``.
-
-    Useful when ``Nₑ ≪ Nₓ`` and the rank-deficient sample covariance
-    would otherwise contaminate downstream operations. **Positive
-    semidefinite** by construction (PSD, not strictly PD — when the
-    ensemble is collapsed in some direction both the sample covariance
-    and the target ``μ I`` are singular there). Returns a dense
-    ``(Nₓ, Nₓ)`` matrix — only call it when ``Nₓ`` is small enough to
-    materialise.
+    Wraps `gaussx.ledoit_wolf_shrinkage`, with the divisor N_ℰ − 1 in Σ̂_x, and adds
+    two things: a check of N_ℰ against filterax's error, and the materialised matrix.
+    It helps when N_ℰ ≪ D_x and a rank-deficient Σ̂_x would contaminate what follows.
+    The result is positive semi-definite, not strictly definite: where the ensemble is
+    collapsed in some direction, both Σ̂_x and μ I can be singular. Only call it when
+    D_x is small enough to materialise; gaussx keeps the operator structured.
 
     Args:
-        particles: Ensemble of shape ``(Nₑ, Nₓ)``.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
 
     Returns:
-        ``(P_shrunk, λ*)`` — shrunk covariance and the optimal
-        shrinkage intensity as a scalar array, so the function composes
-        with ``jit``, ``vmap`` and ``grad``.
+        Tuple ``(covariance, shrinkage)`` holding the dense Σ̂_λ and the intensity λ
+        as a scalar array, so that the function composes with `jax.jit`, `jax.vmap`
+        and `jax.grad`.
 
     Raises:
-        ValueError: if ``Nₑ < 2`` (the Bessel divisor is undefined).
+        ValueError: If N_ℰ < 2, where the divisor N_ℰ − 1 is undefined.
 
-    Reference:
-        Ledoit, O. & Wolf, M. (2004). *A well-conditioned estimator
-        for large-dimensional covariance matrices.* J. Multivariate
-        Anal., 88, 365-411.
+    Examples:
+        Few members in a large state need heavy shrinkage:
+
+        >>> import jax.numpy as jnp
+        >>> import jax.random as jr
+        >>> import filterax
+        >>> particles = jr.normal(jr.key(0), (10, 200))
+        >>> covariance, shrinkage = filterax.ledoit_wolf_shrinkage(particles)
+        >>> covariance.shape
+        (200, 200)
+        >>> bool(0.5 < shrinkage <= 1.0)
+        True
+
+        One member has no sample covariance:
+
+        >>> filterax.ledoit_wolf_shrinkage(
+        ...     particles[:1]
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        ValueError: particles must contain at least 2 ensemble members for the
+        Bessel-corrected estimators to be well-defined; got N_e=1.
+
+    References:
+        Ledoit & Wolf (2004), *J. Multivariate Anal.* 88, 365-411.
     """
     check_ensemble_size(particles.shape[0])
-    shrunk, shrinkage = gaussx.ledoit_wolf_shrinkage(particles)
-    return shrunk.as_matrix(), shrinkage
+    # Σ̂_λ as an operator, and λ
+    shrunk_operator, shrinkage = gaussx.ledoit_wolf_shrinkage(particles)
+    # Σ̂_λ
+    shrunk_covariance = shrunk_operator.as_matrix()
+    return shrunk_covariance, shrinkage

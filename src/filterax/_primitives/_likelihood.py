@@ -1,10 +1,9 @@
-"""Innovation log-likelihood and diagnostics.
+"""Innovation log-likelihood and diagnostics of a forecast ensemble.
 
-The innovation covariance ``S = H P H ᵀ + R`` is built as a
-:class:`gaussx.LowRankUpdate`, so logdets and solves can dispatch through the
-matrix-determinant lemma and Woodbury identity respectively. With more members
-than observations the ``(Nₑ, Nₑ)`` Woodbury capacitance is the larger system, so
-the ensemble log-likelihood takes a QR of the stacked factors of ``S`` instead.
+The innovation covariance Σ̂_y = Σ̂_h + Σ_ε is a `gaussx.LowRankUpdate`, so its
+log-determinant and solves dispatch through the matrix-determinant lemma and Woodbury.
+With more members than observations the (N_ℰ, N_ℰ) capacitance is the larger system,
+so the ensemble log-likelihood takes a QR of the stacked factors of Σ̂_y instead.
 """
 
 from __future__ import annotations
@@ -16,6 +15,7 @@ from typing import TypedDict
 import einx
 import gaussx
 import jax
+import jax.numpy as jnp
 import lineax as lx
 from jaxtyping import Array, Float
 
@@ -29,83 +29,97 @@ def log_likelihood(
     *,
     solver: gaussx.AbstractSolverStrategy | None = None,
 ) -> Float[Array, ""]:
-    r"""Gaussian log-probability of an innovation vector.
+    """Gaussian log-probability of a mean residual.
 
-    $$
-    \log p(y \mid \text{forecast}) = -\tfrac{1}{2} \left[
-        N_{y} \log(2\pi) + \log\lvert S \rvert + v^{\top} S^{-1} v
-    \right],
-    $$
+        log 𝒩(r̄; 0, Σ_y) = −½ (D_y log 2π + log det Σ_y + r̄ᵀ Σ_y⁻¹ r̄)
 
-    where ``v`` is the innovation and ``S`` the innovation covariance.
-    Both ``log|S|`` and ``S⁻¹ v`` flow through :mod:`gaussx` dispatch —
-    when ``S`` is a :class:`gaussx.LowRankUpdate` (the standard case),
-    log-determinants use the matrix-determinant lemma and solves use
-    Woodbury, both at ``O(Nₑ² Nᵧ + Nₑ³)``.
+    Wraps `gaussx.gaussian_log_prob`, so both terms go through gaussx's dispatch: when
+    Σ_y is a `gaussx.LowRankUpdate`, the standard case, the log-determinant uses the
+    matrix-determinant lemma and the solve uses Woodbury, each at
+    O(N_ℰ² D_y + N_ℰ³).
 
-    This is the training signal for differentiable data assimilation: the
-    gradient of this scalar with respect to dynamics or observation-model
-    parameters provides an end-to-end learning loop without ever forming
-    ``S`` explicitly. See Decision D9 in the design docs.
+    This is the training signal of differentiable data assimilation: its gradient with
+    respect to dynamics or observation-model parameters gives an end-to-end learning
+    loop without ever forming Σ_y.
 
     Args:
-        innovation: Innovation ``v = y − H x̄``, shape ``(Nᵧ,)``.
-        innovation_cov: Innovation covariance ``S = H P H ᵀ + R`` as a
-            linear operator (typically :class:`gaussx.LowRankUpdate`).
-        solver: Optional :class:`gaussx.AbstractSolverStrategy`. ``None``
-            uses structural dispatch.
+        innovation: Mean residual r̄ = y − h̄.
+        innovation_cov: Innovation covariance Σ_y, typically from
+            `innovation_covariance`.
+        solver: Solver strategy for Σ_y; ``None`` uses structural dispatch.
 
     Returns:
-        Scalar log-probability.
+        The scalar log-probability.
 
     Examples:
+        A unit covariance leaves −½ (2 log 2π + ‖r̄‖²):
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
-        >>> from filterax import log_likelihood
+        >>> import filterax
         >>> innovation = jnp.array([0.5, -0.5])
-        >>> S = lx.DiagonalLinearOperator(jnp.ones(2))
-        >>> log_likelihood(innovation, S)
-        Array(-2.087877, dtype=float32)
+        >>> innovation_cov = lx.DiagonalLinearOperator(jnp.ones(2))
+        >>> value = filterax.log_likelihood(innovation, innovation_cov)
+        >>> round(float(value), 4)
+        -2.0879
+
+        A dense and a structured Σ_y agree:
+
+        >>> dense = lx.MatrixLinearOperator(jnp.eye(2), lx.positive_semidefinite_tag)
+        >>> bool(jnp.allclose(filterax.log_likelihood(innovation, dense), value))
+        True
     """
-    zero = jax.numpy.zeros_like(innovation)
-    return gaussx.gaussian_log_prob(zero, innovation_cov, innovation, solver=solver)
+    zero_mean = jnp.zeros_like(innovation)
+    # log 𝒩(r̄; 0, Σ_y)
+    return gaussx.gaussian_log_prob(
+        zero_mean, innovation_cov, innovation, solver=solver
+    )
 
 
 def innovation_covariance(
     obs_particles: Float[Array, "N_e N_y"],
     obs_noise: lx.AbstractLinearOperator,
 ) -> gaussx.LowRankUpdate:
-    r"""Innovation covariance ``S = Cᴴᴴ + R`` as a low-rank update.
+    """Innovation covariance of an ensemble as a low-rank update of Σ_ε.
 
-    Wraps :func:`gaussx.ensemble_covariance` (Bessel-corrected) to build
-    the low-rank factor ``U = (HX)′ᵀ / √(Nₑ − 1)`` and composes it with the
-    structured ``R`` base. The result is a :class:`gaussx.LowRankUpdate`
-    so all downstream linear algebra (solve, logdet, sample, …) takes
-    advantage of the rank-``(Nₑ − 1)`` ensemble term without densifying.
+        Σ̂_y = Σ̂_h + Σ_ε = Σ_ε + U Uᵀ,   U = H̃ᵀ / √(N_ℰ − 1)
+
+    Takes the factor U from `gaussx.ensemble_covariance` with ``bessel=True`` and
+    composes it with Σ_ε, keeping Σ_ε's structure. Downstream linear algebra exploits
+    the term of rank at most N_ℰ − 1 without densifying.
 
     Args:
-        obs_particles: ``H`` applied to each ensemble member, shape
-            ``(Nₑ, Nᵧ)``.
-        obs_noise: Observation error covariance ``R``.
+        obs_particles: Forecast ensemble h⁽ᵉ⁾ in observation space, one row per member.
+        obs_noise: Observation-error covariance Σ_ε.
 
     Returns:
-        :class:`gaussx.LowRankUpdate` representing ``S``.
+        A `gaussx.LowRankUpdate` holding Σ̂_y.
 
     Raises:
-        ValueError: if ``Nₑ < 2``.
+        ValueError: If N_ℰ < 2, or ``obs_noise`` is not (D_y, D_y).
 
     Examples:
+        Two members with Σ̂_h = 0.5 and Σ_ε = 0.1:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
-        >>> from filterax import innovation_covariance
-        >>> obs_particles = jnp.array([[0.0], [1.0]])  # Cᴴᴴ = 0.5
-        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(1))
-        >>> S = innovation_covariance(obs_particles, R)
-        >>> S.as_matrix()  # 0.5 + 0.1
-        Array([[0.6]], dtype=float32)
+        >>> import filterax
+        >>> obs_particles = jnp.array([[0.0], [1.0]])
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(1))
+        >>> covariance = filterax.innovation_covariance(obs_particles, obs_noise)
+        >>> bool(jnp.allclose(covariance.as_matrix(), jnp.array([[0.6]])))
+        True
+
+        It solves without being materialised:
+
+        >>> import gaussx
+        >>> gaussx.solve(covariance, jnp.ones(1)).shape
+        (1,)
     """
-    cov = gaussx.ensemble_covariance(obs_particles, bessel=True)
-    return gaussx.LowRankUpdate(obs_noise, cov.U)
+    # Σ̂_h = U Uᵀ,   U = H̃ᵀ / √(N_ℰ − 1)
+    obs_ensemble_covariance = gaussx.ensemble_covariance(obs_particles, bessel=True)
+    # Σ̂_y = Σ_ε + U Uᵀ
+    return gaussx.LowRankUpdate(obs_noise, obs_ensemble_covariance.U)
 
 
 def ensemble_log_likelihood(
@@ -115,65 +129,103 @@ def ensemble_log_likelihood(
     *,
     solver: gaussx.AbstractSolverStrategy | None = None,
 ) -> Float[Array, ""]:
-    r"""``log 𝒩(v; 0, S)`` for ``S = U Uᵀ + R``, by the cheaper and safer route.
+    """Log-probability under the ensemble's Σ̂_y, by the cheaper and safer route.
 
-    With ``Nₑ > Nᵧ``, a thin QR of the stacked factors ``[U, R^½]`` gives a
-    triangular ``T`` with ``Tᵀ T = S`` at ``O(Nₑ Nᵧ²)``:
+        log 𝒩(r̄; 0, Σ̂_y),   Σ̂_y = U Uᵀ + Σ_ε
 
-    $$
-    \log\lvert S \rvert = 2 \sum_i \log \lvert T_{ii} \rvert, \qquad
-    v^{\top} S^{-1} v = \lVert T^{-\top} v \rVert^{2}.
-    $$
+    With N_ℰ > D_y, a thin QR of the stacked factors [U, Σ_ε^½] gives a triangular T
+    with Tᵀ T = Σ̂_y at O(N_ℰ D_y²):
 
-    This avoids two failures in float32. Woodbury factors an ``(Nₑ, Nₑ)``
-    capacitance and is wrong once ``R`` is small against ``Cᴴᴴ``. Forming ``S``
-    squares the condition number, and gives NaN when channels are duplicated
-    and ``R`` is tiny. With ``Nₑ ≤ Nᵧ``, or with a ``solver``, which needs the
-    structured operator, this is :func:`log_likelihood` on
-    :func:`innovation_covariance`.
+        log det Σ̂_y = 2 ∑ₙ log |Tₙₙ|,   r̄ᵀ Σ̂_y⁻¹ r̄ = ‖T⁻ᵀ r̄‖²
+
+    This avoids two failures in float32. Woodbury factors an (N_ℰ, N_ℰ) capacitance
+    and is wrong once Σ_ε is small against Σ̂_h. Forming Σ̂_y squares the condition
+    number, and gives NaN when channels are duplicated and Σ_ε is tiny. With
+    N_ℰ ≤ D_y, or with a ``solver``, which needs the structured operator, this is
+    `log_likelihood` on `innovation_covariance`.
+
+    Algorithm:
+        1. With N_ℰ ≤ D_y, or with a ``solver``, delegate to `log_likelihood`.
+        2. Stack the factors U and Σ_ε^½, and take the triangular factor T.
+        3. Whiten r̄ with T, and read the log-determinant off T's diagonal.
+        4. Sum the terms of the log-probability.
 
     Args:
-        obs_particles: ``H`` applied to each ensemble member, shape
-            ``(Nₑ, Nᵧ)``.
-        innovation: Innovation ``v = y − H x̄``, shape ``(Nᵧ,)``.
-        obs_noise: Observation error covariance ``R``.
-        solver: Optional :class:`gaussx.AbstractSolverStrategy`.
+        obs_particles: Forecast ensemble h⁽ᵉ⁾ in observation space, one row per member.
+        innovation: Mean residual r̄ = y − h̄.
+        obs_noise: Observation-error covariance Σ_ε.
+        solver: Solver strategy for Σ̂_y; given one, this takes the structured route.
 
     Returns:
-        Scalar log-probability.
+        The scalar log-probability.
+
+    Raises:
+        ValueError: If N_ℰ < 2.
+
+    Examples:
+        The QR route agrees with the structured one:
+
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> import filterax
+        >>> from filterax._primitives._likelihood import ensemble_log_likelihood
+        >>> obs_particles = jnp.array([[0.0, 1.0], [2.0, 0.0], [1.0, 3.0], [4.0, 1.0]])
+        >>> innovation = jnp.array([0.5, -0.5])
+        >>> obs_noise = lx.DiagonalLinearOperator(jnp.ones(2))
+        >>> value = ensemble_log_likelihood(obs_particles, innovation, obs_noise)
+        >>> covariance = filterax.innovation_covariance(obs_particles, obs_noise)
+        >>> bool(jnp.allclose(value, filterax.log_likelihood(innovation, covariance)))
+        True
+
+        With fewer members than observations, it is the structured route itself:
+
+        >>> value = ensemble_log_likelihood(obs_particles[:2], innovation, obs_noise)
+        >>> covariance = filterax.innovation_covariance(obs_particles[:2], obs_noise)
+        >>> bool(value == filterax.log_likelihood(innovation, covariance))
+        True
     """
-    num_members, obs_size = obs_particles.shape
-    if solver is not None or num_members <= obs_size:
-        S = innovation_covariance(obs_particles, obs_noise)
-        return log_likelihood(innovation, S, solver=solver)
-    # U = (HX)′ᵀ / √(Nₑ − 1)
-    ensemble_factor = gaussx.ensemble_covariance(obs_particles, bessel=True).U
-    # R^½
-    noise_factor = gaussx.sqrt(obs_noise).as_matrix()
-    # [U, R^½]ᵀ, so that its R factor T has Tᵀ T = U Uᵀ + R
-    stacked = einx.id(
-        "obs col -> col obs", jax.numpy.hstack([ensemble_factor, noise_factor])
-    )
-    upper = jax.numpy.linalg.qr(stacked, mode="r")
-    # T⁻ᵀ v
+    ensemble_size, obs_size = obs_particles.shape
+    if solver is not None or ensemble_size <= obs_size:
+        obs_covariance = innovation_covariance(obs_particles, obs_noise)
+        return log_likelihood(innovation, obs_covariance, solver=solver)
+    # U = H̃ᵀ / √(N_ℰ − 1)
+    obs_ensemble_covariance = gaussx.ensemble_covariance(obs_particles, bessel=True)
+    ensemble_factor = obs_ensemble_covariance.U
+    # Σ_ε^½
+    noise_sqrt = gaussx.sqrt(obs_noise)
+    noise_factor = noise_sqrt.as_matrix()
+    # [U, Σ_ε^½]
+    factors = jnp.hstack([ensemble_factor, noise_factor])
+    # [U, Σ_ε^½]ᵀ, so that its triangular factor T has Tᵀ T = U Uᵀ + Σ_ε
+    stacked = einx.id("obs col -> col obs", factors)
+    # T
+    upper = jnp.linalg.qr(stacked, mode="r")
+    # T⁻ᵀ r̄
     whitened = jax.scipy.linalg.solve_triangular(upper, innovation, trans=1)
-    # log|S| = 2 ∑ᵢ log|Tᵢᵢ|, the sign of Tᵢᵢ being arbitrary
-    half_logdet = einx.sum(
-        "[obs]", jax.numpy.log(jax.numpy.abs(jax.numpy.diagonal(upper)))
-    )
-    # −½ (Nᵧ log 2π + log|S| + vᵀ S⁻¹ v)
+    # Tₙₙ
+    diagonal = jnp.diagonal(upper)
+    # log |Tₙₙ|, the sign of Tₙₙ being arbitrary
+    log_diagonal = jnp.log(jnp.abs(diagonal))
+    # ½ log det Σ̂_y = ∑ₙ log |Tₙₙ|
+    half_logdet = einx.sum("[obs]", log_diagonal)
+    # r̄ᵀ Σ̂_y⁻¹ r̄ = ‖T⁻ᵀ r̄‖²
     quadratic = einx.dot("obs, obs ->", whitened, whitened)
-    return -0.5 * (obs_size * math.log(2.0 * math.pi) + 2.0 * half_logdet + quadratic)
+    # D_y log 2π
+    normalisation = obs_size * math.log(2.0 * math.pi)
+    # log det Σ̂_y
+    logdet = 2.0 * half_logdet
+    # −½ (D_y log 2π + log det Σ̂_y + r̄ᵀ Σ̂_y⁻¹ r̄)
+    return -0.5 * (normalisation + logdet + quadratic)
 
 
 class InnovationStatistics(TypedDict):
-    """Return type of :func:`innovation_statistics`.
+    """Return type of `innovation_statistics`.
 
-    Keys:
-        innovation: ``v = y − H x̄``.
-        innovation_cov: ``S = Cᴴᴴ + R`` as a :class:`gaussx.LowRankUpdate`.
-        normalized_innovation: ``S⁻¹ᐟ² v`` (whitened residual).
-        log_likelihood: Scalar Gaussian log-probability of ``v`` under ``S``.
+    Attributes:
+        innovation: Mean residual r̄ = y − h̄.
+        innovation_cov: Innovation covariance Σ̂_y as a `gaussx.LowRankUpdate`.
+        normalized_innovation: Whitened residual Σ̂_y^−½ r̄.
+        log_likelihood: Gaussian log-probability log 𝒩(r̄; 0, Σ̂_y).
     """
 
     innovation: Float[Array, " N_y"]
@@ -190,83 +242,107 @@ def innovation_statistics(
     *,
     solver: gaussx.AbstractSolverStrategy | None = None,
 ) -> InnovationStatistics:
-    r"""Innovation diagnostics for a forecast ensemble.
+    """Innovation diagnostics of a forecast ensemble.
 
-    Returns ``v``, ``S``, the whitened residual ``S⁻¹ᐟ² v``, and
-    ``log p(y | forecast)``. The whitened residual is useful for χ² /
-    Desroziers-style consistency checks (under correctly-specified ``S``
-    each component is unit-variance Gaussian).
+        r̄ = y − h̄,   Σ̂_y = Σ̂_h + Σ_ε,   Σ̂_y^−½ r̄,   log 𝒩(r̄; 0, Σ̂_y)
 
-    The whitened residual uses the principal root through
-    :func:`gaussx.sqrt_inv_matmul`, a contour quadrature of shifted solves, so
-    it does not depend on the order of the observations. With 30 nodes, its
-    squared norm matches ``vᵀ S⁻¹ v`` to about ``1e-10`` (relative, float64) up
-    to a condition number of ``1e6``.
+    The whitened residual serves χ² and Desroziers-style consistency checks: under a
+    correctly specified Σ̂_y each component is a unit-variance Gaussian. It uses the
+    principal root through `gaussx.sqrt_inv_matmul`, a contour quadrature of shifted
+    solves, so it does not depend on the order of the observations. With 30 nodes, its
+    squared norm matches r̄ᵀ Σ̂_y⁻¹ r̄ to about 1e-10 (relative, float64) up to a
+    condition number of 1e6.
 
-    With at most as many members as observations, the whitener goes through
-    Woodbury and ``S`` is never materialised. Otherwise each Woodbury solve
-    would factor the larger ``(Nₑ, Nₑ)`` capacitance, so ``S`` is formed
-    densely. The log-likelihood comes from :func:`ensemble_log_likelihood`.
+    With N_ℰ ≤ D_y, the whitener goes through Woodbury and Σ̂_y is never materialised.
+    Otherwise each Woodbury solve would factor the larger (N_ℰ, N_ℰ) capacitance, so
+    Σ̂_y is formed densely. The log-likelihood comes from `ensemble_log_likelihood`.
+
+    Algorithm:
+        1. Map the members through h, and form r̄ and Σ̂_y.
+        2. Choose the operator for the whitener from the shapes.
+        3. Evaluate the log-likelihood.
+        4. Whiten r̄ with 30 quadrature nodes.
 
     Args:
-        particles: Forecast ensemble, shape ``(Nₑ, Nₓ)``.
-        obs: Observation vector, shape ``(Nᵧ,)``.
-        obs_op: ``H`` applied to a single state vector. ``vmap``'d over
-            the ensemble internally.
-        obs_noise: Observation error covariance ``R``.
-        solver: Optional solver strategy for the log-likelihood's logdet and
-            solve. The whitened residual always uses structural dispatch.
+        particles: Forecast ensemble x⁽ᵉ⁾, one row per member.
+        obs: Observation vector y.
+        obs_op: Observation operator h on one state, mapped over the ensemble here.
+        obs_noise: Observation-error covariance Σ_ε.
+        solver: Solver strategy for the log-likelihood's log-determinant and solve.
+            The whitened residual always uses structural dispatch.
 
     Returns:
-        :class:`InnovationStatistics` mapping with ``innovation``,
-        ``innovation_cov``, ``normalized_innovation``, ``log_likelihood``.
+        An `InnovationStatistics` mapping with ``innovation``, ``innovation_cov``,
+        ``normalized_innovation`` and ``log_likelihood``.
 
     Raises:
-        ValueError: if ``Nₑ < 2``.
+        ValueError: If N_ℰ < 2.
 
     Examples:
+        Two members, with the first component observed:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
-        >>> from filterax import innovation_statistics
+        >>> import filterax
         >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0]])
         >>> obs = jnp.array([0.5])
-        >>> R = lx.DiagonalLinearOperator(jnp.ones(1))
-        >>> stats = innovation_statistics(particles, obs, lambda x: x[:1], R)
-        >>> stats["innovation"]  # y − H x̄ = 0.5 − 0.5
-        Array([0.], dtype=float32)
-        >>> stats["log_likelihood"]
-        Array(-1.1216711, dtype=float32)
+        >>> obs_noise = lx.DiagonalLinearOperator(jnp.ones(1))
+        >>> stats = filterax.innovation_statistics(
+        ...     particles, obs, lambda state: state[:1], obs_noise
+        ... )
+        >>> stats["innovation"].tolist()
+        [0.0]
+        >>> round(float(stats["log_likelihood"]), 4)
+        -1.1217
+
+        One member cannot supply a sample covariance:
+
+        >>> filterax.innovation_statistics(
+        ...     particles[:1], obs, lambda state: state[:1], obs_noise
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        ValueError: particles must contain at least 2 ensemble members for the
+        Bessel-corrected estimators to be well-defined; got N_e=1.
     """
     # ensemble_mean runs first, and einx cannot size an empty ensemble.
     check_ensemble_size(particles.shape[0])
+    # h⁽ᵉ⁾ = h(x⁽ᵉ⁾)
     obs_particles = jax.vmap(obs_op)(particles)
-    innovation = obs - ensemble_mean(obs_particles)
+    # h̄ = (1 / N_ℰ) ∑ₑ h⁽ᵉ⁾
+    obs_mean = ensemble_mean(obs_particles)
+    # r̄ = y − h̄
+    residual = obs - obs_mean
 
-    S = innovation_covariance(obs_particles, obs_noise)
-    num_members, obs_size = obs_particles.shape
-    # At Nₑ = 1000, Nᵧ = 3 the 30 Woodbury solves below take 100 s against
-    # milliseconds for the (Nᵧ, Nᵧ) matrix.
-    solve_operator = S
-    if solver is None and num_members > obs_size:
+    # Σ̂_y = Σ_ε + U Uᵀ
+    obs_covariance = innovation_covariance(obs_particles, obs_noise)
+    ensemble_size, obs_size = obs_particles.shape
+    # At N_ℰ = 1000, D_y = 3 the 30 Woodbury solves below take 100 s against
+    # milliseconds for the (D_y, D_y) matrix.
+    solve_operator = obs_covariance
+    if solver is None and ensemble_size > obs_size:
+        dense_covariance = obs_covariance.as_matrix()
         solve_operator = lx.MatrixLinearOperator(
-            S.as_matrix(), lx.positive_semidefinite_tag
+            dense_covariance, lx.positive_semidefinite_tag
         )
+    # log 𝒩(r̄; 0, Σ̂_y)
     log_prob = ensemble_log_likelihood(
-        obs_particles, innovation, obs_noise, solver=solver
+        obs_particles, residual, obs_noise, solver=solver
     )
 
-    # z = S⁻¹ᐟ² v. The default 15 nodes leave a relative error of 1e-5 in zᵀ z
-    # at a condition number of 6.5e6.
-    normalized = gaussx.sqrt_inv_matmul(
+    residual_column = einx.id("obs -> obs 1", residual)
+    # Σ̂_y^−½ r̄. The default 15 nodes leave a relative error of 1e-5 in its squared
+    # norm at a condition number of 6.5e6.
+    whitened_column = gaussx.sqrt_inv_matmul(
         solve_operator,
-        einx.id("obs -> obs 1", innovation),
+        residual_column,
         num_quadrature=30,
     )
-    normalized = einx.id("obs 1 -> obs", normalized)
+    whitened = einx.id("obs 1 -> obs", whitened_column)
 
     return InnovationStatistics(
-        innovation=innovation,
-        innovation_cov=S,
-        normalized_innovation=normalized,
+        innovation=residual,
+        innovation_cov=obs_covariance,
+        normalized_innovation=whitened,
         log_likelihood=log_prob,
     )
