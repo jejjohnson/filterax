@@ -306,7 +306,7 @@ It prints `4e-16 1e-16 2e-15`, which is float64 round-off in all three.
 
 ## Differentiating the transform
 
-The ensemble-space route eigendecomposes $\gmat{\Lambda}_w = \gmat{\Phi} \op{diag}(\gvect{\gamma}) \gmat{\Phi}^\top$, and by [](#eq-etkf-low-rank) the eigenvalue $c$ is repeated $N_\mathcal{E} - D_y$ times whenever $D_y < N_\mathcal{E}$.
+The ensemble-space route eigendecomposes $\gmat{\Lambda}_w = \gmat{\Phi} \op{diag}(\gvect{\gamma}) \gmat{\Phi}^\top$, and by [](#eq-etkf-low-rank) the eigenvalue $c$ is repeated $N_\mathcal{E} - \op{rank}(\tilde{\mat{H}})$ times, which is at least twice whenever $D_y \le N_\mathcal{E} - 2$.
 JAX's rule for `eigh` divides by the gaps $\gamma_i - \gamma_j$, so differentiating through it gives a `NaN` gradient at exactly the matrices the filter always produces, and any training loop ([chapter 14](14_differentiable.md)) would fail on its first step.
 
 The derivative of a spectral function needs no gaps once it is written in closed form.
@@ -355,8 +355,8 @@ The bound $\gamma_i \ge c$ is exact, so the ensemble-space route floors the comp
 Without the floor, a rounded negative eigenvalue gives a non-finite transform.
 
 The mean update cancels on the rank-$D_y$ route.
-With $\gvect{\rho} = \gmat{\Sigma}_\varepsilon^{-1} \bar{\vect{r}}$, reading $\mat{U}^\top \tilde{\mat{H}} \gvect{\rho}$ directly lets a weak row of $\mat{U}^\top \tilde{\mat{H}}$ carry rounding from a strong mode into the large part of $\gvect{\rho}$.
-So gaussx reads the strong modes first and removes each from $\gvect{\rho}$ by an oblique projection, which leaves the weak modes a well-scaled remainder.
+With the whitened residual $\vect{v} = \gmat{\Sigma}_\varepsilon^{-1} \bar{\vect{r}} \in \mathbb{R}^{D_y}$, reading $\mat{U}^\top \tilde{\mat{H}} \vect{v}$ directly lets a weak row of $\mat{U}^\top \tilde{\mat{H}}$ carry rounding from a strong mode into the large part of $\vect{v}$.
+So gaussx reads the strong modes first and removes each from $\vect{v}$ by an oblique projection, which leaves the weak modes a well-scaled remainder.
 
 [](#code-etkf-float32) measures the result against a float64 dense solve, with noise variances from $10^{-6}$ to $10^{6}$.
 
