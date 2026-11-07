@@ -141,7 +141,7 @@ There are three layers, and each is useful on its own.
 - [`filterax.filters.StochasticEnKF`](https://jejjohnson.github.io/filterax/reference/filters/) is the Layer 1 analysis step. It maps `(particles, obs, obs_op, obs_noise)` to an `AnalysisResult`, and of those gaussx options it passes on only `key`.
 - `filterax.StochasticEnKF` is the Layer 2 cycle of [chapter 16](16_assimilation_cycle.md), which derives the key of window $t$ as `jr.fold_in(base_key, t)`.
 
-[`filterax.perturbed_observations`](https://jejjohnson.github.io/filterax/reference/primitives/) draws the stack $\vect{y} + \gvect{\varepsilon}^{(e)}$ with the same factor $\mat{L} \mat{L}^\top = \gmat{\Sigma}_\varepsilon$ that gaussx uses, which keeps a diagonal covariance diagonal.
+[`filterax.perturbed_observations`](https://jejjohnson.github.io/filterax/reference/primitives/) draws the stack $\vect{y} + \gvect{\varepsilon}^{(e)}$ through `gaussx.sample_mvn`, while `gaussx.enkf_analysis` draws its own with a factor $\mat{L} \mat{L}^\top = \gmat{\Sigma}_\varepsilon$. Both have the right distribution, but they produce the same draws for a given key only when $\gmat{\Sigma}_\varepsilon$ is diagonal: with Toeplitz or low-rank noise the two routes give different members.
 
 The example has $N_\mathcal{E} = 30$ members of a state with $D_x = 4$, drawn around 1 with standard deviation 0.5, and observes components 0 and 2 with noise variance 0.1.
 
@@ -283,7 +283,7 @@ print(f"{mean_gap:.1e} {covariance_gap:.1e}")
 ```
 
 It prints `2e-16 0e+00 2e-16`, then the two diagonals `[0.0648 0.2662 0.0737 0.2608]` and `[0.0228 0.2617 0.0193 0.2569]`, then `1.0e-03 2.7e-04`.
-The first line is round-off, and it shows that `key` and `perturbed_obs` use the same draws.
+The first line is round-off, and it shows that `key` and `perturbed_obs` use the same draws for this diagonal noise.
 The diagonals show what the unperturbed ensemble loses on the observed components.
 The last line is Monte Carlo error over 4,000 draws, not a bias.
 
