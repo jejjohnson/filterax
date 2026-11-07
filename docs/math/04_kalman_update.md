@@ -565,7 +565,7 @@ Localization tapers those entries with a function of distance, $\rho$ {cite:p}`g
 $$\hat{\mat{G}}_\rho = (\rho_{xy} \circ \hat{\gmat{\Sigma}}_{xy}) (\rho_{yy} \circ \hat{\gmat{\Sigma}}_h + \gmat{\Sigma}_\varepsilon)^{-1},$$ (eq-gain-localized)
 
 with the element-wise product $\circ$.
-The product destroys the low rank of $\hat{\gmat{\Sigma}}_h$, so `localized_kalman_gain` always forms $\hat{\gmat{\Sigma}}_y$ densely, at $O(N_\mathcal{E} D_x D_y + D_y^3)$.
+The product destroys the low rank of $\hat{\gmat{\Sigma}}_h$, so `localized_kalman_gain` always forms $\hat{\gmat{\Sigma}}_y$ densely, at $O(N_\mathcal{E} D_x D_y + D_x D_y^2 + D_y^3)$, where the middle term is the solve against $D_x$ right-hand sides and dominates once $D_y > N_\mathcal{E}$.
 [Chapter 11](11_localization.md) covers the trade-offs.
 [](#code-gain-spurious) observes one component of a state whose components are independent, so the true gain is zero everywhere else.
 

@@ -98,7 +98,7 @@ This is why localization fixes the rank problem, and not just the spurious corre
 Three conventions meet in [](#eq-letkf-weights), and they do not line up the way the literature might suggest.
 
 **`radius` is the half-width of the taper, and also the hard cutoff.**
-filterax defines its tapers by a half-width: `gaspari_cohn(d, radius)` {cite:p}`gaspari1999construction` is the fifth-order polynomial in $z = d / \ell$ that vanishes only at $d = 2 \ell$.
+filterax defines its tapers by a half-width: `gaspari_cohn(d, radius)` {cite:p}`gaspari1999construction` is piecewise rational in $z = d / \ell$, with a fifth-order polynomial on $z \le 1$ and a branch with a $-2 / (3 z)$ term on $1 < z < 2$, and it is zero for every $d \ge 2 \ell$.
 `LETKF` then drops every observation beyond $d = \ell$ by the explicit cutoff.
 So the second branch of the polynomial, on $1 < z \le 2$, is never reached, and the default weight is only the first branch:
 

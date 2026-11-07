@@ -160,7 +160,7 @@ For the healthy twins it reports the median RMSE and spread, and otherwise the w
 
 The LETKF {cite:p}`hunt2007efficient` needs coordinates, and it measures distance in Euclidean terms.
 So the sites sit on a circle of circumference 40, with the observations at their sites, which makes distance respect the cyclic domain.
-The radius $\ell$ below is therefore in sites, and the LETKF drops observations beyond it.
+The distance is the straight chord between two points on the circle, so the radius $\ell$ is close to a count of sites when it is small: a chord of 4 spans about 4.07 sites of arc, and a chord of 8 about 8.65. The LETKF drops observations beyond it.
 
 ```{code-block} python
 :caption: RMSE and spread over eight independent twins, for each filter and inflation setting.
