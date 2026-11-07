@@ -30,6 +30,9 @@ project:
     - bib/applications.bib
     - bib/foundations.bib
     - bib/sequential.bib
+    - bib/processes.bib
+    - bib/cross_cutting.bib
+    - bib/training.bib
   references:
     api: http://127.0.0.1:8911/
   toc:
