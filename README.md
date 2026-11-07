@@ -40,7 +40,7 @@ The linear algebra is delegated to [`gaussx`](https://github.com/jejjohnson/gaus
 - ⏪ **Five ensemble smoothers**, from the ensemble RTS smoother to the iterative ensemble smoother, plus an exact Kalman smoother as the reference.
 - 🎯 **Seven inversion processes**: EKI and its Tikhonov, transform, Gauss-Newton and sparse variants, the ensemble Kalman sampler and unscented Kalman inversion.
 - 🧷 **Differentiable by construction**: full-tape, checkpointed and truncated adjoints, and ROAD-EnKF local gradients.
-- 🧱 **Operator covariances**: the ensemble covariance is a `gaussx.LowRankUpdate`, and structured noise (diagonal, block-diagonal, Kronecker) is never densified.
+- 🧱 **Operator covariances**: the ensemble covariance is a `gaussx.LowRankUpdate`, and structured noise (diagonal, block-diagonal, Kronecker) is not densified on the Woodbury and ETKF routes.
 - 🧮 **Float32-aware numerics**: rank-$D_y$ analyses, singular-value pseudo-inverses and eigenvalue floors, each measured against float64 in the maths reference.
 - 🔌 **Plugs into the stack**: processes run as `optax.GradientTransformation`s, and filters run inside `pipekit` assimilation cycles.
 
@@ -179,7 +179,7 @@ This prints `LETKF RMSE 0.33, against unit observation noise`, so the filter bea
 
 ## ♻️ Swap the method, keep the loop
 
-The global ETKF takes the same constructor without the localization, so the comparison is two lines, with the same inflation:
+The global ETKF takes the same constructor without the localization, so the comparison is two lines. The ETKF adds RTPS at 0.5, which the LETKF manages without:
 
 ```python
 # today (filterax)
