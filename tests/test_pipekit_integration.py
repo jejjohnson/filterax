@@ -148,6 +148,7 @@ def _kalman_mean(
     return x_bar_f + P_f @ H.T @ np.linalg.solve(S, y - H @ x_bar_f)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize("filt", [ETKF(), EnSRF()], ids=["ETKF", "EnSRF"])
 def test_cycled_analysis_mean_matches_kalman(filt):
     """Roadmap gate D2: one EnsembleDACycle step equals the Kalman update.

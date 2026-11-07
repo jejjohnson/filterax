@@ -80,6 +80,18 @@ For multi-step tasks, state a brief plan:
 3. **Format** – `uv run --group lint ruff format --check .` must report no files to reformat.
 4. **Type checks** – `uv run --group typecheck ty check src/filterax` (or `make typecheck`) must report no errors in changed files.
 
+### Test tiers
+
+CI on every PR runs the fast tier (`-m "not slow and not integration"`, or `make test-fast`) on Python 3.12 and 3.13.
+The "Extended Tests" workflow runs the entire suite weekly, the heavy lane (`make test-slow`) on PRs labelled `run-slow`, and either on demand.
+Add `run-slow` to a PR that touches the numerics of a filter, smoother or process.
+
+- **Unmarked:** unit tests of about 1 s or less.
+- **`@pytest.mark.slow`:** over about 1.5 s: heavy numerics, `jit`+`grad`+`vmap` sweeps, long scans.
+- **`@pytest.mark.integration`:** end-to-end workflows, meaning a full assimilation, inversion or training loop through the public API, whatever its duration.
+
+Most runtime is XLA compiling each operation the first time, so a test can look cheap only because an earlier test paid for its compile. Judge a tier with `pytest -m "not slow and not integration" --durations=20`, not by the test on its own.
+
 > **Common pitfall**: Running `ruff check src/filterax/` instead of `ruff check .` misses lint errors in `tests/` and `scripts/`. CI runs `ruff check .` on the entire repo — always use `.` (repo root), not a subdirectory.
 
 ## Development Environment

@@ -51,6 +51,8 @@ def _problem():
 SPLITS = [(1.0, 1), (0.5, 2), (0.1, 10)]
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.parametrize(("dt", "n"), SPLITS)
 def test_uki_recovers_posterior_for_any_split(dt, n):
     F, y, Gamma, m0, S0, post_mean, post_cov = _problem()
@@ -65,6 +67,7 @@ def test_uki_recovers_posterior_for_any_split(dt, n):
     np.testing.assert_allclose(result.covariance.as_matrix(), post_cov, atol=1e-10)
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(("dt", "n"), SPLITS)
 def test_uki_optax_recovers_posterior_for_any_split(dt, n):
     F, y, Gamma, m0, S0, post_mean, post_cov = _problem()
@@ -84,6 +87,7 @@ def test_uki_optax_recovers_posterior_for_any_split(dt, n):
     np.testing.assert_allclose(state.covariance.as_matrix(), post_cov, atol=1e-10)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "make_process",
     [
@@ -113,6 +117,7 @@ def test_increment_tends_to_euler_step(make_process):
     assert float(gap) < 1e-4
 
 
+@pytest.mark.slow
 def test_etki_increment_tends_to_the_half_rate_transform():
     """The mean takes EKI's Euler step, and the anomalies half of it."""
     F, y, Gamma, m0, S0, _, _ = _problem()
@@ -133,6 +138,7 @@ def test_etki_increment_tends_to_the_half_rate_transform():
     assert float(gap) < 1e-4
 
 
+@pytest.mark.slow
 def test_data_misfit_controller_reaches_algo_time_one():
     F, y, Gamma, m0, S0, _, _ = _problem()
     particles = m0 + jax.random.normal(jax.random.key(2), (400, N_P)) @ jnp.sqrt(S0)

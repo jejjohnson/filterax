@@ -70,6 +70,7 @@ def _setup(getkey, T: int = 4, N_e: int = 20, N_x: int = 3, N_y: int = 2):
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_diff_assimilate_matches_l2_etkf(getkey):
     """Scan-based loop and L2 Python-loop must produce identical history."""
     particles, obs, times, obs_list, obs_op, dyn, R = _setup(getkey)
@@ -117,6 +118,7 @@ def _assert_full_result_match(got, ref, atol):
     )
 
 
+@pytest.mark.slow
 def test_diff_assimilate_matches_l2_ensrf(getkey):
     """Same parity check for EnSRF — full step-for-step equivalence."""
     particles, obs, times, obs_list, obs_op, dyn, R = _setup(getkey)
@@ -127,6 +129,7 @@ def test_diff_assimilate_matches_l2_ensrf(getkey):
     _assert_full_result_match(got, ref, atol=1e-10)
 
 
+@pytest.mark.slow
 def test_diff_assimilate_with_inflator_matches_l2(getkey):
     """Deterministic inflator threads through the same way — full
     step-for-step equivalence across every result field."""
@@ -148,6 +151,7 @@ def test_diff_assimilate_with_inflator_matches_l2(getkey):
     _assert_full_result_match(got, ref, atol=1e-10)
 
 
+@pytest.mark.slow
 def test_diff_assimilate_letkf_with_coords(getkey):
     """LETKF needs ``state_coords`` / ``obs_coords`` — they thread through
     ``analysis_extra`` and the scan loop matches the L2 LETKF across
@@ -267,6 +271,8 @@ def _nll(result):
     return -jnp.sum(result.log_likelihoods)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_pattern_a_learn_dynamics_params(getkey):
     """Pattern A: backprop the observation-space NLL through the filter
     moves a learnable scalar dynamics parameter toward the truth.
@@ -309,6 +315,8 @@ def test_pattern_a_learn_dynamics_params(getkey):
     assert loss_after < loss_before
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_pattern_b_learn_observation_operator_params(getkey):
     """Pattern B: learn the observation operator (a scalar gain on the
     first state component) end-to-end through the filter."""
@@ -342,6 +350,8 @@ def test_pattern_b_learn_observation_operator_params(getkey):
     assert loss_after < loss_before
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_pattern_c_learn_inflation_factor(getkey):
     """Pattern C: optimise a learnable multiplicative inflation factor.
 
@@ -400,6 +410,7 @@ def test_diff_assimilate_under_jit_and_grad(getkey):
     assert jnp.isfinite(g)
 
 
+@pytest.mark.slow
 def test_diff_assimilate_grad_with_checkpoint(getkey):
     """``checkpoint=True`` must round-trip through ``jax.grad`` (the whole
     reason it exists)."""

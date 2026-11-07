@@ -15,6 +15,7 @@ import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
 import numpy as np
+import pytest
 
 import filterax as flx
 
@@ -135,6 +136,7 @@ def test_latent_dynamics_delegates_to_inner_step(getkey):
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_latent_etkf_identity_codec_matches_etkf(getkey):
     # With ``φ = ψ = id`` the latent wrapper must reproduce the
     # plain ETKF posterior bit-for-bit at double precision.
@@ -216,6 +218,7 @@ def test_latent_etkf_in_x_space_false_accepts_pre_encoded_ensemble(getkey):
     )
 
 
+@pytest.mark.slow
 def test_latent_etkf_result_shapes(getkey):
     # Codec changes dimension: encoder ``ℝ^4 → ℝ^2``, decoder ``ℝ^2 → ℝ^4``.
     N_e, N_x, N_z, N_y = 30, 4, 2, 2
@@ -279,6 +282,7 @@ def test_latent_etkf_assimilate_is_jit_safe(getkey):
     assert bool(jnp.all(jnp.isfinite(out)))
 
 
+@pytest.mark.slow
 def test_latent_etkf_differentiable_wrt_codec_weights(getkey):
     """Gradient w.r.t. trainable codec weights flows through the L2 loop.
 
@@ -373,6 +377,7 @@ def test_latent_letkf_auto_wraps_raw_latent_forward_model(getkey):
     assert bool(jnp.all(jnp.isfinite(out.particles)))
 
 
+@pytest.mark.slow
 def test_latent_etkf_grad_skips_non_trainable_codec_fields(getkey):
     # ``identity_latent_map`` carries only a static ``int`` field, so
     # ``eqx.filter_grad`` should treat it as having no trainable leaves.

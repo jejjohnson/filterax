@@ -37,6 +37,7 @@ def test_soar_taper_monotone_decreasing():
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_adaptive_localization_zeros_uncorrelated_pairs():
     # Construct ensemble where state and obs are independent draws
     # → cross-correlations are pure noise → most weights should be 0.
@@ -156,6 +157,7 @@ def test_inflate_adaptive_preserves_factor_for_calibrated_innovation():
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_ledoit_wolf_returns_psd_covariance():
     ensemble = jr.normal(jr.PRNGKey(6), (8, 6))  # underdetermined (Nₑ < Nₓ)
     P, lam = flx.ledoit_wolf_shrinkage(ensemble)
@@ -186,6 +188,7 @@ def test_ledoit_wolf_reduces_condition_number():
     assert 0.0 <= lam <= 1.0
 
 
+@pytest.mark.slow
 def test_ledoit_wolf_matches_eager_under_jit():
     ensemble = jr.normal(jr.key(0), (8, 5))
     eager_covariance, eager_shrinkage = flx.ledoit_wolf_shrinkage(ensemble)
@@ -195,6 +198,7 @@ def test_ledoit_wolf_matches_eager_under_jit():
     assert jnp.allclose(jit_shrinkage, eager_shrinkage)
 
 
+@pytest.mark.slow
 def test_inflate_additive_dense_noise_above_lanczos_rank():
     """Regression for #115: additive inflation shares the same sampling path."""
     factor = jr.normal(jr.key(0), (60, 60))
@@ -206,6 +210,7 @@ def test_inflate_additive_dense_noise_above_lanczos_rank():
     assert inflated.shape == (8, 60)
 
 
+@pytest.mark.slow
 def test_ledoit_wolf_shrinkage_has_no_units_in_float32():
     # The fourth powers of these members leave float32's range.
     members = jnp.array(

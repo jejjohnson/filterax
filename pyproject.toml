@@ -130,7 +130,11 @@ python-version = "3.12"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=src/filterax --cov-report=term-missing --cov-report=xml:coverage.xml"
+addopts = "--strict-markers --cov=src/filterax --cov-report=term-missing --cov-report=xml:coverage.xml"
+markers = [
+    "slow: individually expensive tests (over ~1.5 s: heavy numerics, jit+grad+vmap sweeps, long scans)",
+    "integration: end-to-end workflows (a full assimilation, inversion or training loop through the public API)",
+]
 
 [tool.coverage.run]
 source = ["src/filterax"]

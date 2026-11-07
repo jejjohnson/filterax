@@ -48,6 +48,7 @@ def test_log_likelihood_matches_scipy_dense(getkey):
     np.testing.assert_allclose(got, expected, rtol=1e-8, atol=1e-8)
 
 
+@pytest.mark.slow
 def test_innovation_statistics_keys_and_shapes(getkey):
     N_e, N_x, N_y = 40, 5, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -69,6 +70,7 @@ def test_innovation_statistics_keys_and_shapes(getkey):
     assert stats["log_likelihood"].shape == ()
 
 
+@pytest.mark.slow
 def test_innovation_statistics_normalised_innovation_is_whitened():
     # The normalized innovation must whiten the innovation: ``zᵀ z = vᵀ S⁻¹ v``.
     N_e, N_x, N_y = 30, 6, 4
@@ -124,6 +126,7 @@ def _whitening_problem(num_members, obs_size, noise):
     return obs_particles, obs, obs_noise
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("noise", ["diagonal", "dense"])
 @pytest.mark.parametrize(
     ("num_members", "obs_size"), [(30, 4), (4, 6), (20, 60)], ids=str
@@ -154,6 +157,7 @@ def test_innovation_statistics_returns_the_principal_whitener(
     np.testing.assert_allclose(stats["log_likelihood"], expected_log_prob, rtol=1e-10)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("num_members", "obs_size"), [(30, 4), (4, 6)], ids=["dense", "woodbury"]
 )
@@ -211,6 +215,7 @@ def test_ensemble_log_likelihood_keeps_a_solver_on_the_structured_operator():
     np.testing.assert_allclose(value, reference, rtol=1e-8)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("variance", "channel"),
     [(1e-8, "independent"), (1e-12, "independent"), (1e-10, "duplicated")],
@@ -234,6 +239,7 @@ def test_ensemble_log_likelihood_float32_matches_float64(variance, channel):
     np.testing.assert_allclose(single, reference, rtol=1e-4)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("num_members", "obs_size"), [(30, 4), (4, 6)], ids=["qr", "woodbury"]
 )

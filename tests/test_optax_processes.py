@@ -8,6 +8,7 @@ import jax.random as jr
 import lineax as lx
 import numpy as np
 import optax
+import pytest
 
 import filterax as flx
 
@@ -24,6 +25,7 @@ def _problem():
     return G, y, R, sigma0, mu_post, Sigma_post
 
 
+@pytest.mark.slow
 def test_eki_optax_contract():
     """`init` + repeated `update` + `apply_updates` mirrors the L2 EKI run."""
     G, y, R, sigma0, mu_post, _ = _problem()
@@ -45,6 +47,7 @@ def test_eki_optax_contract():
     np.testing.assert_allclose(np.asarray(params), np.asarray(mu_post), atol=1e-1)
 
 
+@pytest.mark.slow
 def test_eks_optax_advances_key_per_step():
     G, y, R, _, _, _ = _problem()
     forward = lambda theta: G @ theta
@@ -89,6 +92,7 @@ def test_uki_optax_one_step_matches_posterior():
     )
 
 
+@pytest.mark.slow
 def test_eki_optax_composes_with_optax_chain():
     """A simple chain with gradient clipping leaves the EKI step intact."""
     G, y, R, _, _, _ = _problem()
@@ -185,6 +189,7 @@ def test_l2_eki_uses_config_scheduler_when_supplied():
     np.testing.assert_allclose(np.asarray(result.mean), np.asarray(mu_post), atol=2e-1)
 
 
+@pytest.mark.integration
 def test_adam_to_eki_hybrid_optimisation():
     r"""Two-phase optimisation: Adam (gradient-based) → EKI (derivative-free).
 

@@ -67,6 +67,7 @@ def _setup(getkey, T: int = 4, N_e: int = 20, N_x: int = 3, N_y: int = 2):
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_road_one_step_matches_full_value_and_grad(getkey):
     """At ``T = 1`` ROAD has no cross-time terms to drop, so its loss and
     gradient must equal the full-tape ``differentiable_assimilate``
@@ -110,6 +111,8 @@ def test_road_grad_structure_matches_dynamics_pytree(getkey):
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_road_pattern_a_descent_reduces_loss():
     """Same Pattern A toy as ``test_pattern_a_learn_dynamics_params`` —
     true ``M = 0.95 I``, starting at ``M = 1.0 I``. One ROAD-EnKF
@@ -149,6 +152,8 @@ def test_road_pattern_a_descent_reduces_loss():
     assert float(loss_after) < float(loss_init)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_road_grad_step_with_optax_optimizer():
     """``road_enkf_grad_step`` composes with an :mod:`optax` optimiser —
     multi-step descent reduces the loss."""
@@ -180,6 +185,7 @@ def test_road_grad_step_with_optax_optimizer():
     assert losses[-1] < losses[0]
 
 
+@pytest.mark.slow
 def test_road_skips_integer_array_leaves():
     """Regression for the gradient-accumulator predicate: a dynamics
     module carrying an integer index leaf alongside a trainable float
@@ -219,6 +225,8 @@ def test_road_skips_integer_array_leaves():
     )
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_road_grad_step_with_optax_chain():
     """``road_enkf_grad_step`` works under ``optax.chain`` (gradient
     clipping + Adam) — proves the gradient piping is standard-optax-

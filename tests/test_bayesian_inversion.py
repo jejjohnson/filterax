@@ -53,6 +53,8 @@ def _two_parameter():
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_teki_map_is_a_fixed_point():
     """An ensemble centred exactly on θ* has a zero mean increment.
 
@@ -71,6 +73,8 @@ def test_teki_map_is_a_fixed_point():
     np.testing.assert_allclose(new.mean(0), mean, atol=1e-10)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_teki_converges_to_map():
     F, y, Gamma, m0, S0, mean, _ = _overdetermined()
     init = m0 + jax.random.normal(jax.random.key(2), (200, 6)) @ jnp.sqrt(S0)
@@ -121,6 +125,8 @@ def _eks_moments(prior: bool):
     return z, ratio
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.parametrize("prior", [True, False], ids=["prior", "flat"])
 def test_eks_samples_the_posterior(prior):
     """Mean within 0.25 σ, variances within [0.75, 1.3] of the closed form.
@@ -135,6 +141,7 @@ def test_eks_samples_the_posterior(prior):
     assert bool(jnp.all((ratio > 0.75) & (ratio < 1.3)))
 
 
+@pytest.mark.integration
 def test_eks_prior_needs_both_mean_and_covariance():
     with pytest.raises(ValueError, match="both prior_mean and prior_cov"):
         EKS_Process(scheduler=flx.FixedScheduler(dt=0.1), prior_mean=jnp.zeros(2))
@@ -159,6 +166,8 @@ def _uninformative_eks(scheduler, n_iterations):
     return m0, eks.run(jax.random.normal(jax.random.key(0), (200, 2)))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_eks_tight_prior_is_stable_at_a_large_step():
     """An explicit prior drift would multiply offsets by 1 − Δt/σ₀² = −99 per
     step at Δt = 1 and diverge. The implicit step instead settles at a variance
@@ -170,6 +179,8 @@ def test_eks_tight_prior_is_stable_at_a_large_step():
     assert bool(jnp.all((ratio > 0.5) & (ratio < 2.0)))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_eks_tight_prior_is_stable_with_default_scheduler():
     m0, result = _uninformative_eks(flx.EKSStableScheduler(), 200)
     z = jnp.abs(result.mean - m0) / 0.1
@@ -179,6 +190,8 @@ def test_eks_tight_prior_is_stable_with_default_scheduler():
     assert bool(jnp.all((ratio > 0.75) & (ratio < 1.3)))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_eks_uninformative_data_returns_the_prior():
     m0, result = _uninformative_eks(flx.FixedScheduler(dt=0.02), 600)
     z = jnp.abs(result.mean - m0) / 0.1
@@ -187,6 +200,8 @@ def test_eks_uninformative_data_returns_the_prior():
     assert bool(jnp.all((ratio > 0.75) & (ratio < 1.3)))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_eks_implicit_prior_step_matches_dense_formula():
     """θ = θ* − (I + Δt C Σ₀⁻¹)⁻¹ Δt C Σ₀⁻¹ (θ* − m₀), formed densely."""
     J, n_p, dt = 30, 4, 0.7

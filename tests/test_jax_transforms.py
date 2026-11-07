@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as jr
 import lineax as lx
+import pytest
 
 import filterax as flx
 
@@ -40,6 +41,7 @@ def test_log_likelihood_grad(getkey):
     assert jnp.allclose(grad_v, expected, atol=1e-8)
 
 
+@pytest.mark.slow
 def test_ensemble_covariance_vmap(getkey):
     """Batch several independent ensembles via vmap."""
     batched = jr.normal(getkey(), (3, 15, 4))  # 3 ensembles each (15, 4)
@@ -56,6 +58,7 @@ def test_ensemble_covariance_vmap(getkey):
         assert jnp.allclose(batched_cov[i], ref, atol=1e-10)
 
 
+@pytest.mark.slow
 def test_kalman_gain_differentiable_wrt_particles(getkey):
     """A scalar function of K must differentiate cleanly wrt the ensemble."""
     R = lx.DiagonalLinearOperator(jnp.ones(3))
@@ -99,6 +102,7 @@ def _grad_through_analysis(filter_, particles, obs, obs_op, R, **kwargs):
     return jax.grad(loss)(1.0)
 
 
+@pytest.mark.slow
 def test_etkf_grad_finite_at_large_ensemble(getkey):
     N_e, N_x, N_y = 30, 4, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -111,6 +115,7 @@ def test_etkf_grad_finite_at_large_ensemble(getkey):
     assert g != 0.0
 
 
+@pytest.mark.slow
 def test_ensrf_grad_finite_at_large_ensemble(getkey):
     N_e, N_x, N_y = 30, 4, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -123,6 +128,7 @@ def test_ensrf_grad_finite_at_large_ensemble(getkey):
     assert g != 0.0
 
 
+@pytest.mark.slow
 def test_estkf_grad_finite_at_large_ensemble(getkey):
     N_e, N_x, N_y = 30, 4, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -135,6 +141,7 @@ def test_estkf_grad_finite_at_large_ensemble(getkey):
     assert g != 0.0
 
 
+@pytest.mark.slow
 def test_letkf_grad_finite_at_large_ensemble(getkey):
     N_e, N_x, N_y = 30, 6, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -155,6 +162,7 @@ def test_letkf_grad_finite_at_large_ensemble(getkey):
     assert g != 0.0
 
 
+@pytest.mark.slow
 def test_etkf_livings_grad_finite_at_large_ensemble(getkey):
     N_e, N_x, N_y = 30, 4, 3
     particles = jr.normal(getkey(), (N_e, N_x))

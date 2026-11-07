@@ -230,7 +230,9 @@ Run these locally before opening a PR:
 make format       # ruff format . + ruff check --fix .   (applies changes)
 make lint         # ruff check .                         (CI-style check)
 make typecheck    # ty check
-make test         # pytest
+make test-fast    # pytest, the fast tier that PR CI runs
+make test-slow    # pytest, the slow and integration tiers
+make test         # pytest, every tier
 ```
 
 Note that `make format` **mutates files** — it formats and applies autofixes. `make lint` is the CI-parity read-only check. Run `make format` first, commit the result, then run `make lint` / `make test` to verify.

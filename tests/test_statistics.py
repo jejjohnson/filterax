@@ -56,6 +56,7 @@ def test_cross_covariance_matches_bessel_numpy(getkey):
     np.testing.assert_allclose(got, expected, atol=1e-10)
 
 
+@pytest.mark.slow
 def test_cross_covariance_linear_H(getkey):
     # For linear H, C^{xH} should equal P @ H.T.
     key = getkey()

@@ -177,6 +177,7 @@ def test_crps_positive_for_dispersed_ensemble():
     assert crps > 0
 
 
+@pytest.mark.slow
 def test_crps_batch_averages_over_obs():
     y = jnp.zeros(3)
     ensemble = jr.normal(jr.PRNGKey(5), (100, 3))

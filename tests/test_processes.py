@@ -48,6 +48,7 @@ def _forward(G):
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_eki_one_step_matches_kalman_posterior():
     """One EKI step with ``Δt = 1`` collapses to the Kalman update applied
     to the sample covariance — pin against that (algebraic), not against
@@ -76,6 +77,8 @@ def test_eki_one_step_matches_kalman_posterior():
     np.testing.assert_allclose(np.asarray(result.mean), mean_ref, atol=1e-9)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_eki_misfit_controller_reduces_misfit_monotonically():
     """Correctness invariant: misfit decreases. Don't need 200 iterations
     to verify this."""
@@ -103,6 +106,7 @@ def test_eki_misfit_controller_reduces_misfit_monotonically():
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_eks_does_not_collapse():
     """Correctness invariant: EKS's noise injection keeps the spread
     bounded away from zero. A short run is enough to verify the noise
@@ -219,6 +223,7 @@ def test_sparse_inversion_drives_inactive_params_to_zero():
 # ──────────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_teki_pulls_ensemble_toward_prior_mean():
     # Ill-posed problem: G sees only the first component → without prior
     # regularisation the second component is unidentifiable. TEKI's
@@ -324,6 +329,7 @@ def _misfit(forward, theta_or_particles, y):
     return float(jnp.mean(jnp.sum((y[None, :] - g) ** 2, axis=-1)))
 
 
+@pytest.mark.integration
 def test_eki_reduces_misfit_and_moves_toward_truth_on_nonlinear_problem():
     forward, theta_true, y, R = _nonlinear_problem()
     init = 2.0 * jr.normal(jr.PRNGKey(10), (200, 3))
@@ -345,6 +351,7 @@ def test_eki_reduces_misfit_and_moves_toward_truth_on_nonlinear_problem():
     assert final_dist < initial_dist
 
 
+@pytest.mark.integration
 def test_uki_reduces_misfit_on_nonlinear_problem():
     forward, _theta_true, y, R = _nonlinear_problem()
     init_cov = lx.MatrixLinearOperator(
@@ -406,6 +413,7 @@ def test_gnki_rejects_underdetermined_ensemble():
         raise AssertionError("expected ValueError")
 
 
+@pytest.mark.slow
 def test_eks_preserves_spread_on_nonlinear_problem():
     """Correctness invariant on a nonlinear problem: EKS's noise term
     keeps spread positive and the update is finite. A short run is
@@ -439,6 +447,7 @@ def _inverse_problem_for_gaussx(num_members, obs_size, param_size=3):
     return forward, obs, particles
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("num_members", "obs_size"), [(30, 5), (5, 12)], ids=["dense", "woodbury"]
 )
@@ -461,6 +470,7 @@ def test_eki_step_matches_the_dense_formula_on_both_routes(num_members, obs_size
     np.testing.assert_allclose(new, expected, rtol=1e-10, atol=1e-12)
 
 
+@pytest.mark.slow
 def test_eki_update_is_a_no_op_at_zero_step():
     forward, obs, particles = _inverse_problem_for_gaussx(10, 5)
     noise_cov = lx.DiagonalLinearOperator(jnp.ones(5))
@@ -471,6 +481,7 @@ def test_eki_update_is_a_no_op_at_zero_step():
         np.testing.assert_allclose(new, particles, atol=1e-12)
 
 
+@pytest.mark.slow
 def test_teki_keeps_a_kronecker_noise_structured(monkeypatch):
     """Γ̃ is a BlockDiag, and a Kronecker Γ is never materialised on Woodbury."""
     obs_size, param_size, num_members = 6, 3, 5
@@ -519,6 +530,7 @@ def test_teki_keeps_a_kronecker_noise_structured(monkeypatch):
     np.testing.assert_allclose(new, expected, rtol=1e-9, atol=1e-10)
 
 
+@pytest.mark.slow
 def test_etki_matches_a_dense_etkf_transform():
     """x̄⁺ = x̄ + w̄ X′ and X′⁺ = W X′, with Ĉ = (J − 1) I + Y′ (Γ / Δt)⁻¹ Y′ᵀ."""
     num_members, obs_size = 10, 4
@@ -545,6 +557,8 @@ def test_etki_matches_a_dense_etkf_transform():
     np.testing.assert_allclose(new, expected, rtol=1e-10, atol=1e-12)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_etki_schedule_lands_on_the_gaussian_posterior():
     """With Σ Δt = 1 and J > Nₚ, the ensemble's moments are the exact posterior."""
     num_members, obs_size = 12, 5
@@ -653,6 +667,7 @@ def test_sigma_point_weights_keep_the_input_dtype():
     assert cov_weights.dtype == jnp.float32
 
 
+@pytest.mark.slow
 def test_sigma_point_gradient_is_finite_at_an_isotropic_covariance():
     """UKI starts from σ² I, where a plain eigh gradient would be NaN."""
 

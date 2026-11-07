@@ -86,6 +86,7 @@ def _check_against_reference(
     np.testing.assert_allclose(P_a, P_ref, atol=atol_cov)
 
 
+@pytest.mark.slow
 def test_etkf_matches_kalman_in_linear_gaussian(linear_gaussian):
     particles, y, obs_op, R, mean_ref, P_ref = linear_gaussian
     result = flx.filters.ETKF().analysis(particles, y, obs_op, R)
@@ -95,6 +96,7 @@ def test_etkf_matches_kalman_in_linear_gaussian(linear_gaussian):
     assert result.log_likelihood is not None
 
 
+@pytest.mark.slow
 def test_ensrf_matches_kalman_in_linear_gaussian(linear_gaussian):
     particles, y, obs_op, R, mean_ref, P_ref = linear_gaussian
     result = flx.filters.EnSRF().analysis(particles, y, obs_op, R)
@@ -103,6 +105,7 @@ def test_ensrf_matches_kalman_in_linear_gaussian(linear_gaussian):
     )
 
 
+@pytest.mark.slow
 def test_etkf_preserves_mean_consistency(getkey):
     # Pure mean-preservation: with zero innovation the analysis mean should
     # equal the forecast mean exactly.
@@ -119,6 +122,7 @@ def test_etkf_preserves_mean_consistency(getkey):
     )
 
 
+@pytest.mark.slow
 def test_letkf_no_localization_radius_matches_etkf(getkey):
     # With a localization radius large enough to cover every observation,
     # LETKF should reproduce ETKF up to the per-grid-point analysis (modulo
@@ -166,6 +170,8 @@ def _identity_dynamics():
     return _ID()
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_l2_etkf_assimilate_smoke(getkey):
     # 2-window assimilation under identity dynamics + identity observations.
     N_e, N_x = 60, 4
@@ -186,6 +192,8 @@ def test_l2_etkf_assimilate_smoke(getkey):
     assert result.log_likelihoods.shape == (2,)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_stochastic_enkf_l2_uses_independent_keys_per_window(getkey):
     # Regression: the original L1 StochasticEnKF reused self.key across
     # windows so every window drew identical observation perturbations.
@@ -211,6 +219,7 @@ def test_stochastic_enkf_l2_uses_independent_keys_per_window(getkey):
     assert float(diff) > 1e-3, "stochastic perturbations must be independent per window"
 
 
+@pytest.mark.slow
 def test_letkf_hard_cutoff_at_radius(getkey):
     # Regression: an observation at distance r < d < 2r should be EXCLUDED
     # by R-localization, even though Gaspari-Cohn is non-zero on (r, 2r].
@@ -288,6 +297,8 @@ def test_perturbed_observations_diagonal_fast_path():
     assert bool(jnp.all(jnp.isfinite(dense_draws)))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_l2_etkf_with_inflator(getkey):
     N_e, N_x = 40, 3
     particles = jr.normal(getkey(), (N_e, N_x))
@@ -325,6 +336,7 @@ def _analysis_problem(num_members, state_size, obs_size):
     return particles, obs_operator, obs, obs_noise
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("num_members", "obs_size"), [(20, 3), (6, 6), (5, 12)], ids=str
 )
@@ -341,6 +353,7 @@ def test_etkf_ensrf_and_estkf_compute_the_same_analysis(num_members, obs_size):
         np.testing.assert_allclose(result.log_likelihood, expected.log_likelihood)
 
 
+@pytest.mark.slow
 def test_etkf_matches_the_kalman_posterior_and_keeps_anomalies_centred():
     """For linear H and Nₑ > Nₓ, the analysis moments are the Kalman moments."""
     num_members, state_size, obs_size = 20, 4, 3
@@ -366,6 +379,7 @@ def test_etkf_matches_the_kalman_posterior_and_keeps_anomalies_centred():
     )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("obs_size", [2, 6], ids=["few_obs", "many_obs"])
 @pytest.mark.parametrize(
     "make_filter",
@@ -408,6 +422,7 @@ def test_analysis_rejects_a_degenerate_ensemble(filter_name, num_members):
         )
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     ("num_members", "obs_size"), [(20, 3), (6, 6), (5, 12)], ids=str
 )
@@ -429,6 +444,7 @@ def test_etkf_matches_a_dense_transform(num_members, obs_size):
     np.testing.assert_allclose(result.particles, expected, atol=1e-10)
 
 
+@pytest.mark.slow
 def test_etkf_livings_keeps_the_analysis_mean():
     """The rotation fixes 𝟙, so it moves the anomalies and not the mean."""
     particles, obs_operator, obs, obs_noise = _analysis_problem(20, 4, 3)
@@ -446,6 +462,7 @@ def test_etkf_livings_keeps_the_analysis_mean():
     assert float(jnp.max(jnp.abs(rotated.particles - plain.particles))) > 1e-3
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("filter_name", ["ETKF", "EnSRF", "ESTKF"])
 def test_analysis_gradient_with_a_constant_observation_channel(filter_name):
     """A constant channel leaves Y′ rank deficient, which QR's derivative can't take."""
@@ -486,6 +503,7 @@ def test_analysis_forms_no_ensemble_sized_matrix(filter_name):
     assert f"[{num_members},{num_members}]" not in jaxpr
 
 
+@pytest.mark.slow
 def test_letkf_matches_a_dense_local_etkf_at_each_grid_point():
     num_members, num_state, num_obs, radius = 12, 5, 3, 3.0
     particles = jr.normal(jr.PRNGKey(0), (num_members, num_state))
@@ -531,6 +549,7 @@ def test_letkf_matches_a_dense_local_etkf_at_each_grid_point():
     assert jnp.allclose(result.particles, jnp.stack(expected, axis=1), atol=1e-10)
 
 
+@pytest.mark.slow
 def test_letkf_keeps_float32_accuracy_with_mixed_observation_variances():
     # 10⁻⁶ to 1 in R, with the same well-observed members in both precisions.
     particles = jr.normal(jr.PRNGKey(0), (20, 30))
