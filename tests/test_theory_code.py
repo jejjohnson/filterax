@@ -25,4 +25,4 @@ def test_chapter_code_runs(chapter):
         # A sketch with placeholders says so on its first line.
         if block.startswith("# not run"):
             continue
-        exec(compile(block, str(chapter), "exec"), namespace)
+        exec(compile(block, str(chapter), "exec", dont_inherit=True), namespace)

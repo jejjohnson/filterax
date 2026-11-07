@@ -511,5 +511,3 @@ Reach for something else when the state is much larger than the ensemble with no
 - [Chapter 8](08_letkf.md): LETKF, one ETKF per grid point with weighted observations
 - [Chapter 14](14_differentiable.md): why the gradient safety of the analysis matters
 - [API: filters](https://jejjohnson.github.io/filterax/reference/filters/), [advanced filters](https://jejjohnson.github.io/filterax/reference/filters_advanced/) and [differentiable training](https://jejjohnson.github.io/filterax/reference/differentiable/)
-
-## References

@@ -27,6 +27,7 @@ project:
     '\op': '\mathrm{#1}'
   bibliography:
     - bib/filters.bib
+    - bib/applications.bib
   references:
     api: http://127.0.0.1:8911/
   toc:
@@ -55,6 +56,14 @@ project:
             - file: math/14_differentiable.md
             - file: math/15_latent_da.md
             - file: math/16_assimilation_cycle.md
+        - title: Exact references and numerics
+          children:
+            - file: math/17_exact_references.md
+            - file: math/18_numerics.md
+        - title: Worked examples
+          children:
+            - file: math/19_lorenz96_example.md
+            - file: math/20_inversion_example.md
         - title: Reference
           children:
             - file: math/notation.md
