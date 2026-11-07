@@ -25,6 +25,8 @@ project:
     '\gvect': '\boldsymbol{#1}'
     '\gmat': '\boldsymbol{#1}'
     '\op': '\mathrm{#1}'
+  bibliography:
+    - bib/filters.bib
   references:
     api: http://127.0.0.1:8911/
   toc:
