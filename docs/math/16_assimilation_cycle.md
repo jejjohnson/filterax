@@ -147,6 +147,7 @@ above, and `tests/test_pipekit_integration.py` runs the real
 importable):
 
 ```python
+# not run: my_dynamics, my_obs_op and similar are placeholders
 # Illustrative — requires `pipekit_cycle` to be installed.
 import jax.numpy as jnp
 from pipekit_cycle import DAState, EnsembleDACycle
