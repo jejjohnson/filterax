@@ -1,4 +1,4 @@
-"""Kalman gain from an ensemble."""
+"""Kalman gain from an ensemble, with or without Schur-product localization."""
 
 from __future__ import annotations
 
@@ -15,62 +15,84 @@ def kalman_gain(
     solver: gaussx.AbstractSolverStrategy | None = None,
     dense_innovation: bool | None = None,
 ) -> Float[Array, "N_x N_y"]:
-    r"""Ensemble Kalman gain ``K = Cˣᴴ (Cᴴᴴ + R)⁻¹``.
+    """Kalman gain from an ensemble and its image in observation space.
 
-    Thin wrapper over :func:`gaussx.ensemble_kalman_gain` with the EnKF
-    Bessel convention. With fewer members than observations, the innovation
-    covariance ``S = Cᴴᴴ + R`` is assembled as a :class:`gaussx.LowRankUpdate`
-    so structural dispatch routes the solve through the Woodbury identity:
+        G = Σ̂_xy Σ̂_y⁻¹,   Σ̂_y = Σ̂_h + Σ_ε
 
-    $$
-    S^{-1} = R^{-1} - R^{-1} U
-        \left( (N_{e} - 1) I + U^{\top} R^{-1} U \right)^{-1}
-        U^{\top} R^{-1},
-    \qquad
-    U = \frac{(HX)^{\prime\top}}{\sqrt{N_{e} - 1}}.
-    $$
+    Wraps `gaussx.ensemble_kalman_gain` and fixes ``bessel=True``, the divisor
+    N_ℰ − 1. Σ̂_y is assembled by one of two routes, which agree to round-off. With
+    U = H̃ᵀ / √(N_ℰ − 1), the Woodbury route solves through
 
-    That route costs ``O(Nₑ² Nᵧ + Nₑ³)`` and never materialises the dense
-    ``(Nᵧ, Nᵧ)`` matrix when ``R`` carries structure (diagonal, low-rank,
-    Toeplitz, …). When ``Nₑ ≥ Nᵧ``, the default instead forms ``S`` densely and
-    solves it directly at ``O(Nₑ Nᵧ² + Nᵧ³)``, because the capacitance would be
-    the larger matrix. The two routes agree to rounding, and
-    ``dense_innovation`` overrides the choice.
+        Σ̂_y⁻¹ = Σ_ε⁻¹ − Σ_ε⁻¹ U (I + Uᵀ Σ_ε⁻¹ U)⁻¹ Uᵀ Σ_ε⁻¹
+
+    - **Woodbury**, the default when N_ℰ < D_y: Σ̂_y is a `gaussx.LowRankUpdate` of
+      Σ_ε, solved by structural dispatch at O(N_ℰ² D_y + N_ℰ³), and a structured Σ_ε
+      is never materialised.
+    - **Dense**, the default when N_ℰ ≥ D_y: Σ̂_y is formed as a (D_y, D_y) matrix and
+      solved directly at O(N_ℰ D_y² + D_y³), because the capacitance would be the
+      larger matrix. It also handles a positive semi-definite Σ_ε, which Woodbury
+      cannot.
+
+    Algorithm:
+        1. Choose the route for Σ̂_y from the shapes or ``dense_innovation``.
+        2. Form the cross-covariance Σ̂_xy.
+        3. Assemble Σ̂_y densely, or as a low-rank update of Σ_ε.
+        4. Solve for the gain G = Σ̂_xy Σ̂_y⁻¹ row by row.
 
     Args:
-        particles: Prior ensemble in state space, shape ``(Nₑ, Nₓ)``.
-        obs_particles: ``H`` applied to each member, shape ``(Nₑ, Nᵧ)``.
-            For linear ``H``, this is ``X H ᵀ``; for nonlinear ``H``, the
-            ensemble provides an implicit linearisation.
-        obs_noise: Observation error covariance ``R`` as a linear operator.
-        solver: Optional :class:`gaussx.AbstractSolverStrategy`. ``None``
-            lets gaussx pick by operator type (Woodbury for low-rank +
-            structured base, dense Cholesky otherwise). A matrix-free strategy
-            wants ``dense_innovation=False``, so that it gets the structured
-            operator.
-        dense_innovation: Whether to form the ``(Nᵧ, Nᵧ)`` innovation densely.
-            ``None`` chooses by shape, dense when ``Nₑ ≥ Nᵧ``. ``True`` also
-            handles a positive semi-definite ``R``, which Woodbury cannot.
+        particles: Prior ensemble x⁽ᵉ⁾ in state space, one row per member.
+        obs_particles: Its image h⁽ᵉ⁾ = h(x⁽ᵉ⁾) in observation space. A nonlinear h
+            is linearised implicitly by the ensemble.
+        obs_noise: Observation-error covariance Σ_ε.
+        solver: Solver strategy for Σ̂_y; ``None`` uses structural dispatch. A
+            matrix-free strategy wants ``dense_innovation=False``, so that it gets
+            the structured operator.
+        dense_innovation: Whether to form the (D_y, D_y) Σ̂_y densely. ``None``
+            chooses by shape; ``True`` and ``False`` force the dense and the
+            Woodbury route.
 
     Returns:
-        Dense Kalman gain of shape ``(Nₓ, Nᵧ)``. Materialising ``K`` is
-        intentional — it is consumed once by the analysis update and is
-        usually small (``Nᵧ`` is the observation count).
+        The dense Kalman gain G. It is consumed once by the analysis and is usually
+        small, since D_y counts the observations.
 
     Raises:
-        ValueError: if ``Nₑ < 2``.
+        ValueError: If the ensembles have different sizes, ``obs_noise`` is not
+            (D_y, D_y), or N_ℰ < 2.
 
     Examples:
+        Three members, with the first component observed:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
-        >>> from filterax import kalman_gain
+        >>> import filterax
         >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
-        >>> obs_particles = particles[:, :1]  # H observes the first component
-        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
-        >>> kalman_gain(particles, obs_particles, R)
-        Array([[0.6666666],
-               [0.       ]], dtype=float32)
+        >>> obs_particles = particles[:, :1]
+        >>> obs_noise = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
+        >>> gain = filterax.kalman_gain(particles, obs_particles, obs_noise)
+        >>> gain.shape
+        (2, 1)
+        >>> bool(jnp.allclose(gain, jnp.array([[2.0 / 3.0], [0.0]])))
+        True
+
+        The two routes agree to round-off:
+
+        >>> woodbury = filterax.kalman_gain(
+        ...     particles, obs_particles, obs_noise, dense_innovation=False
+        ... )
+        >>> bool(jnp.allclose(gain, woodbury, atol=1e-4))
+        True
+
+        One member has no sample covariance:
+
+        >>> filterax.kalman_gain(
+        ...     particles[:1], obs_particles[:1], obs_noise
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        ValueError: Bessel correction requires J >= 2 particles (divisor is J - 1);
+        got J=1. Pass bessel=False for a maximum-likelihood divisor.
     """
+    # G = Σ̂_xy Σ̂_y⁻¹
     return gaussx.ensemble_kalman_gain(
         particles,
         obs_particles,
@@ -90,53 +112,77 @@ def localized_kalman_gain(
     *,
     solver: gaussx.AbstractSolverStrategy | None = None,
 ) -> Float[Array, "N_x N_y"]:
-    r"""Kalman gain with Schur-product (Hadamard) localization.
+    """Kalman gain with Schur-product localization of both sample covariances.
 
-    Thin wrapper over :func:`gaussx.localized_kalman_gain` with the EnKF
-    Bessel convention. Computes
+        G = (ρ_xy ∘ Σ̂_xy) (ρ_yy ∘ Σ̂_h + Σ_ε)⁻¹
 
-    $$
-    K = (\rho^{xy} \circ C^{xH})\,(\rho^{yy} \circ C^{HH} + R)^{-1}.
-    $$
+    Wraps `gaussx.localized_kalman_gain` and fixes ``bessel=True``, the divisor
+    N_ℰ − 1. Tapering suppresses spurious long-range sample correlations, and by the
+    Schur product theorem ρ_yy ∘ Σ̂_h stays positive semi-definite when ρ_yy is. Build
+    the tapers with `localization_matrix`.
 
-    Tapering both covariances with the Schur
-    (element-wise) product suppresses spurious long-range correlations;
-    by the Schur product theorem the tapered innovation covariance stays
-    PSD when ``ρʸʸ`` is (use :func:`filterax.localization_matrix` /
-    :func:`filterax.gaspari_cohn` to build the tapers).
+    Unlike `kalman_gain`, the Schur product destroys the low-rank structure of Σ̂_h,
+    so the (D_y, D_y) matrix is materialised, at O(N_ℰ D_x D_y + D_y³). The tapers
+    ρ_xy = ρ_yy = 1 recover the unlocalized gain.
 
-    Unlike :func:`filterax.kalman_gain`, the Hadamard product destroys
-    the low-rank structure of ``Cᴴᴴ``, so the innovation covariance is
-    materialised densely — cost ``O(Nₑ Nₓ Nᵧ + Nᵧ³)``. With
-    ``ρ ≡ 1`` this reduces exactly to the unlocalized gain.
+    Algorithm:
+        1. Form the sample covariances Σ̂_xy and Σ̂_h.
+        2. Taper them by ρ_xy and ρ_yy.
+        3. Add Σ_ε and symmetrise.
+        4. Solve for the gain G row by row.
 
     Args:
-        particles: Prior ensemble in state space, shape ``(Nₑ, Nₓ)``.
-        obs_particles: ``H`` applied to each member, shape ``(Nₑ, Nᵧ)``.
-        obs_noise: Observation error covariance ``R`` as a linear operator.
-        rho_xy: State-observation taper, shape ``(Nₓ, Nᵧ)``.
-        rho_yy: Observation-observation taper, shape ``(Nᵧ, Nᵧ)``.
-        solver: Optional :class:`gaussx.AbstractSolverStrategy`. ``None``
-            uses structural dispatch on the dense innovation covariance.
+        particles: Prior ensemble x⁽ᵉ⁾ in state space, one row per member.
+        obs_particles: Its image h⁽ᵉ⁾ = h(x⁽ᵉ⁾) in observation space.
+        obs_noise: Observation-error covariance Σ_ε.
+        rho_xy: State-observation taper ρ_xy.
+        rho_yy: Observation-observation taper ρ_yy.
+        solver: Solver strategy for the dense matrix; ``None`` uses structural
+            dispatch.
 
     Returns:
-        Dense localized Kalman gain of shape ``(Nₓ, Nᵧ)``.
+        The dense localized Kalman gain G.
 
     Raises:
-        ValueError: if ``Nₑ < 2``.
+        ValueError: If the ensembles have different sizes, ``obs_noise`` or the
+            tapers do not match D_x and D_y, or N_ℰ < 2.
 
     Examples:
+        Unit tapers recover the unlocalized gain:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
-        >>> from filterax import kalman_gain, localized_kalman_gain
+        >>> import filterax
         >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
         >>> obs_particles = particles[:, :1]
-        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
-        >>> ones = jnp.ones((2, 1)), jnp.ones((1, 1))
-        >>> K_loc = localized_kalman_gain(particles, obs_particles, R, *ones)
-        >>> bool(jnp.allclose(K_loc, kalman_gain(particles, obs_particles, R)))
+        >>> obs_noise = lx.DiagonalLinearOperator(0.5 * jnp.ones(1))
+        >>> gain = filterax.localized_kalman_gain(
+        ...     particles, obs_particles, obs_noise, jnp.ones((2, 1)), jnp.ones((1, 1))
+        ... )
+        >>> plain = filterax.kalman_gain(particles, obs_particles, obs_noise)
+        >>> bool(jnp.allclose(gain, plain))
         True
+
+        A zero taper removes that coupling from the gain:
+
+        >>> rho_xy = jnp.array([[0.0], [1.0]])
+        >>> gain = filterax.localized_kalman_gain(
+        ...     particles, obs_particles, obs_noise, rho_xy, jnp.ones((1, 1))
+        ... )
+        >>> float(gain[0, 0])
+        0.0
+
+        A taper of the wrong shape is rejected:
+
+        >>> filterax.localized_kalman_gain(
+        ...     particles, obs_particles, obs_noise, jnp.ones((1, 1)), jnp.ones((1, 1))
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        ValueError: rho_xy must have shape (2, 1) to match particles and obs_particles,
+        got (1, 1).
     """
+    # G = (ρ_xy ∘ Σ̂_xy) (ρ_yy ∘ Σ̂_h + Σ_ε)⁻¹
     return gaussx.localized_kalman_gain(
         particles, obs_particles, obs_noise, rho_xy, rho_yy, solver=solver, bessel=True
     )
