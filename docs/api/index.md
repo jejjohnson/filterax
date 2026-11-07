@@ -22,6 +22,7 @@ analysis components in the middle, full assimilation loops on top:
 | [Differentiable training](differentiable.md) | `differentiable_assimilate` (full-tape scan) and the ROAD-EnKF local-gradient strategy |
 | [Diagnostics](diagnostics.md) | "Is the filter working?" — spread, innovations, rank histograms, Desroziers, CRPS |
 | [pipekit integration](pipekit.md) | Adapters that plug filterax into pipekit-cycle's DA orchestration protocols |
+| [Integrations](integrations.md) | Minimal snippets for composing with optax, gaussx and somax. |
 
 ## Import conventions
 

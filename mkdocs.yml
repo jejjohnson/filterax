@@ -91,6 +91,7 @@ nav:
       - Differentiable training: api/differentiable.md
       - Diagnostics: api/diagnostics.md
       - pipekit integration: api/pipekit.md
+      - Integrations: api/integrations.md
   - Contributing: contributing.md
   - Changelog: CHANGELOG.md
 
