@@ -1,15 +1,10 @@
-"""Layer-1 sequential filter components.
+"""Layer-1 sequential filters: the one-shot analysis steps, such as `filters.ETKF()`.
 
-Re-exports the L1 filter classes from ``filterax._filters._sequential`` so the
-canonical ``filterax.filters.ETKF()`` access path matches the design docs.
-
-Wave 4 additions:
-* :class:`ETKF_Livings` — ETKF + mean-preserving random rotation
-* :class:`EnSRF_Serial` — scalar serial sqrt updates
-* :class:`ESTKF` — error-subspace transform
-* :class:`SquareRootKF` — parametric square-root filter (lives in
-  ``filterax._filters._parametric`` for namespacing; re-exported here for
-  convenience).
+Re-exports the analysis steps of `filterax._filters._sequential`: `StochasticEnKF`,
+`ETKF`, `EnSRF`, `LETKF`, and the variants `ETKF_Livings`, with a mean-preserving
+random rotation, `EnSRF_Serial`, with one scalar update per observation, and `ESTKF`,
+in the error subspace. The parametric `SquareRootKF` and its `SquareRootFilterResult`
+live in `filterax._filters._parametric` and are re-exported here for convenience.
 """
 
 from filterax._filters._parametric import (

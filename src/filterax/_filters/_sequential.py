@@ -1,29 +1,15 @@
-"""Layer-1 sequential filter components.
+"""Sequential filters: one analysis step from a forecast ensemble to a posterior.
 
-Each filter implements :meth:`AbstractSequentialFilter.analysis` and
-produces a single posterior ensemble from a forecast ensemble, an
-observation vector, an observation operator, and an observation noise
-covariance. The forecast and inflation steps live at Layer 2
-(``filterax.models``).
+Each filter implements `AbstractSequentialFilter.analysis`, from a forecast ensemble X,
+an observation y, an observation operator h and an observation-error covariance Σ_ε,
+and reports the log-likelihood log 𝒩(r̄; 0, Σ̂_y) of the mean residual r̄ = y − h̄
+alongside the analysis. The forecast and the inflation live in the Layer-2 models of
+`filterax._filters._models`.
 
-All four filters share the same ensemble-statistics primitives from
-:mod:`filterax._primitives._statistics` and the Bessel-corrected gaussx Kalman-gain
-recipe; they differ only in *how the ensemble is updated* given those
-statistics.
-
-Notation
---------
-* ``Nₑ``           — ensemble size
-* ``Nₓ``           — state dimension
-* ``Nᵧ``           — observation dimension
-* ``X ∈ ℝ^{Nₑ×Nₓ}``  — forecast ensemble, rows are members
-* ``Y = H(X) ∈ ℝ^{Nₑ×Nᵧ}``  — ensemble in obs space (linearised when ``H`` is nonlinear)
-* ``X′, Y′``        — centred anomaly matrices
-* ``x̄, ȳ``         — ensemble means
-* ``R``             — observation error covariance
-* ``S = Cᴴᴴ + R``   — innovation covariance (``Cᴴᴴ = (Nₑ−1)⁻¹ Y′ᵀ Y′``)
-* ``K = Cˣᴴ S⁻¹``  — Kalman gain
-* ``v = y − ȳ``    — innovation
+The filters share the sample statistics of `filterax._primitives._statistics` and the
+ensemble Kalman divisor N_ℰ − 1, and differ only in how the ensemble is moved: by the
+perturbed-observation gain of `gaussx.enkf_analysis`, by the ensemble-space transform
+of `gaussx.etkf_analysis` and `gaussx.etkf_transform`, or one observation at a time.
 """
 
 from __future__ import annotations
@@ -58,7 +44,16 @@ def _apply_obs_op(
     obs_op: AbstractObsOperator | ObsCallable,
     particles: Float[Array, "N_e N_x"],
 ) -> Float[Array, "N_e N_y"]:
-    """vmap ``obs_op`` over an ensemble. Cost ``O(Nₑ · cost(H))``."""
+    """Map every member to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾), at N_ℰ calls of h.
+
+    Args:
+        obs_op: Observation operator h, applied to one state.
+        particles: Ensemble members x⁽ᵉ⁾, one row per member.
+
+    Returns:
+        The mapped members h⁽ᵉ⁾, one row per member.
+    """
+    # h⁽ᵉ⁾ = h(x⁽ᵉ⁾)
     return jax.vmap(obs_op)(particles)
 
 
@@ -67,9 +62,24 @@ def _innovation_log_likelihood(
     obs: Float[Array, " N_y"],
     obs_noise: lx.AbstractLinearOperator,
 ) -> Float[Array, ""]:
-    """``log 𝒩(y − ȳ; 0, Cᴴᴴ + R)``, the log-likelihood every analysis reports."""
-    innovation = obs - ensemble_mean(obs_particles)
-    return ensemble_log_likelihood(obs_particles, innovation, obs_noise)
+    """Log-likelihood of the mean residual that every analysis reports.
+
+        log 𝒩(r̄; 0, Σ̂_y),   r̄ = y − h̄,   Σ̂_y = Σ̂_h + Σ_ε
+
+    Args:
+        obs_particles: Forecast members h⁽ᵉ⁾ in observation space.
+        obs: Observation y.
+        obs_noise: Observation-error covariance Σ_ε.
+
+    Returns:
+        The scalar log-likelihood.
+    """
+    # h̄ = (1 / N_ℰ) ∑ₑ h⁽ᵉ⁾
+    obs_mean = ensemble_mean(obs_particles)
+    # r̄ = y − h̄
+    residual = obs - obs_mean
+    # log 𝒩(r̄; 0, Σ̂_h + Σ_ε)
+    return ensemble_log_likelihood(obs_particles, residual, obs_noise)
 
 
 def _etkf_analysis(
@@ -78,54 +88,79 @@ def _etkf_analysis(
     obs_op: AbstractObsOperator | ObsCallable,
     obs_noise: lx.AbstractLinearOperator,
 ) -> AnalysisResult:
-    """The batch ETKF analysis that :class:`ETKF`, :class:`EnSRF` and
-    :class:`ESTKF` all compute."""
+    """The batch ETKF analysis that `ETKF`, `EnSRF` and `ESTKF` all compute.
+
+        x̄_t|t = x̄_t|t−1 + X̃ᵀ w̄,   X̃_t|t = W X̃
+
+    Args:
+        particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+        obs: Observation y.
+        obs_op: Observation operator h, applied to one state.
+        obs_noise: Observation-error covariance Σ_ε.
+
+    Returns:
+        The analysis ensemble and the log-likelihood of r̄.
+    """
+    # h⁽ᵉ⁾ = h(x⁽ᵉ⁾)
     obs_particles = _apply_obs_op(obs_op, particles)
-    # Xₐ = x̄ₐ 𝟙ᵀ + X′ₐ
-    particles_a = gaussx.etkf_analysis(particles, obs_particles, obs, obs_noise)
-    log_p = _innovation_log_likelihood(obs_particles, obs, obs_noise)
-    return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+    # x⁽ᵉ⁾_t|t = x̄_t|t−1 + X̃ᵀ w̄ + (W X̃)⁽ᵉ⁾
+    analysis_particles = gaussx.etkf_analysis(particles, obs_particles, obs, obs_noise)
+    # log 𝒩(r̄; 0, Σ̂_y)
+    log_likelihood = _innovation_log_likelihood(obs_particles, obs, obs_noise)
+    return AnalysisResult(particles=analysis_particles, log_likelihood=log_likelihood)
 
 
 class StochasticEnKF(AbstractSequentialFilter, strict=True):
-    r"""Stochastic Ensemble Kalman Filter (Evensen 1994).
+    """Stochastic ensemble Kalman filter, with perturbed observations.
 
-    Perturbed-observation update — each member sees an independent draw
-    from the observation noise:
+        x⁽ᵉ⁾_t|t = x⁽ᵉ⁾_t|t−1 + G (y + ε⁽ᵉ⁾ − h⁽ᵉ⁾),   ε⁽ᵉ⁾ ~ 𝒩(0, Σ_ε)
+        G = Σ̂_xy Σ̂_y⁻¹,   Σ̂_y = Σ̂_h + Σ_ε
 
-    $$
-    \epsilon^{(j)} \sim \mathcal{N}(0, R), \qquad
-    x^{(j)}_a = x^{(j)}_f + K \big(y + \epsilon^{(j)} - H x^{(j)}_f\big)
-    $$
+    Each member sees its own draw of the observation noise, which keeps the analysis
+    spread right at the cost of Monte Carlo noise of order 1 / √N_ℰ. The update is
+    `gaussx.enkf_analysis` with the divisor N_ℰ − 1; the filter adds the map to
+    observation space, the choice of key and the log-likelihood of r̄.
 
-    Simple and robust; the perturbations introduce extra Monte Carlo
-    variance whose magnitude scales as ``1/√Nₑ``.
-
-    PRNG key handling. The key stored on the filter is the *default*
-    source of randomness. ``analysis(..., key=subkey)`` overrides it for
-    a single call — this is how the Layer-2 :class:`filterax.StochasticEnKF`
-    threads a fresh sub-key per assimilation window so consecutive
-    perturbations stay independent. If you call ``analysis`` directly,
-    pass a freshly split key each cycle or you will get identical
-    observation perturbations every window.
+    The stored ``key`` is only the default. ``analysis(..., key=step_key)`` overrides
+    it for one call, which is how the Layer-2 `filterax.StochasticEnKF` draws fresh
+    perturbations in every window. Calling ``analysis`` yourself without a fresh key
+    repeats the same perturbations in every window.
 
     Attributes:
-        key: Default PRNG key used when no ``key`` is supplied in the
-            ``analysis`` kwargs.
+        key: Default PRNG key, used when ``analysis`` gets no ``key``. An integer is
+            turned into ``jr.PRNGKey(key)``.
 
     Examples:
+        Three members, both components observed:
+
         >>> import jax.numpy as jnp
         >>> import jax.random as jr
         >>> import lineax as lx
         >>> from filterax.filters import StochasticEnKF
         >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
-        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
-        >>> filt = StochasticEnKF(key=jr.key(0))
-        >>> result = filt.analysis(
-        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R, key=jr.key(1)
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> filter_ = StochasticEnKF(key=jr.key(0))
+        >>> result = filter_.analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise, key=jr.key(1)
         ... )
         >>> result.particles.shape
         (3, 2)
+
+        The same key repeats the same draw, and another key moves it:
+
+        >>> again = filter_.analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise, key=jr.key(1)
+        ... )
+        >>> bool(jnp.array_equal(result.particles, again.particles))
+        True
+        >>> other = filter_.analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise, key=jr.key(2)
+        ... )
+        >>> bool(jnp.array_equal(result.particles, other.particles))
+        False
+
+    References:
+        Evensen (1994), *J. Geophys. Res.* 99(C5), 10143–10162.
     """
 
     key: PRNGKeyArray
@@ -145,71 +180,81 @@ class StochasticEnKF(AbstractSequentialFilter, strict=True):
         key: PRNGKeyArray | None = None,
         **_: Any,
     ) -> AnalysisResult:
-        r"""Stochastic EnKF analysis step.
+        """Stochastic EnKF analysis step.
+
+        Algorithm:
+            1. Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).
+            2. Draw ε⁽ᵉ⁾ ~ 𝒩(0, Σ_ε) and add G (y + ε⁽ᵉ⁾ − h⁽ᵉ⁾) to each member.
+            3. Score r̄ under 𝒩(0, Σ̂_y).
 
         Args:
-            particles: Forecast ensemble ``(Nₑ, Nₓ)``.
-            obs: Observation ``y`` of shape ``(Nᵧ,)``.
-            obs_op: ``H`` applied to a single state vector.
-            obs_noise: Observation covariance ``R``.
-            key: Per-step PRNG key. When ``None``, falls back to
-                ``self.key`` — the same draw is repeated across calls
-                unless callers split externally.
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Observation-error covariance Σ_ε.
+            key: PRNG key for this step's perturbations; ``None`` uses ``self.key``,
+                which repeats the same draw across calls.
 
         Returns:
-            :class:`AnalysisResult` with the perturbed-observation
-            posterior ensemble and the Gaussian log-likelihood of the
-            innovation under ``S = Cᴴᴴ + R``.
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).
+
+        Raises:
+            ValueError: From gaussx, if N_ℰ < 2, or ``obs`` or ``obs_noise`` does not
+                match D_y.
         """
         step_key = self.key if key is None else key
-        obs_particles = _apply_obs_op(obs_op, particles)  # Y ∈ ℝ^{Nₑ×Nᵧ}
-        # x⁽ʲ⁾_a = x⁽ʲ⁾ + K (y + ε⁽ʲ⁾ − H x⁽ʲ⁾), with ε⁽ʲ⁾ ~ 𝒩(0, R)
-        particles_a = gaussx.enkf_analysis(
+        # h⁽ᵉ⁾ = h(x⁽ᵉ⁾)
+        obs_particles = _apply_obs_op(obs_op, particles)
+        # x⁽ᵉ⁾_t|t = x⁽ᵉ⁾_t|t−1 + G (y + ε⁽ᵉ⁾ − h⁽ᵉ⁾),   ε⁽ᵉ⁾ ~ 𝒩(0, Σ_ε)
+        analysis_particles = gaussx.enkf_analysis(
             particles, obs_particles, obs, obs_noise, key=step_key
         )
-        log_p = _innovation_log_likelihood(obs_particles, obs, obs_noise)
-        return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+        # log 𝒩(r̄; 0, Σ̂_y)
+        log_likelihood = _innovation_log_likelihood(obs_particles, obs, obs_noise)
+        return AnalysisResult(
+            particles=analysis_particles, log_likelihood=log_likelihood
+        )
 
 
 class ETKF(AbstractSequentialFilter, strict=True):
-    r"""Ensemble Transform Kalman Filter (Bishop, Etherton & Majumdar 2001).
+    """Ensemble transform Kalman filter, a deterministic square-root analysis.
 
-    Deterministic square-root update working entirely in the
-    ``Nₑ``-dimensional ensemble subspace. Define the transform precision
-    in the ensemble space and its symmetric inverse square root:
+        Λ_w = (N_ℰ − 1) I + H̃ Σ_ε⁻¹ H̃ᵀ,   Σ_w = Λ_w⁻¹
+        w̄ = Σ_w H̃ Σ_ε⁻¹ r̄,   W = ((N_ℰ − 1) Σ_w)^½
+        x̄_t|t = x̄_t|t−1 + X̃ᵀ w̄,   X̃_t|t = W X̃
 
-    $$
-    \tilde{C} = (N_e - 1) I + Y' R^{-1} Y'^{\top}, \qquad
-    T = \tilde{C}^{-1}, \qquad
-    W_a = \sqrt{(N_e - 1)\, T}
-    $$
+    The update works in the N_ℰ-dimensional space of the members, with the symmetric
+    square root W, which keeps the analysis mean exact. It is `gaussx.etkf_analysis`,
+    and the filter adds the map to observation space and the log-likelihood of r̄.
 
-    Mean and perturbation weights:
-
-    $$
-    \bar{w}_a = T\, Y' R^{-1} v, \qquad
-    X_a = \bar{x} \mathbf{1}^{\top}
-        + X'^{\top} \big(\bar{w}_a \mathbf{1}^{\top} + W_a\big)
-    $$
-
-    :func:`gaussx.etkf_analysis` computes the update. With ``Nᵧ < Nₑ`` it uses
-    a thin QR of ``Y′`` and an ``(Nᵧ, Nᵧ)`` eigendecomposition, costs
-    ``O(Nₑ Nᵧ² + Nₑ Nᵧ Nₓ)`` and forms no ``(Nₑ, Nₑ)`` matrix. Otherwise it
-    eigendecomposes ``C̃`` at ``O(Nₑ² Nᵧ + Nₑ³)``. Both routes have closed-form
-    derivatives that stay finite at repeated eigenvalues, and the inner solve
-    is routed through gaussx so structured ``R`` does not densify.
+    With D_y < N_ℰ gaussx takes a thin QR of H̃ and a (D_y, D_y) eigendecomposition, at
+    O(N_ℰ D_y² + N_ℰ D_y D_x), and forms no (N_ℰ, N_ℰ) matrix. Otherwise it
+    eigendecomposes Λ_w at O(N_ℰ² D_y + N_ℰ³). Both routes have closed-form
+    derivatives that stay finite at repeated eigenvalues, and Σ_ε⁻¹ goes through
+    gaussx's solves, so a structured Σ_ε is never densified.
 
     Examples:
+        Three members, both components observed:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax.filters import ETKF
         >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
-        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
         >>> result = ETKF().analysis(
-        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise
         ... )
         >>> result.particles.shape
         (3, 2)
+
+        The analysis anomalies still sum to zero:
+
+        >>> anomalies = result.particles - result.particles.mean(0)
+        >>> bool(jnp.allclose(anomalies.sum(0), 0.0, atol=1e-5))
+        True
+
+    References:
+        Bishop, Etherton & Majumdar (2001), *Mon. Wea. Rev.* 129, 420–436.
     """
 
     def analysis(
@@ -220,46 +265,67 @@ class ETKF(AbstractSequentialFilter, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         **_: Any,
     ) -> AnalysisResult:
+        """ETKF analysis step.
+
+        Algorithm:
+            1. Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).
+            2. Form w̄ and W in ensemble space and apply them to X̃.
+            3. Score r̄ under 𝒩(0, Σ̂_y).
+
+        Args:
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Observation-error covariance Σ_ε.
+
+        Returns:
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).
+
+        Raises:
+            ValueError: From gaussx, if N_ℰ < 2, or ``obs`` or ``obs_noise`` does not
+                match D_y.
+        """
         return _etkf_analysis(particles, obs, obs_op, obs_noise)
 
 
 class EnSRF(AbstractSequentialFilter, strict=True):
-    r"""Ensemble Square Root Filter (Whitaker & Hamill 2002, batch form).
+    """Ensemble square-root filter in batch form, which is the ETKF update.
 
-    Separate mean and perturbation updates that produce the exact
-    analysis covariance ``Pₐ = (I − KH) P_f`` in the linear-Gaussian
-    limit, without perturbed observations:
+        x̄_t|t = x̄_t|t−1 + G (y − h̄),   X̃_t|t = W X̃
 
-    * Mean from the Kalman gain: ``x̄ₐ = x̄_f + K (y − ȳ_f)``, which equals
-      the ETKF's ``x̄_f + w̄ X′``.
-    * Perturbations via the symmetric ETKF transform applied to anomalies.
+    The mean moves by the gain, G r̄ = X̃ᵀ w̄, and the anomalies by a square root that
+    gives the analysis covariance (I − G H) Σ̂_x of the linear-Gaussian case without
+    perturbed observations. With the members as rows, the symmetric square root W of
+    the ETKF is the one that is also mean-preserving (Tippett et al. 2003), so in batch
+    form this class runs exactly the analysis of `ETKF`, through
+    `gaussx.etkf_analysis`, and keeps the name for those who think of it this way.
 
-    Why "EnSRF" and not "ETKF" then? In *batch* form (this class) the two
-    are numerically equivalent on the analysis ensemble — both choices
-    of ensemble square root produce the same posterior covariance and
-    the symmetric sqrt is the only PSD- and mean-preserving choice for
-    rows-as-members anomalies (Tippett et al. 2003). The classical
-    Whitaker & Hamill (2002) distinction — a *one-sided* reduced gain on
-    perturbations — only matters when observations are assimilated one at
-    a time. That serial variant lives in Wave 4 as
-    ``filterax.filters.EnSRF_Serial``.
-
-    :class:`EnSRF` therefore runs the same analysis as :class:`ETKF`, and
-    keeps its name for users who think of the update in these terms.
-
-    Complexity matches ETKF: ``O(Nₑ² Nᵧ + Nₑ³)``.
+    The one-sided reduced gain of Whitaker & Hamill (2002) only differs when the
+    observations are assimilated one at a time; that variant is `EnSRF_Serial`. The
+    cost is that of `ETKF`.
 
     Examples:
+        The same analysis as `ETKF`:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
-        >>> from filterax.filters import EnSRF
+        >>> from filterax.filters import ETKF, EnSRF
         >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
-        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
         >>> result = EnSRF().analysis(
-        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, R
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise
         ... )
         >>> result.particles.shape
         (3, 2)
+        >>> etkf = ETKF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise
+        ... )
+        >>> bool(jnp.array_equal(result.particles, etkf.particles))
+        True
+
+    References:
+        Whitaker & Hamill (2002), *Mon. Wea. Rev.* 130, 1913–1924.
+        Tippett et al. (2003), *Mon. Wea. Rev.* 131, 1485–1490.
     """
 
     def analysis(
@@ -270,63 +336,104 @@ class EnSRF(AbstractSequentialFilter, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         **_: Any,
     ) -> AnalysisResult:
+        """EnSRF analysis step, the ETKF update.
+
+        Algorithm:
+            1. Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).
+            2. Form w̄ and W in ensemble space and apply them to X̃.
+            3. Score r̄ under 𝒩(0, Σ̂_y).
+
+        Args:
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Observation-error covariance Σ_ε.
+
+        Returns:
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).
+
+        Raises:
+            ValueError: From gaussx, if N_ℰ < 2, or ``obs`` or ``obs_noise`` does not
+                match D_y.
+        """
         return _etkf_analysis(particles, obs, obs_op, obs_noise)
 
 
 class LETKF(AbstractSequentialFilter, strict=True):
-    r"""Local Ensemble Transform Kalman Filter (Hunt, Kostelich & Szunyogh 2007).
+    """Local ensemble transform Kalman filter, with R-localization.
 
-    Runs an independent ETKF analysis at each state grid point using only
-    observations whose distance to that grid point is ``≤ radius``
-    (R-localization). For grid point ``i``:
+        Λ_w,i = (N_ℰ − 1) I + H̃ D_ρ,i^½ Σ_ε⁻¹ D_ρ,i^½ H̃ᵀ,   D_ρ,i = diag(ρ_i)
+        x̄_t|t,i = x̄_i + X̃_iᵀ w̄_i,   X̃_t|t,i = W_i X̃_i
 
-    1. Compute distances ``dᵢₖ = ‖xᵢ − yₖ‖₂`` and tapers
-       ``ρᵢₖ = ρ(dᵢₖ / r)`` via ``taper_fn`` (default Gaspari-Cohn).
-    2. **Hard cutoff at ``r``** — observations with ``dᵢₖ > r`` are
-       dropped entirely. (Gaspari-Cohn has compact support out to ``2r``
-       so a purely taper-based mask would let *every* nonzero-tapered
-       observation participate. We use the explicit distance cutoff to
-       match the documented selection rule.)
-    3. Inflate the local observation variance by ``1/ρᵢₖ``:
-       ``R⁻¹_loc[k] = ρᵢₖ / Rₖₖ`` (zero when ``ρᵢₖ = 0``).
-    4. Solve the local ``Nₑ × Nₑ`` ETKF transform and write back the
-       analysis at grid point ``i``.
+    An independent ETKF analysis at each state component i, with its own weights w̄_i
+    and transform W_i, from only the observations near it. Component i sits at
+    s_i and observation k at s_k, at the distance d_ik = ‖s_i − s_k‖₂, and the
+    observation enters with the weight
 
-    R-localization assumes ``R`` is **diagonal** (Hunt et al. 2007 §2).
-    We accept :class:`lineax.DiagonalLinearOperator` directly via
-    :func:`lineax.diagonal` (no densification); anything else raises
-    :class:`NotImplementedError`.
+        ρ_ik = ρ(d_ik; ℓ) if d_ik ≤ ℓ, else 0
 
-    Local analyses are embarrassingly parallel; we ``jax.vmap`` over
-    state grid points and accumulate the per-point ``(w̄ᵢ, Wᵢ)`` weights
-    in a single call.
+    from the taper ρ, the Gaspari-Cohn function by default. The cutoff at ℓ is explicit,
+    because Gaspari-Cohn reaches out to 2 ℓ and would otherwise keep every observation
+    with a nonzero taper. A weight divides the variance, ρ_ik / Σ_ε,kk.
+
+    The weights at each i are `gaussx.etkf_transform` with ``obs_weights=ρ_i``, mapped
+    over the components with `jax.vmap`. The filter adds the distances, the taper and
+    its cutoff, and applies the local weights to the global anomalies X̃ column by
+    column. R-localization needs a diagonal Σ_ε (Hunt et al. 2007, §2), which is read
+    with `lineax.diagonal` and never densified.
 
     Attributes:
-        radius: Localization half-width ``r``. Observations beyond ``r``
-            are excluded entirely.
-        taper_fn: Distance-to-weight function with signature
-            ``(distances, radius) -> weights``. Defaults to
-            :func:`filterax.gaspari_cohn`.
+        radius: Localization half-width ℓ; observations farther than ℓ are dropped.
+        taper_fn: Taper ρ, called as ``taper_fn(distances, radius)``; defaults to
+            `filterax.gaspari_cohn`.
 
     Examples:
+        Three grid points on a line, the outer two observed:
+
         >>> import jax
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax.filters import LETKF
         >>> particles = jax.random.normal(jax.random.key(0), (4, 3))
-        >>> state_coords = jnp.arange(3.0)[:, None]  # 1-D grid
+        >>> state_coords = jnp.array([[0.0], [1.0], [2.0]])
         >>> obs_coords = jnp.array([[0.0], [2.0]])
-        >>> R = lx.DiagonalLinearOperator(0.5 * jnp.ones(2))
+        >>> obs_noise = lx.DiagonalLinearOperator(0.5 * jnp.ones(2))
         >>> result = LETKF(radius=1.5).analysis(
         ...     particles,
         ...     jnp.array([0.1, -0.2]),
-        ...     lambda x: x[::2],  # observe grid points 0 and 2
-        ...     R,
+        ...     lambda x: x[::2],
+        ...     obs_noise,
         ...     state_coords=state_coords,
         ...     obs_coords=obs_coords,
         ... )
         >>> result.particles.shape
         (4, 3)
+
+        A point with no observation within ℓ keeps its forecast:
+
+        >>> far = LETKF(radius=0.5).analysis(
+        ...     particles,
+        ...     jnp.array([0.1, -0.2]),
+        ...     lambda x: x[::2],
+        ...     obs_noise,
+        ...     state_coords=state_coords,
+        ...     obs_coords=obs_coords,
+        ... )
+        >>> bool(jnp.allclose(far.particles[:, 1], particles[:, 1], atol=1e-5))
+        True
+
+        The coordinates are required:
+
+        >>> LETKF(radius=1.5).analysis(
+        ...     particles, jnp.array([0.1, -0.2]), lambda x: x[::2], obs_noise
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        ValueError: LETKF.analysis requires state_coords and obs_coords keyword
+        arguments — pass them through the L2 model or the call site.
+
+    References:
+        Hunt, Kostelich & Szunyogh (2007), *Physica D* 230, 112–126.
     """
 
     radius: float = eqx.field(static=True)
@@ -345,6 +452,33 @@ class LETKF(AbstractSequentialFilter, strict=True):
         obs_coords: Float[Array, "N_y D"] | None = None,
         **_: Any,
     ) -> AnalysisResult:
+        """LETKF analysis step.
+
+        Algorithm:
+            1. Check the coordinates and that Σ_ε is diagonal.
+            2. Map the members to observation space and take the state anomalies X̃.
+            3. At each component i, taper the observations by distance and form the
+               local weights w̄_i and transform W_i.
+            4. Apply them to the anomalies of component i and add its mean back.
+            5. Score r̄ under 𝒩(0, Σ̂_y), unlocalized.
+
+        Args:
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Diagonal observation-error covariance Σ_ε.
+            state_coords: Coordinates s_i of the state components, one row each.
+            obs_coords: Coordinates s_k of the observations, one row each.
+
+        Returns:
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).
+
+        Raises:
+            ValueError: If N_ℰ < 2, if a coordinate array is missing, or if it does
+                not have one row per state component or per observation.
+            NotImplementedError: If ``obs_noise`` is not a
+                `lineax.DiagonalLinearOperator`.
+        """
         N_e, N_x = particles.shape
         check_ensemble_size(N_e)
         if state_coords is None or obs_coords is None:
@@ -369,120 +503,168 @@ class LETKF(AbstractSequentialFilter, strict=True):
                 "or decorrelate observations beforehand."
             )
 
-        obs_particles = _apply_obs_op(obs_op, particles)  # Y ∈ ℝ^{Nₑ×Nᵧ}
-        anom = ensemble_anomalies(particles)
-        x_bar = ensemble_mean(particles)
+        # h⁽ᵉ⁾ = h(x⁽ᵉ⁾)
+        obs_particles = _apply_obs_op(obs_op, particles)
+        # x̃⁽ᵉ⁾ = x⁽ᵉ⁾ − x̄
+        anomalies = ensemble_anomalies(particles)
+        # x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾
+        mean = ensemble_mean(particles)
         radius = self.radius
 
-        def per_point(
+        def local_weights(
             state_point: Float[Array, " D"],
         ) -> tuple[Float[Array, " N_e"], Float[Array, "N_e N_e"]]:
-            """Local ETKF weights at one grid point.
+            """Local weights w̄_i and transform W_i at one state component."""
+            # s_k − s_i
+            offsets = einx.subtract("y d, d -> y d", obs_coords, state_point)
+            # (s_k − s_i)²
+            squared_offsets = offsets * offsets
+            # d_ik² = ‖s_i − s_k‖₂²
+            squared_distances = einx.sum("y d -> y", squared_offsets)
+            # d_ik = ‖s_i − s_k‖₂
+            distances = jnp.sqrt(squared_distances)
+            # the hard cutoff at ℓ, inside Gaspari-Cohn's support of 2 ℓ
+            within = distances <= radius
+            # ρ(d_ik; ℓ)
+            tapered = self.taper_fn(distances, radius)
+            # ρ_ik = ρ(d_ik; ℓ) if d_ik ≤ ℓ, else 0
+            taper = jnp.where(within, tapered, 0.0)
+            # w̄_i, W_i with Σ_ε⁻¹ ← D_ρ,i^½ Σ_ε⁻¹ D_ρ,i^½
+            return gaussx.etkf_transform(
+                obs_particles, obs, obs_noise, obs_weights=taper
+            )
 
-            Returns ``(w̄ᵢ, Wᵢ)`` with shapes ``(Nₑ,)`` and ``(Nₑ, Nₑ)``.
-            """
-            # ‖xᵢ − yₖ‖₂ — Euclidean distance to every observation.
-            diff = einx.subtract("y d, d -> y d", obs_coords, state_point)
-            dist = jnp.sqrt(einx.sum("y d -> y", diff * diff))
+        # (w̄_i, W_i) for every component i
+        mean_weights, transforms = jax.vmap(local_weights)(state_coords)
 
-            # Distance-based hard cutoff at the radius; taper inside.
-            within = dist <= radius
-            rho = jnp.where(within, self.taper_fn(dist, radius), 0.0)
+        # X̃_iᵀ w̄_i = ∑ₑ w̄_i,e x̃⁽ᵉ⁾_i
+        mean_increment = einx.dot("x e, e x -> x", mean_weights, anomalies)
+        # (W_i X̃_i)⁽ᵉ⁾ = ∑_e′ W_i,ee′ x̃⁽ᵉ′⁾_i
+        analysis_anomalies = einx.dot(
+            "x member other, other x -> member x", transforms, anomalies
+        )
 
-            # R⁻¹_loc = ρ ⊙ R⁻¹, as a weight on each observation.
-            return gaussx.etkf_transform(obs_particles, obs, obs_noise, obs_weights=rho)
+        # x̄_t|t,i = x̄_i + X̃_iᵀ w̄_i
+        analysis_mean = einx.add("x, x -> x", mean, mean_increment)
+        # x⁽ᵉ⁾_t|t = x̄_t|t + x̃⁽ᵉ⁾_t|t
+        analysis_particles = einx.add(
+            "x, e x -> e x", analysis_mean, analysis_anomalies
+        )
 
-        # vmap over state grid points → per-point (w̄ᵢ, Wᵢ).
-        w_bars, Ws = jax.vmap(per_point)(state_coords)  # (Nₓ, Nₑ), (Nₓ, Nₑ, Nₑ)
-
-        # Apply per-point updates with anomaly columns shared globally:
-        # ``x_a[i] = x̄[i] + Σₖ w̄[i, k] X′[k, i]`` for the mean and
-        # ``x⁽ʲ⁾_a[i] = x̄_a[i] + Σₖ W[i, j, k] X′[k, i]`` for members.
-        mean_correction = einx.dot("x e, e x -> x", w_bars, anom)
-        pert_correction = einx.dot("x j k, k x -> j x", Ws, anom)
-
-        mean_a = einx.add("x, x -> x", x_bar, mean_correction)
-        particles_a = mean_a[None, :] + pert_correction
-
-        log_p = _innovation_log_likelihood(obs_particles, obs, obs_noise)
-        return AnalysisResult(particles=particles_a, log_likelihood=log_p)
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Advanced sequential filter variants (Wave 4.A)
-# ──────────────────────────────────────────────────────────────────────
+        # log 𝒩(r̄; 0, Σ̂_y)
+        log_likelihood = _innovation_log_likelihood(obs_particles, obs, obs_noise)
+        return AnalysisResult(
+            particles=analysis_particles, log_likelihood=log_likelihood
+        )
 
 
 def _mean_preserving_rotation(
     key: PRNGKeyArray, n_ensemble: int, dtype: jnp.dtype = jnp.float64
 ) -> Float[Array, "N_e N_e"]:
-    r"""Random orthogonal ``Θ ∈ O(Nₑ)`` with ``Θ 𝟙 = 𝟙`` (Livings 2008).
+    """Random orthogonal Q with Q 1 = 1, drawn uniformly (Livings et al. 2008).
 
-    Construct an orthogonal basis ``V ∈ ℝ^{Nₑ × (Nₑ−1)}`` for the
-    complement of ``𝟙``, draw a random rotation ``Q ∈ O(Nₑ−1)`` via
-    the QR-of-Gaussian construction, and lift back to ``Nₑ`` space:
+        Q = (1 / N_ℰ) 1 1ᵀ + V Q_⊥ Vᵀ
 
-    $$
-    \Theta = \tfrac{1}{N_e} \mathbf{1} \mathbf{1}^{\top} + V Q V^{\top}
-    $$
+    V holds an orthonormal basis of the complement of 1 as columns, and Q_⊥ is a random
+    rotation of that (N_ℰ − 1)-dimensional complement. Then Q 1 = 1, so 1 is an
+    eigenvector with eigenvalue 1, and Qᵀ Q = I. A draw costs O(N_ℰ³), small next to
+    the transform it rotates.
 
-    By construction ``Θ 𝟙 = 𝟙`` (the constant vector is the +1
-    eigenvector) and ``Θᵀ Θ = I`` (the orthogonal complement is
-    preserved). Cost ``O(Nₑ³)`` per draw; negligible compared with the
-    ETKF transform that produced ``W_a``.
+    Algorithm:
+        1. Take V from the Householder reflection that maps 1 / √N_ℰ to the first unit
+           vector, dropping its first column.
+        2. Draw Q_⊥ as the sign-fixed QR factor of a Gaussian matrix.
+        3. Lift it, Q = (1 / N_ℰ) 1 1ᵀ + V Q_⊥ Vᵀ.
+
+    Args:
+        key: PRNG key for Q_⊥.
+        n_ensemble: Ensemble size N_ℰ.
+        dtype: Dtype of Q.
+
+    Returns:
+        The rotation Q.
     """
-    # Basis for {𝟙}⊥: take Householder reflector that maps 𝟙/√Nₑ → e₀
-    # and keep its last Nₑ−1 columns (orthogonal to the all-ones vector).
+    # u = 1 / √N_ℰ
     ones = jnp.ones(n_ensemble, dtype=dtype) / jnp.sqrt(n_ensemble)
-    e0 = jnp.zeros(n_ensemble, dtype=dtype).at[0].set(1.0)
-    v = ones - e0
-    v_norm = jnp.linalg.norm(v)
-    # Guard against the degenerate Nₑ=1 case (already rejected by
-    # check_ensemble_size upstream).
-    v = jnp.where(v_norm > 0, v / jnp.maximum(v_norm, 1e-30), v)
-    H = jnp.eye(n_ensemble, dtype=dtype) - 2.0 * jnp.outer(v, v)
-    V = H[:, 1:]  # (Nₑ, Nₑ−1)
-    # Random rotation in the (Nₑ−1)-dim complement: Q = qr(𝒩(0, I))[0].
-    g = jr.normal(key, (n_ensemble - 1, n_ensemble - 1), dtype=dtype)
-    Q, R = jnp.linalg.qr(g)
-    # Make Q sign-canonical so it's drawn uniformly from O(Nₑ−1).
-    signs = jnp.sign(jnp.diag(R))
+    # e₀
+    first_axis = jnp.zeros(n_ensemble, dtype=dtype).at[0].set(1.0)
+    # v = u − e₀
+    reflection_axis = ones - first_axis
+    # ‖v‖₂
+    reflection_norm = jnp.linalg.norm(reflection_axis)
+    # v ← v / ‖v‖₂; v = 0 only at N_ℰ = 1, which callers reject
+    reflection_axis = jnp.where(
+        reflection_norm > 0,
+        reflection_axis / jnp.maximum(reflection_norm, 1e-30),
+        reflection_axis,
+    )
+    # P = I − 2 v vᵀ, with P u = e₀
+    householder = jnp.eye(n_ensemble, dtype=dtype) - 2.0 * jnp.outer(
+        reflection_axis, reflection_axis
+    )
+    # V: the last N_ℰ − 1 columns of P, orthogonal to 1
+    complement_basis = householder[:, 1:]
+    # Q_⊥ R_⊥ = qr(𝒩(0, I))
+    gaussian = jr.normal(key, (n_ensemble - 1, n_ensemble - 1), dtype=dtype)
+    rotation, triangular = jnp.linalg.qr(gaussian)
+    # sign(diag R_⊥) makes Q_⊥ uniform on the orthogonal group
+    signs = jnp.sign(jnp.diag(triangular))
     signs = jnp.where(signs == 0, 1.0, signs)
-    Q = Q * signs[None, :]
-    # Lift: Θ = projector onto 𝟙 + V Q Vᵀ.
-    proj_ones = einx.dot("a, b -> a b", ones, ones)
-    return proj_ones + V @ Q @ V.T
+    rotation = rotation * signs[None, :]
+    # (1 / N_ℰ) 1 1ᵀ
+    ones_projector = einx.dot("a, b -> a b", ones, ones)
+    # V Q_⊥
+    rotated_basis = complement_basis @ rotation
+    # V Q_⊥ Vᵀ
+    complement_rotation = rotated_basis @ complement_basis.T
+    # Q = (1 / N_ℰ) 1 1ᵀ + V Q_⊥ Vᵀ
+    return ones_projector + complement_rotation
 
 
 class ETKF_Livings(AbstractSequentialFilter, strict=True):
-    r"""ETKF with a mean-preserving random rotation (Livings et al. 2008).
+    """ETKF followed by a mean-preserving random rotation (Livings et al. 2008).
 
-    ETKF's symmetric square root ``W_a = √((Nₑ − 1) T)`` is the unique
-    PSD- and mean-preserving choice, but it produces a *deterministic*
-    transform that can develop preferred directions over many cycles —
-    the ensemble loses rank to a small invariant subspace. Livings et
-    al. break this symmetry by composing with a random orthogonal
-    matrix:
+        X̃_t|t = Q W X̃,   Qᵀ Q = I,   Q 1 = 1
 
-    $$
-    W_a^{\mathrm{rot}} = W_a\, \Theta, \qquad
-    \Theta \in O(N_e), \quad \Theta \mathbf{1} = \mathbf{1}
-    $$
+    The symmetric square root W of `ETKF` is deterministic, and over many cycles it can
+    develop preferred directions, so that the ensemble collapses onto a small invariant
+    subspace. A random rotation Q of the analysis anomalies breaks that symmetry. Since
+    Q 1 = 1 implies Qᵀ 1 = 1, the anomalies still sum to zero and the analysis mean is
+    unchanged. The analysis is `gaussx.etkf_analysis`, and the filter adds the
+    rotation.
 
-    The mean-preserving constraint ``Θ 𝟙 = 𝟙`` keeps the analysis
-    mean and the rank-deficiency-against-𝟙 property; the random factor
-    averages out preferred-direction artefacts over time.
-
-    PRNG key handling. The constructor's ``self.key`` is the *default*
-    source of randomness; ``analysis(..., key=subkey)`` overrides it
-    for a single call. Pattern-match the :class:`StochasticEnKF` API:
-    if you call ``analysis`` directly inside a loop, pass a freshly
-    split key each cycle or you will get the *same* rotation every
-    window — which defeats the whole purpose of the Livings recipe.
+    The stored ``key`` is only the default, as for `StochasticEnKF`:
+    ``analysis(..., key=step_key)`` overrides it for one call. Calling ``analysis`` in
+    a loop without a fresh key repeats the same rotation in every window, which defeats
+    its purpose.
 
     Attributes:
-        key: Default PRNG key for the random rotation. Used when no
-            explicit ``key=`` kwarg is passed to ``analysis``.
+        key: Default PRNG key for Q, used when ``analysis`` gets no ``key``. An integer
+            is turned into ``jr.PRNGKey(key)``.
+
+    Examples:
+        The rotation keeps the ETKF mean:
+
+        >>> import jax.numpy as jnp
+        >>> import jax.random as jr
+        >>> import lineax as lx
+        >>> from filterax.filters import ETKF, ETKF_Livings
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0], [1.0, 2.0]])
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = ETKF_Livings(key=0).analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise, key=jr.key(3)
+        ... )
+        >>> result.particles.shape
+        (4, 2)
+        >>> etkf = ETKF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise
+        ... )
+        >>> mean, etkf_mean = result.particles.mean(0), etkf.particles.mean(0)
+        >>> bool(jnp.allclose(mean, etkf_mean, atol=1e-5))
+        True
+
+    References:
+        Livings, Dance & Nichols (2008), *Physica D* 237, 1021–1028.
     """
 
     key: PRNGKeyArray
@@ -502,53 +684,109 @@ class ETKF_Livings(AbstractSequentialFilter, strict=True):
         key: PRNGKeyArray | None = None,
         **_: Any,
     ) -> AnalysisResult:
-        rot_key = self.key if key is None else key
+        """ETKF analysis step with a random rotation of the anomalies.
+
+        Algorithm:
+            1. Map the members to observation space and run the ETKF analysis.
+            2. Split the analysis into its mean and anomalies.
+            3. Draw Q and rotate the anomalies, then add the mean back.
+            4. Score r̄ under 𝒩(0, Σ̂_y).
+
+        Args:
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Observation-error covariance Σ_ε.
+            key: PRNG key for this step's rotation; ``None`` uses ``self.key``, which
+                repeats the same rotation across calls.
+
+        Returns:
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).
+
+        Raises:
+            ValueError: From gaussx, if N_ℰ < 2, or ``obs`` or ``obs_noise`` does not
+                match D_y.
+        """
+        rotation_key = self.key if key is None else key
+        # h⁽ᵉ⁾ = h(x⁽ᵉ⁾)
         obs_particles = _apply_obs_op(obs_op, particles)
+        # x̄_t|t = x̄_t|t−1 + X̃ᵀ w̄,   X̃_t|t = W X̃
         analysis = gaussx.etkf_analysis(particles, obs_particles, obs, obs_noise)
+        # x̄_t|t
         analysis_mean = ensemble_mean(analysis)
+        # X̃_t|t
         analysis_anomalies = ensemble_anomalies(analysis)
 
-        # Apply the mean-preserving rotation Θ on the *left* of W_a X′:
-        # Θ leaves 𝟙 fixed, so the column-mean (== analysis mean) is
-        # invariant under the rotation.
-        Theta = _mean_preserving_rotation(
-            rot_key, particles.shape[0], dtype=analysis_anomalies.dtype
+        # Q, with Qᵀ 1 = 1, so the rotated anomalies still sum to zero
+        rotation = _mean_preserving_rotation(
+            rotation_key, particles.shape[0], dtype=analysis_anomalies.dtype
         )
-        rotated_anomalies = einx.dot("i j, j x -> i x", Theta, analysis_anomalies)
+        # X̃_t|t ← Q X̃_t|t
+        rotated_anomalies = einx.dot(
+            "member other, other x -> member x", rotation, analysis_anomalies
+        )
 
-        particles_a = einx.add("x, e x -> e x", analysis_mean, rotated_anomalies)
-        log_p = _innovation_log_likelihood(obs_particles, obs, obs_noise)
-        return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+        # x⁽ᵉ⁾_t|t = x̄_t|t + x̃⁽ᵉ⁾_t|t
+        analysis_particles = einx.add("x, e x -> e x", analysis_mean, rotated_anomalies)
+        # log 𝒩(r̄; 0, Σ̂_y)
+        log_likelihood = _innovation_log_likelihood(obs_particles, obs, obs_noise)
+        return AnalysisResult(
+            particles=analysis_particles, log_likelihood=log_likelihood
+        )
 
 
 class EnSRF_Serial(AbstractSequentialFilter, strict=True):
-    r"""Serial Ensemble Square Root Filter (Whitaker & Hamill 2002).
+    """Serial ensemble square-root filter, one observation at a time.
 
-    Processes observations **one at a time** with the classical W&H
-    scalar reduced-gain formula:
+        g_k = Σ̂_xy,k / (Σ̂_h,kk + Σ_ε,kk)
+        x̄ ← x̄ + g_k (y_k − h̄_k)
+        α_k = 1 / (1 + √(Σ_ε,kk / (Σ̂_h,kk + Σ_ε,kk)))
+        x̃⁽ᵉ⁾ ← x̃⁽ᵉ⁾ − α_k g_k h̃⁽ᵉ⁾_k
 
-    $$
-    \begin{aligned}
-    K_k &= C^{x H_k} \big/ \big(C^{H_k H_k} + R_{kk}\big) \\
-    \bar{x}_a^{(k)} &= \bar{x}_a^{(k-1)}
-        + K_k \big(y_k - H_k \bar{x}_a^{(k-1)}\big) \\
-    \alpha_k &= 1 \Big/ \Big(1 + \sqrt{R_{kk} / (C^{H_k H_k} + R_{kk})}\Big) \\
-    X'^{(k)}_a &= X'^{(k-1)}_a - \alpha_k K_k \big(H_k X'^{(k-1)}_a\big)
-    \end{aligned}
-    $$
+    Each observation k is a scalar update with the gain column g_k and the reduced gain
+    α_k g_k for the anomalies (Whitaker & Hamill 2002), so there is no matrix inverse,
+    only inner products. The observations must be uncorrelated, so Σ_ε must be
+    diagonal; use `ETKF` or `EnSRF` for a general Σ_ε, or decorrelate first. gaussx has
+    no serial update, so this filter is filterax's own.
 
-    No matrix inversion is required — each scalar update is an inner
-    product. Cost ``O(Nₑ Nₓ Nᵧ)`` total. Requires **diagonal** ``R``
-    (uncorrelated obs); use :class:`ETKF` / :class:`EnSRF` for general
-    ``R`` or pre-decorrelate observations.
+    h is reapplied to the current ensemble before every scalar update, so the sweep
+    stays consistent for a nonlinear h, where the observation-space anomalies cannot
+    be updated by linear bookkeeping. That costs D_y N_ℰ calls of h on top of the
+    O(N_ℰ D_x D_y) of the updates. The log-likelihood is of the forecast, before the
+    sweep.
 
-    The implementation reapplies ``obs_op`` to the running ensemble
-    inside each scalar update. That keeps the serial trajectory
-    consistent for **nonlinear** ``H`` (where the relationship between
-    state-space and obs-space anomalies is updated by ``H`` itself, not
-    by linear book-keeping). Cost is ``O(Nᵧ × Nₑ × cost(H))`` —
-    fractionally more than the linear-only shortcut but correct for
-    every ``H`` filterax supports.
+    Examples:
+        One observation agrees with `ETKF`:
+
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import ETKF, EnSRF_Serial
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(1))
+        >>> result = EnSRF_Serial().analysis(
+        ...     particles, jnp.array([1.5]), lambda x: x[:1], obs_noise
+        ... )
+        >>> result.particles.shape
+        (3, 2)
+        >>> etkf = ETKF().analysis(
+        ...     particles, jnp.array([1.5]), lambda x: x[:1], obs_noise
+        ... )
+        >>> bool(jnp.allclose(result.particles, etkf.particles, atol=1e-5))
+        True
+
+        A correlated Σ_ε is rejected:
+
+        >>> dense = lx.MatrixLinearOperator(jnp.eye(1))
+        >>> EnSRF_Serial().analysis(
+        ...     particles, jnp.array([1.5]), lambda x: x[:1], dense
+        ... )  # doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+        ...
+        NotImplementedError: EnSRF_Serial requires diagonal observation noise;
+        pre-decorrelate or use filterax.filters.EnSRF for general Γ.
+
+    References:
+        Whitaker & Hamill (2002), *Mon. Wea. Rev.* 130, 1913–1924.
     """
 
     def analysis(
@@ -559,6 +797,29 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         **_: Any,
     ) -> AnalysisResult:
+        """Serial EnSRF analysis step.
+
+        Algorithm:
+            1. Check that Σ_ε is diagonal and read its variances Σ_ε,kk.
+            2. For each observation k in turn, map the current members, form g_k and
+               α_k, and update the mean and the anomalies.
+            3. Score the forecast's r̄ under 𝒩(0, Σ̂_y).
+
+        Args:
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Diagonal observation-error covariance Σ_ε.
+
+        Returns:
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y) of the
+            forecast.
+
+        Raises:
+            ValueError: If N_ℰ < 2.
+            NotImplementedError: If ``obs_noise`` is not a
+                `lineax.DiagonalLinearOperator`.
+        """
         N_e = particles.shape[0]
         check_ensemble_size(N_e)
         if not isinstance(obs_noise, lx.DiagonalLinearOperator):
@@ -566,82 +827,99 @@ class EnSRF_Serial(AbstractSequentialFilter, strict=True):
                 "EnSRF_Serial requires diagonal observation noise; pre-"
                 "decorrelate or use filterax.filters.EnSRF for general Γ."
             )
-        R_diag = lx.diagonal(obs_noise)
+        # Σ_ε,kk
+        obs_variances = lx.diagonal(obs_noise)
+        # h⁽ᵉ⁾ = h(x⁽ᵉ⁾) of the forecast, for the log-likelihood
         initial_obs_particles = _apply_obs_op(obs_op, particles)
 
-        def step(parts, k):
-            # Re-evaluate H on the *current* ensemble so nonlinear obs
-            # ops remain consistent across the serial sweep.
-            parts_obs = _apply_obs_op(obs_op, parts)  # (Nₑ, Nᵧ)
-            y_k = obs[k]
-            R_kk = R_diag[k]
-            obs_col = parts_obs[:, k]  # (Nₑ,)
-            obs_mean = jnp.mean(obs_col)
-            obs_anom_col = obs_col - obs_mean
-            obs_var = jnp.sum(obs_anom_col * obs_anom_col) / (N_e - 1)  # Cᴴₖᴴₖ
-            innovation_var = obs_var + R_kk
+        # jnp, not einx, in the step: einx raises AxisSizeError on D_x = 0 with
+        # another message than today's
+        # the carry stays named parts: JAX quotes its name in a carry dtype error
+        def assimilate_one(parts, k):
+            # h⁽ᵉ⁾ = h(x⁽ᵉ⁾) of the current members, so a nonlinear h stays consistent
+            current_obs = _apply_obs_op(obs_op, parts)
+            obs_k = obs[k]
+            obs_variance_k = obs_variances[k]
+            # h⁽ᵉ⁾_k
+            obs_column = current_obs[:, k]
+            # h̄_k = (1 / N_ℰ) ∑ₑ h⁽ᵉ⁾_k
+            obs_mean = jnp.mean(obs_column)
+            # h̃⁽ᵉ⁾_k = h⁽ᵉ⁾_k − h̄_k
+            obs_anomaly = obs_column - obs_mean
+            # Σ̂_h,kk = ∑ₑ (h̃⁽ᵉ⁾_k)² / (N_ℰ − 1)
+            obs_sample_variance = jnp.sum(obs_anomaly * obs_anomaly) / (N_e - 1)
+            # Σ̂_h,kk + Σ_ε,kk
+            innovation_variance = obs_sample_variance + obs_variance_k
 
-            mean_parts = jnp.mean(parts, axis=0)
-            state_anom = parts - mean_parts[None, :]  # (Nₑ, Nₓ)
-            C_xH = einx.dot("e, e x -> x", obs_anom_col, state_anom) / (N_e - 1)
+            # x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾
+            mean = jnp.mean(parts, axis=0)
+            # x̃⁽ᵉ⁾ = x⁽ᵉ⁾ − x̄
+            anomalies = parts - mean[None, :]
+            # ∑ₑ h̃⁽ᵉ⁾_k x̃⁽ᵉ⁾
+            cross_sum = einx.dot("e, e x -> x", obs_anomaly, anomalies)
+            # Σ̂_xy,k = ∑ₑ h̃⁽ᵉ⁾_k x̃⁽ᵉ⁾ / (N_ℰ − 1)
+            cross_covariance = cross_sum / (N_e - 1)
+            # g_k = Σ̂_xy,k / (Σ̂_h,kk + Σ_ε,kk)
+            gain_column = cross_covariance / innovation_variance
 
-            K_k = C_xH / innovation_var  # (Nₓ,)
-
-            # Mean update.
-            mean_parts_new = mean_parts + K_k * (y_k - obs_mean)
-            # Reduced-gain factor for the perturbation half of the
-            # square-root update.
-            alpha = 1.0 / (1.0 + jnp.sqrt(R_kk / innovation_var))
-            pert_update_state = alpha * einx.dot("x, e -> e x", K_k, obs_anom_col)
-            parts_new = mean_parts_new[None, :] + (state_anom - pert_update_state)
-            return parts_new, None
+            # x̄ ← x̄ + g_k (y_k − h̄_k)
+            new_mean = mean + gain_column * (obs_k - obs_mean)
+            # α_k = 1 / (1 + √(Σ_ε,kk / (Σ̂_h,kk + Σ_ε,kk)))
+            reduction = 1.0 / (1.0 + jnp.sqrt(obs_variance_k / innovation_variance))
+            # g_k h̃⁽ᵉ⁾_k
+            gain_outer = einx.dot("x, e -> e x", gain_column, obs_anomaly)
+            # α_k g_k h̃⁽ᵉ⁾_k
+            anomaly_update = reduction * gain_outer
+            # x⁽ᵉ⁾ ← x̄ + x̃⁽ᵉ⁾ − α_k g_k h̃⁽ᵉ⁾_k
+            updated = new_mean[None, :] + (anomalies - anomaly_update)
+            return updated, None
 
         N_y = obs.shape[0]
-        particles_a, _ = jax.lax.scan(step, particles, jnp.arange(N_y))
+        analysis_particles, _ = jax.lax.scan(assimilate_one, particles, jnp.arange(N_y))
 
-        log_p = _innovation_log_likelihood(initial_obs_particles, obs, obs_noise)
-        return AnalysisResult(particles=particles_a, log_likelihood=log_p)
+        # log 𝒩(r̄; 0, Σ̂_y) of the forecast
+        log_likelihood = _innovation_log_likelihood(
+            initial_obs_particles, obs, obs_noise
+        )
+        return AnalysisResult(
+            particles=analysis_particles, log_likelihood=log_likelihood
+        )
 
 
 class ESTKF(AbstractSequentialFilter, strict=True):
-    r"""Error Subspace Transform Kalman Filter (Nerger et al. 2012).
+    """Error-subspace transform Kalman filter, which is the ETKF update.
 
-    Projects ETKF into the ``(Nₑ − 1)``-dimensional error subspace via
-    a mean-preserving orthogonal map ``L ∈ ℝ^{Nₑ × (Nₑ − 1)}`` with
-    ``Lᵀ L = I_{Nₑ − 1}`` and ``Lᵀ 𝟙 = 0``. Anomalies are rank
-    ``≤ Nₑ − 1`` to begin with (their rows sum to zero), so ``L``
-    captures them losslessly.
+        Λ_L = (N_ℰ − 1) I + Lᵀ H̃ Σ_ε⁻¹ H̃ᵀ L,   w̄_L = Λ_L⁻¹ Lᵀ H̃ Σ_ε⁻¹ r̄
+        W_L = ((N_ℰ − 1) Λ_L⁻¹)^½
+        x̄_t|t = x̄_t|t−1 + X̃ᵀ L w̄_L,   X̃_t|t = L W_L Lᵀ X̃
 
-    Reduced anomalies and transform precision:
+    Nerger et al. (2012) write the ETKF in the (N_ℰ − 1)-dimensional error subspace,
+    through a projection L of shape (N_ℰ, N_ℰ − 1) with Lᵀ L = I and Lᵀ 1 = 0. The rows
+    of X̃ and H̃ sum to zero, so their columns are orthogonal to 1 and L Lᵀ acts on them
+    as the identity. The subspace form therefore gives the same w̄ = L w̄_L and
+    W X̃ = L W_L Lᵀ X̃ as `ETKF`, and this class runs that analysis through
+    `gaussx.etkf_analysis`, keeping the name and formulation for readers of the
+    error-subspace literature.
 
-    $$
-    \tilde{X} = L^{\top} X' \in \mathbb{R}^{(N_e-1) \times N_x}, \qquad
-    \tilde{Y} = L^{\top} Y' \in \mathbb{R}^{(N_e-1) \times N_y}
-    $$
+    Examples:
+        The same analysis as `ETKF`:
 
-    $$
-    A = (N_e - 1) I + \tilde{Y} R^{-1} \tilde{Y}^{\top}
-        \in \mathbb{R}^{(N_e-1) \times (N_e-1)}
-    $$
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax.filters import ESTKF, ETKF
+        >>> particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = ESTKF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise
+        ... )
+        >>> etkf = ETKF().analysis(
+        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise
+        ... )
+        >>> bool(jnp.array_equal(result.particles, etkf.particles))
+        True
 
-    Eigendecompose ``A = U Λ Uᵀ``:
-
-    $$
-    \tilde{w} = U \Lambda^{-1} U^{\top} \tilde{Y} R^{-1} d, \qquad
-    \tilde{W} = U \sqrt{(N_e - 1) \Lambda^{-1}}\, U^{\top}
-    $$
-
-    Lift back to the full ensemble:
-
-    $$
-    \bar{x}_a = \bar{x}_f + \tilde{w}^{\top} \tilde{X}, \qquad
-    X_a = \bar{x}_a \mathbf{1}^{\top} + L \tilde{W} \tilde{X}
-    $$
-
-    Because ``X′`` and ``Y′`` are orthogonal to ``𝟙``, ``L Lᵀ`` acts on them as
-    the identity, so this gives the same ``w̄`` and ``W X′`` as :class:`ETKF`.
-    It runs that analysis through :func:`gaussx.etkf_analysis`, and keeps its
-    name and formulation for users coming from the error-subspace literature.
+    References:
+        Nerger et al. (2012), *Mon. Wea. Rev.* 140, 2335–2345.
     """
 
     def analysis(
@@ -652,4 +930,24 @@ class ESTKF(AbstractSequentialFilter, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         **_: Any,
     ) -> AnalysisResult:
+        """ESTKF analysis step, the ETKF update.
+
+        Algorithm:
+            1. Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).
+            2. Form w̄ and W in ensemble space and apply them to X̃.
+            3. Score r̄ under 𝒩(0, Σ̂_y).
+
+        Args:
+            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.
+            obs: Observation y.
+            obs_op: Observation operator h, applied to one state.
+            obs_noise: Observation-error covariance Σ_ε.
+
+        Returns:
+            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).
+
+        Raises:
+            ValueError: From gaussx, if N_ℰ < 2, or ``obs`` or ``obs_noise`` does not
+                match D_y.
+        """
         return _etkf_analysis(particles, obs, obs_op, obs_noise)

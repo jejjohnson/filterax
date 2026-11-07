@@ -1,20 +1,16 @@
-"""Layer-2 high-level assimilation models.
+"""Layer-2 assimilation models: forecast, analysis and inflation over many windows.
 
-Compose a forecast (via :func:`eqx.filter_vmap` over an
-:class:`AbstractDynamics`), an analysis step (L1
-:class:`AbstractSequentialFilter`), and an optional inflator into a
-single ``assimilate`` call that loops over a sequence of
-``(obs_values, obs_time)`` windows.
+Each model composes a forecast, the dynamics f mapped over the members, an analysis
+step from `filterax._filters._sequential` and an optional inflator into one
+``assimilate`` call over a sequence of ``(y_t, t)`` windows,
 
-The L2 models are deliberately thin Python wrappers around the L1
-components so users can drop down to ``filter.analysis(...)`` and roll
-their own loop when the standard cycle does not fit.
+    x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1),   x⁽ᵉ⁾_t|t = analysis(x⁽ᵉ⁾_t|t−1, y_t)
 
-The :class:`AssimilationResult` returned by every L2 model stacks the
-per-window forecasts, posteriors, and log-likelihoods along a leading
-time axis of length ``T = len(observations)``. The log-likelihood array
-is *always* length ``T`` when present — missing entries are filled with
-NaN so callers can index by window without re-aligning.
+The models are thin Python loops, so ``filter_.analysis(...)`` is always there to
+write your own loop when this cycle does not fit. The `AssimilationResult` they
+return stacks the forecasts, analyses and log-likelihoods along a leading time axis
+of length T, the number of windows. The log-likelihoods, when present, always have
+length T, with NaN for a window whose filter reports none.
 """
 
 from __future__ import annotations
@@ -60,7 +56,18 @@ def _forecast(
     t0: Float[Array, ""],
     t1: Float[Array, ""],
 ) -> Float[Array, "N_e N_x"]:
-    """Propagate every ensemble member through ``dynamics`` from ``t0`` to ``t1``."""
+    """Forecast every member from ``t0`` to ``t1``, x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1).
+
+    Args:
+        dynamics: Forward model f, applied to one state.
+        particles: Analysis ensemble x⁽ᵉ⁾_t−1|t−1, one row per member.
+        t0: Start time of the window.
+        t1: End time of the window, the time of y_t.
+
+    Returns:
+        The forecast ensemble x⁽ᵉ⁾_t|t−1.
+    """
+    # x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1)
     return eqx.filter_vmap(lambda x: dynamics(x, t0, t1))(particles)
 
 
@@ -78,16 +85,33 @@ def _run_loop(
     t0: float | Float[Array, ""],
     analysis_extra: dict | None = None,
 ) -> AssimilationResult:
-    """Generic forecast → analysis → inflate loop shared by every L2 model.
+    """Forecast, analysis and optional inflation over each window, for every model.
 
-    ``filter_factory(step)`` produces the L1 filter for window ``step``.
-    Stochastic filters override the factory to fold a fresh key per step;
-    deterministic filters ignore the step argument and return the same
-    instance.
+    ``filter_factory(step)`` builds the analysis step of window ``step``: a stochastic
+    filter folds a fresh key per window, and a deterministic one ignores the step.
+    The log-likelihoods keep length T, with NaN where a filter reports none, so that
+    their time axis stays aligned with the histories.
 
-    Log-likelihoods are kept length-``T`` (filling ``NaN`` when an L1
-    filter does not produce one) so the time axis stays aligned with the
-    forecast and analysis histories.
+    Algorithm:
+        1. Forecast the members from the previous time to the window's time.
+        2. Run the window's analysis step on the forecast.
+        3. Inflate the analysis, passing the window as ``step=``.
+        4. Stack the forecasts, analyses and log-likelihoods over the windows.
+
+    Args:
+        filter_factory: Analysis step of each window, from its index.
+        dynamics: Forward model f, applied to one state.
+        obs_op: Observation operator h, applied to one state.
+        inflator: Inflator applied after each analysis, or ``None``.
+        init_ensemble: Initial ensemble x⁽ᵉ⁾_0|0, one row per member.
+        observations: Windows ``(y_t, t)``, in time order.
+        obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+        t0: Time of the initial ensemble.
+        analysis_extra: Extra keywords for every analysis, such as LETKF's
+            coordinates.
+
+    Returns:
+        The final analysis and the stacked histories.
     """
     extra = analysis_extra or {}
     particles = init_ensemble
@@ -106,9 +130,8 @@ def _run_loop(
         result = filter_.analysis(forecast, obs_values, obs_op, obs_noise, **extra)
         analysis_particles = result.particles
         if inflator is not None:
-            # ``step=`` lets stochastic inflators (AdditiveInflator) fold
-            # a fresh PRNG sub-key per window. Deterministic inflators
-            # accept the kwarg via **_ and ignore it.
+            # step= lets AdditiveInflator fold a fresh key per window; the
+            # deterministic inflators swallow it in **_
             analysis_particles = inflator(analysis_particles, forecast, step=step)
         analyses.append(analysis_particles)
         logps.append(result.log_likelihood)
@@ -120,7 +143,7 @@ def _run_loop(
     if all(lp is None for lp in logps):
         log_arr = None
     else:
-        # Pad missing entries with NaN so the array stays length T.
+        # NaN where a window has no log-likelihood, so the array keeps length T
         log_arr = jnp.stack(
             [jnp.asarray(jnp.nan) if lp is None else lp for lp in logps]
         )
@@ -135,32 +158,47 @@ def _run_loop(
 
 
 class ETKF(eqx.Module, strict=True):
-    r"""Ensemble Transform Kalman Filter — full forecast-analysis loop.
+    """Ensemble transform Kalman filter over many windows.
 
-    Composes ``dynamics → L1 ETKF analysis → optional inflator`` over
-    each observation window. Localization is not applied at this level;
-    use :class:`LETKF` for localized assimilation.
+        x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1),   x̄_t|t = x̄_t|t−1 + X̃ᵀ w̄,   X̃_t|t = W X̃
+
+    Each window forecasts with ``dynamics``, runs the analysis of
+    `filterax.filters.ETKF` and applies the optional inflator. There is no
+    localization; `LETKF` adds it.
 
     Attributes:
-        dynamics: Forward model applied with :func:`eqx.filter_vmap` over
-            the ensemble.
-        obs_op: Observation operator ``H``.
-        inflator: Optional posterior inflator (e.g.
-            :class:`filterax.RTPS`, :class:`filterax.MultiplicativeInflator`).
-        config: Optional :class:`FilterConfig` reserved for future
-            static configuration (ensemble size, diagnostics toggle, …).
+        dynamics: Forward model f, applied to one state and mapped over the members.
+        obs_op: Observation operator h, applied to one state.
+        inflator: Inflator applied after each analysis, such as `filterax.RTPS` or
+            `filterax.MultiplicativeInflator`; ``None`` skips it.
+        config: `FilterConfig`, reserved for static configuration and unused here.
 
     Examples:
+        Identity dynamics, both components observed in two windows:
+
         >>> import jax.numpy as jnp
         >>> import lineax as lx
         >>> from filterax import ETKF
         >>> model = ETKF(dynamics=lambda x, t0, t1: x, obs_op=lambda x: x)
         >>> init = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
         >>> obs = [(jnp.array([0.5, 0.5]), 1.0), (jnp.array([0.6, 0.4]), 2.0)]
-        >>> R = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
-        >>> result = model.assimilate(init, obs, R)
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = model.assimilate(init, obs, obs_noise)
         >>> result.particles.shape, result.analysis_history.shape
         ((3, 2), (2, 3, 2))
+        >>> result.log_likelihoods.shape
+        (2,)
+
+        With inflation, the final spread is larger:
+
+        >>> import filterax
+        >>> inflated = ETKF(
+        ...     dynamics=lambda x, t0, t1: x,
+        ...     obs_op=lambda x: x,
+        ...     inflator=filterax.MultiplicativeInflator(factor=1.5),
+        ... ).assimilate(init, obs, obs_noise)
+        >>> bool(jnp.all(inflated.particles.std(0) > result.particles.std(0)))
+        True
     """
 
     dynamics: AbstractDynamics
@@ -175,7 +213,19 @@ class ETKF(eqx.Module, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         t0: float | Float[Array, ""] = 0.0,
     ) -> AssimilationResult:
-        """Run forecast → ETKF analysis → optional inflation over each window."""
+        """Run forecast, ETKF analysis and optional inflation over each window.
+
+        Args:
+            init_ensemble: Initial ensemble x⁽ᵉ⁾_0|0, one row per member.
+            observations: Windows ``(y_t, t)``, in time order.
+            obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+            t0: Time of the initial ensemble.
+
+        Returns:
+            The final analysis, the stacked forecasts and analyses, and the
+            log-likelihood of each window.
+        """
+        # x⁽ᵉ⁾_t|t from x⁽ᵉ⁾_t|t−1 and y_t, window by window
         return _run_loop(
             lambda _step: _ETKFFilter(),
             self.dynamics,
@@ -189,7 +239,40 @@ class ETKF(eqx.Module, strict=True):
 
 
 class EnSRF(eqx.Module, strict=True):
-    """Ensemble Square Root Filter — full forecast-analysis loop."""
+    """Ensemble square-root filter over many windows.
+
+        x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1),   x̄_t|t = x̄_t|t−1 + G r̄,   X̃_t|t = W X̃
+
+    Each window forecasts with ``dynamics``, runs the analysis of
+    `filterax.filters.EnSRF`, which is the ETKF update, and applies the optional
+    inflator.
+
+    Attributes:
+        dynamics: Forward model f, applied to one state and mapped over the members.
+        obs_op: Observation operator h, applied to one state.
+        inflator: Inflator applied after each analysis; ``None`` skips it.
+        config: `FilterConfig`, reserved for static configuration and unused here.
+
+    Examples:
+        The same cycle as `ETKF`:
+
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import ETKF, EnSRF
+        >>> init = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs = [(jnp.array([0.5, 0.5]), 1.0), (jnp.array([0.6, 0.4]), 2.0)]
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> result = EnSRF(
+        ...     dynamics=lambda x, t0, t1: x, obs_op=lambda x: x
+        ... ).assimilate(init, obs, obs_noise)
+        >>> result.forecast_history.shape
+        (2, 3, 2)
+        >>> etkf = ETKF(
+        ...     dynamics=lambda x, t0, t1: x, obs_op=lambda x: x
+        ... ).assimilate(init, obs, obs_noise)
+        >>> bool(jnp.array_equal(result.particles, etkf.particles))
+        True
+    """
 
     dynamics: AbstractDynamics
     obs_op: AbstractObsOperator
@@ -203,6 +286,19 @@ class EnSRF(eqx.Module, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         t0: float | Float[Array, ""] = 0.0,
     ) -> AssimilationResult:
+        """Run forecast, EnSRF analysis and optional inflation over each window.
+
+        Args:
+            init_ensemble: Initial ensemble x⁽ᵉ⁾_0|0, one row per member.
+            observations: Windows ``(y_t, t)``, in time order.
+            obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+            t0: Time of the initial ensemble.
+
+        Returns:
+            The final analysis, the stacked forecasts and analyses, and the
+            log-likelihood of each window.
+        """
+        # x⁽ᵉ⁾_t|t from x⁽ᵉ⁾_t|t−1 and y_t, window by window
         return _run_loop(
             lambda _step: _EnSRFFilter(),
             self.dynamics,
@@ -216,23 +312,43 @@ class EnSRF(eqx.Module, strict=True):
 
 
 class StochasticEnKF(eqx.Module, strict=True):
-    r"""Stochastic Ensemble Kalman Filter — full forecast-analysis loop.
+    """Stochastic ensemble Kalman filter over many windows.
 
-    The PRNG key for window ``step`` is derived as
-    ``jr.fold_in(base_key, step)`` so successive windows draw
-    independent observation perturbations even when called inside the
-    same assimilation. Pass ``seed`` (int) or ``base_key`` (PRNG array)
-    at construction; ``base_key`` overrides ``seed`` when both are
-    provided.
+        x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1)
+        x⁽ᵉ⁾_t|t = x⁽ᵉ⁾_t|t−1 + G (y_t + ε⁽ᵉ⁾_t − h⁽ᵉ⁾),   ε⁽ᵉ⁾_t ~ 𝒩(0, Σ_ε)
+
+    Each window forecasts with ``dynamics``, runs the analysis of
+    `filterax.filters.StochasticEnKF` and applies the optional inflator. The key of
+    window ``step`` is ``jr.fold_in(base_key, step)``, so the windows draw independent
+    perturbations, and the same model and data repeat the same run.
 
     Attributes:
-        dynamics: Forward model.
-        obs_op: Observation operator ``H``.
-        inflator: Optional posterior inflator.
-        seed: Integer used as ``jr.PRNGKey(seed)`` when ``base_key`` is
-            not supplied.
-        base_key: Explicit PRNG array. Takes precedence over ``seed``.
-        config: Optional :class:`FilterConfig`.
+        dynamics: Forward model f, applied to one state and mapped over the members.
+        obs_op: Observation operator h, applied to one state.
+        inflator: Inflator applied after each analysis; ``None`` skips it.
+        seed: Seed of ``jr.PRNGKey(seed)``, used when ``base_key`` is ``None``.
+        base_key: PRNG key the window keys are folded from; it takes precedence over
+            ``seed``.
+        config: `FilterConfig`, reserved for static configuration and unused here.
+
+    Examples:
+        The same seed repeats the run:
+
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import StochasticEnKF
+        >>> init = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs = [(jnp.array([0.5, 0.5]), 1.0), (jnp.array([0.6, 0.4]), 2.0)]
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> model = StochasticEnKF(
+        ...     dynamics=lambda x, t0, t1: x, obs_op=lambda x: x, seed=3
+        ... )
+        >>> first = model.assimilate(init, obs, obs_noise)
+        >>> first.analysis_history.shape
+        (2, 3, 2)
+        >>> second = model.assimilate(init, obs, obs_noise)
+        >>> bool(jnp.array_equal(first.particles, second.particles))
+        True
     """
 
     dynamics: AbstractDynamics
@@ -249,13 +365,25 @@ class StochasticEnKF(eqx.Module, strict=True):
         obs_noise: lx.AbstractLinearOperator,
         t0: float | Float[Array, ""] = 0.0,
     ) -> AssimilationResult:
+        """Run forecast, stochastic analysis and optional inflation over each window.
+
+        Args:
+            init_ensemble: Initial ensemble x⁽ᵉ⁾_0|0, one row per member.
+            observations: Windows ``(y_t, t)``, in time order.
+            obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+            t0: Time of the initial ensemble.
+
+        Returns:
+            The final analysis, the stacked forecasts and analyses, and the
+            log-likelihood of each window.
+        """
         base_key = self.base_key if self.base_key is not None else jr.PRNGKey(self.seed)
 
         def factory(step: int) -> AbstractSequentialFilter:
-            # jr.fold_in derives a fresh sub-key from (base, step) so each
-            # window's perturbed observations are independent.
+            # one key per window, so the windows' perturbations are independent
             return _StochasticEnKFFilter(key=jr.fold_in(base_key, step))
 
+        # x⁽ᵉ⁾_t|t from x⁽ᵉ⁾_t|t−1 and y_t, window by window
         return _run_loop(
             factory,
             self.dynamics,
@@ -269,12 +397,41 @@ class StochasticEnKF(eqx.Module, strict=True):
 
 
 class LETKF(eqx.Module, strict=True):
-    r"""Local ETKF — full forecast-analysis loop with R-localization.
+    """Local ensemble transform Kalman filter over many windows.
 
-    ``state_coords`` and ``obs_coords`` are passed at ``assimilate`` time
-    because they describe the assimilation problem, not the filter
-    configuration. ``radius`` (and the optional ``taper_fn``) are
-    configured here.
+        x⁽ᵉ⁾_t|t−1 = f(x⁽ᵉ⁾_t−1|t−1)
+        x̄_t|t,i = x̄_t|t−1,i + X̃_iᵀ w̄_i,   X̃_t|t,i = W_i X̃_i
+
+    Each window forecasts with ``dynamics``, runs the analysis of
+    `filterax.filters.LETKF` with the half-width ℓ and the default Gaspari-Cohn taper,
+    and applies the optional inflator. The coordinates go to ``assimilate`` rather
+    than to the model, because they describe the problem rather than the filter.
+
+    Attributes:
+        dynamics: Forward model f, applied to one state and mapped over the members.
+        obs_op: Observation operator h, applied to one state.
+        radius: Localization half-width ℓ; observations farther than ℓ are dropped.
+        inflator: Inflator applied after each analysis; ``None`` skips it.
+        config: `FilterConfig`, reserved for static configuration and unused here.
+
+    Examples:
+        Three grid points on a line, the outer two observed:
+
+        >>> import jax
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> from filterax import LETKF
+        >>> model = LETKF(
+        ...     dynamics=lambda x, t0, t1: x, obs_op=lambda x: x[::2], radius=1.5
+        ... )
+        >>> init = jax.random.normal(jax.random.key(0), (4, 3))
+        >>> obs = [(jnp.array([0.1, -0.2]), 1.0), (jnp.array([0.0, 0.1]), 2.0)]
+        >>> obs_noise = lx.DiagonalLinearOperator(0.5 * jnp.ones(2))
+        >>> state_coords = jnp.array([[0.0], [1.0], [2.0]])
+        >>> obs_coords = jnp.array([[0.0], [2.0]])
+        >>> result = model.assimilate(init, obs, obs_noise, state_coords, obs_coords)
+        >>> result.analysis_history.shape
+        (2, 4, 3)
     """
 
     dynamics: AbstractDynamics
@@ -292,6 +449,21 @@ class LETKF(eqx.Module, strict=True):
         obs_coords: Float[Array, "N_y D"],
         t0: float | Float[Array, ""] = 0.0,
     ) -> AssimilationResult:
+        """Run forecast, LETKF analysis and optional inflation over each window.
+
+        Args:
+            init_ensemble: Initial ensemble x⁽ᵉ⁾_0|0, one row per member.
+            observations: Windows ``(y_t, t)``, in time order.
+            obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+            state_coords: Coordinates s_i of the state components, one row each.
+            obs_coords: Coordinates s_k of the observations, one row each.
+            t0: Time of the initial ensemble.
+
+        Returns:
+            The final analysis, the stacked forecasts and analyses, and the
+            log-likelihood of each window.
+        """
+        # x⁽ᵉ⁾_t|t from x⁽ᵉ⁾_t|t−1 and y_t, window by window
         return _run_loop(
             lambda _step: _LETKFFilter(radius=self.radius),
             self.dynamics,
@@ -308,21 +480,22 @@ class LETKF(eqx.Module, strict=True):
         )
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Latent-space L2 wrappers (D17)
-# ──────────────────────────────────────────────────────────────────────
+# --- latent-space models ---
 
 
 def _coerce_latent_dynamics(d: Any) -> AbstractDynamics:
-    """Auto-wrap a structural ``LatentForwardModel`` as an ``AbstractDynamics``.
+    """Wrap a raw latent forward model, with only ``.step(z, dt)``, as dynamics.
 
-    The design doc advertises both the wrapped form (any
-    :class:`AbstractDynamics` — typically :class:`LatentDynamics` or
-    :class:`EncodedDynamics`) and the raw structural form (any object
-    with ``.step(z, dt) → z``). The L2 wrappers feed the dynamics
-    into :func:`_forecast`, which calls ``dynamics(state, t0, t1)`` —
-    so a raw ``.step``-only object would raise at trace time. We wrap
-    here so users following either contract get the same ergonomics.
+    The latent models take either an `AbstractDynamics`, typically `LatentDynamics`
+    or `EncodedDynamics`, or a raw object with ``.step(z, dt)``. `_forecast` calls
+    ``dynamics(state, t0, t1)``, which a raw object does not have, so it is wrapped
+    here and both forms behave the same.
+
+    Args:
+        d: Latent dynamics, an `AbstractDynamics` or an object with ``.step``.
+
+    Returns:
+        ``d`` itself, or ``LatentDynamics(inner=d)``.
     """
     if isinstance(d, AbstractDynamics):
         return d
@@ -333,11 +506,18 @@ def _wrap_latent_result(
     latent_map: Any,
     result_z: AssimilationResult,
 ) -> LatentAssimilationResult:
-    """Decode the z-space histories on a vanilla ``AssimilationResult``.
+    """Decode a latent result to state space, keeping the latent ensembles beside it.
 
-    Used by :class:`LatentETKF` / :class:`LatentLETKF` to surface the
-    decoded ``x``-space view alongside the latent representations.
+        x⁽ᵉ⁾ = g_dec(z⁽ᵉ⁾)
+
+    Args:
+        latent_map: Codec with ``.decode``, the decoder g_dec.
+        result_z: The result of the latent loop.
+
+    Returns:
+        The decoded ensembles and histories, with the latent ones alongside.
     """
+    # x⁽ᵉ⁾ = g_dec(z⁽ᵉ⁾)
     particles_x = decode_ensemble(latent_map.decode, result_z.particles)
     forecast_x = _stack_decode(latent_map.decode, result_z.forecast_history)
     analysis_x = _stack_decode(latent_map.decode, result_z.analysis_history)
@@ -353,35 +533,50 @@ def _wrap_latent_result(
 
 
 class LatentETKF(eqx.Module, strict=True):
-    r"""ETKF analysis applied to a latent-space ensemble (D17).
+    """ETKF over many windows on a latent ensemble.
 
-    Thin composition over the existing :class:`ETKF` Layer-1 step:
-    encode the initial ensemble (when supplied in ``x``-space), run
-    the standard forecast → ETKF → optional inflation cycle on the
-    latent ensemble using ``LiftedObs(decoder, x_obs_op)`` as the
-    observation operator, then decode the histories back to
-    ``x``-space alongside the latent representations.
+        z⁽ᵉ⁾_0|0 = g_enc(x⁽ᵉ⁾_0|0),   h_z = h ∘ g_dec,   x⁽ᵉ⁾_t|t = g_dec(z⁽ᵉ⁾_t|t)
 
-    The ensemble math is unchanged — the wrapper exists for ergonomics
-    and for compile-time correctness (it would be hard to accidentally
-    feed an ``x``-space ensemble into a latent-space analysis step
-    once the user builds a ``LatentETKF``).
+    Encodes the initial ensemble, runs the cycle of `ETKF` on the latent members z⁽ᵉ⁾
+    with the observation operator h ∘ g_dec, a `LiftedObs`, and decodes the histories
+    back to state space beside the latent ones. The ensemble algebra is unchanged, and
+    the class keeps a state-space ensemble out of a latent analysis by construction.
 
     Attributes:
-        latent_map: Object exposing ``.encode`` and ``.decode``.
-            Typically a :class:`pipekit_cycle.LatentMap`-shaped autoencoder
-            or :func:`identity_latent_map` for regression tests.
-        dynamics: Latent-space dynamics — either an
-            :class:`AbstractDynamics` (typically :class:`LatentDynamics`
-            or :class:`EncodedDynamics`) or a structural
-            ``LatentForwardModel`` exposing ``.step(z, dt) → z``. Raw
-            ``.step``-only objects are auto-wrapped in
-            :class:`LatentDynamics` at construction.
-        obs_op: ``x``-space observation operator. Lifted internally
-            via :class:`LiftedObs`.
-        inflator: Optional deterministic inflator applied in latent
-            space.
-        config: Reserved :class:`FilterConfig`.
+        latent_map: Codec with ``.encode`` and ``.decode``, the encoder g_enc and the
+            decoder g_dec, such as a pipekit ``LatentMap`` autoencoder or
+            `identity_latent_map`.
+        dynamics: Latent dynamics, an `AbstractDynamics` such as `LatentDynamics` or
+            `EncodedDynamics`, or a raw object with ``.step(z, dt)``, which is wrapped
+            in `LatentDynamics` at construction.
+        obs_op: Observation operator h on the state, lifted to h ∘ g_dec.
+        inflator: Deterministic inflator applied in latent space after each analysis;
+            ``None`` skips it.
+        config: `FilterConfig`, reserved for static configuration and unused here.
+
+    Examples:
+        The identity codec reproduces the state-space `ETKF`:
+
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> import filterax
+        >>> init = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs = [(jnp.array([0.5, 0.5]), 1.0), (jnp.array([0.6, 0.4]), 2.0)]
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> class Persistence:
+        ...     def step(self, z, dt):
+        ...         return z
+        >>> model = filterax.LatentETKF(
+        ...     filterax.identity_latent_map(2), Persistence(), lambda x: x
+        ... )
+        >>> result = model.assimilate(init, obs, obs_noise)
+        >>> result.particles_z.shape, result.analysis_history.shape
+        ((3, 2), (2, 3, 2))
+        >>> etkf = filterax.ETKF(
+        ...     dynamics=lambda x, t0, t1: x, obs_op=lambda x: x
+        ... ).assimilate(init, obs, obs_noise)
+        >>> bool(jnp.allclose(result.particles, etkf.particles))
+        True
     """
 
     latent_map: Any
@@ -413,30 +608,34 @@ class LatentETKF(eqx.Module, strict=True):
         *,
         in_x_space: bool = True,
     ) -> LatentAssimilationResult:
-        """Run forecast → ETKF analysis → optional inflation in latent space.
+        """Run forecast, ETKF analysis and optional inflation in latent space.
+
+        Algorithm:
+            1. Encode the initial ensemble, z⁽ᵉ⁾_0|0 = g_enc(x⁽ᵉ⁾_0|0), unless it is
+               latent already.
+            2. Run the ETKF cycle on the latent members, observing them through
+               h ∘ g_dec.
+            3. Decode the final ensemble and the histories with g_dec.
 
         Args:
-            init_ensemble: Prior ensemble. Shape ``(Nₑ, Nₓ)`` when
-                ``in_x_space=True`` (default); ``(Nₑ, N_z)`` when the
-                caller already encoded.
-            observations: Sequence of ``(y_t, t)`` pairs in
-                ``x``-space coordinates.
-            obs_noise: Observation error covariance ``R`` (operates in
-                ``y``-space, untouched).
-            t0: Starting time for the first forecast window.
-            in_x_space: Encode the initial ensemble first. ``False``
-                lets the caller skip the round-trip when their initial
-                ensemble already lives in ``z``-space.
+            init_ensemble: Initial ensemble, one row per member: x⁽ᵉ⁾_0|0 of length
+                D_x, or z⁽ᵉ⁾_0|0 of length D_z when ``in_x_space=False``.
+            observations: Windows ``(y_t, t)``, in time order.
+            obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+            t0: Time of the initial ensemble.
+            in_x_space: Whether ``init_ensemble`` is in state space and needs
+                encoding.
 
         Returns:
-            :class:`LatentAssimilationResult` carrying both the
-            latent and decoded ``x``-space ensembles.
+            The latent ensembles and histories, and their decoded state-space views.
         """
+        # z⁽ᵉ⁾_0|0 = g_enc(x⁽ᵉ⁾_0|0)
         z0 = (
             latent_ensemble(self.latent_map.encode, init_ensemble)
             if in_x_space
             else init_ensemble
         )
+        # z⁽ᵉ⁾_t|t from z⁽ᵉ⁾_t|t−1 and y_t, observed through h ∘ g_dec
         result_z = _run_loop(
             lambda _step: _ETKFFilter(),
             self.dynamics,
@@ -451,24 +650,45 @@ class LatentETKF(eqx.Module, strict=True):
 
 
 class LatentLETKF(eqx.Module, strict=True):
-    r"""Local ETKF in latent space (D17).
+    """Local ETKF in latent space, which today runs `LatentETKF` unlocalized.
 
-    Sister of :class:`LatentETKF` over :class:`LETKF`. v0.1 implements
-    option (a) of `latent_da.md` §9.2 — *no* localization in latent
-    space — because the latent dimensions of a typical autoencoder are
-    global modes without an intrinsic notion of locality.
-    Pseudo-localization-via-mode-coords (option c) is deferred.
+        z⁽ᵉ⁾_0|0 = g_enc(x⁽ᵉ⁾_0|0),   h_z = h ∘ g_dec,   x⁽ᵉ⁾_t|t = g_dec(z⁽ᵉ⁾_t|t)
 
-    For the no-localization case, this class is provided for API
-    parity with :class:`LatentETKF`: it gives users a ``LatentLETKF``
-    name that they can wire into pipekit alongside ``LatentETKF``
-    without having to fall back to ``LatentETKF`` themselves. The
-    body is identical to :class:`LatentETKF`.
+    The latent axes of a typical autoencoder are global modes with no notion of place,
+    so this class applies no localization, option (a) of §9.2 of the latent design
+    document, and localizing by mode coordinates is deferred. It exists so that a
+    pipeline can name a ``LatentLETKF`` beside a ``LatentETKF``, and its body is that
+    of `LatentETKF`.
 
-    Like :class:`LatentETKF`, ``dynamics`` may be either an
-    :class:`AbstractDynamics` or a raw structural ``LatentForwardModel``
-    (``.step(z, dt) → z``); the latter is auto-wrapped in
-    :class:`LatentDynamics` at construction.
+    Attributes:
+        latent_map: Codec with ``.encode`` and ``.decode``, the encoder g_enc and the
+            decoder g_dec.
+        dynamics: Latent dynamics, an `AbstractDynamics`, or a raw object with
+            ``.step(z, dt)``, which is wrapped in `LatentDynamics` at construction.
+        obs_op: Observation operator h on the state, lifted to h ∘ g_dec.
+        inflator: Deterministic inflator applied in latent space after each analysis;
+            ``None`` skips it.
+        config: `FilterConfig`, reserved for static configuration and unused here.
+
+    Examples:
+        The same run as `LatentETKF`:
+
+        >>> import jax.numpy as jnp
+        >>> import lineax as lx
+        >>> import filterax
+        >>> init = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        >>> obs = [(jnp.array([0.5, 0.5]), 1.0)]
+        >>> obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))
+        >>> codec = filterax.identity_latent_map(2)
+        >>> class Persistence:
+        ...     def step(self, z, dt):
+        ...         return z
+        >>> local = filterax.LatentLETKF(codec, Persistence(), lambda x: x)
+        >>> result = local.assimilate(init, obs, obs_noise)
+        >>> plain = filterax.LatentETKF(codec, Persistence(), lambda x: x)
+        >>> other = plain.assimilate(init, obs, obs_noise)
+        >>> bool(jnp.array_equal(result.particles_z, other.particles_z))
+        True
     """
 
     latent_map: Any
@@ -500,12 +720,27 @@ class LatentLETKF(eqx.Module, strict=True):
         *,
         in_x_space: bool = True,
     ) -> LatentAssimilationResult:
-        """Run forecast → ETKF analysis (no localization) → inflation in z-space."""
+        """Run forecast, unlocalized ETKF analysis and optional inflation on z⁽ᵉ⁾.
+
+        Args:
+            init_ensemble: Initial ensemble, one row per member: x⁽ᵉ⁾_0|0 of length
+                D_x, or z⁽ᵉ⁾_0|0 of length D_z when ``in_x_space=False``.
+            observations: Windows ``(y_t, t)``, in time order.
+            obs_noise: Observation-error covariance Σ_ε, shared by the windows.
+            t0: Time of the initial ensemble.
+            in_x_space: Whether ``init_ensemble`` is in state space and needs
+                encoding.
+
+        Returns:
+            The latent ensembles and histories, and their decoded state-space views.
+        """
+        # z⁽ᵉ⁾_0|0 = g_enc(x⁽ᵉ⁾_0|0)
         z0 = (
             latent_ensemble(self.latent_map.encode, init_ensemble)
             if in_x_space
             else init_ensemble
         )
+        # z⁽ᵉ⁾_t|t from z⁽ᵉ⁾_t|t−1 and y_t, observed through h ∘ g_dec
         result_z = _run_loop(
             lambda _step: _ETKFFilter(),
             self.dynamics,
