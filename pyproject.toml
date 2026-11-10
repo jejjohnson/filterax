@@ -51,6 +51,7 @@ dev = [
     # filterax.pipekit against pipekit-cycle's runtime Protocols and runs
     # them through EnsembleDACycle. filterax itself never imports pipekit.
     "pipekit-cycle",
+    "pipekit-ops",
 ]
 lint = [
     "ruff>=0.15.10",
@@ -81,10 +82,10 @@ docs = [
 ]
 
 # pipekit is not on PyPI; the dev group resolves pipekit-cycle (and the
-# pipekit core it depends on) from their release tags.
+# pipekit-ops core it depends on) from the single pipekit-ops-v0.2.1 tag.
 [tool.uv.sources]
-pipekit = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit", tag = "pipekit-v0.1.1" }
-pipekit-cycle = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-cycle", tag = "pipekit-cycle-v0.0.3" }
+pipekit-ops = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-ops", tag = "pipekit-ops-v0.2.1" }
+pipekit-cycle = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-cycle", tag = "pipekit-ops-v0.2.1" }
 
 [build-system]
 requires = ["hatchling"]

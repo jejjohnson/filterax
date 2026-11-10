@@ -15,9 +15,9 @@ import jax.numpy as jnp
 import lineax as lx
 import numpy as np
 import pytest
-from pipekit import Const
 from pipekit_cycle import EnsembleDACycle, protocols
 from pipekit_cycle.state import DAState
+from pipekit_ops import Const
 
 from filterax.filters import ETKF, EnSRF
 from filterax.pipekit import (

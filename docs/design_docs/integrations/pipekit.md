@@ -106,7 +106,7 @@ pipekit threads `(carrier, state) -> (carrier, state)` through `Sequential` grap
 from typing import Any
 
 import filterax
-import pipekit as pk
+import pipekit_ops as pk
 
 class FilterCycle(pk.StatefulOperator):
     """A filterax filter wrapped as a stateful pipekit operator."""
