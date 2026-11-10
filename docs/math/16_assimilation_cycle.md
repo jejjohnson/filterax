@@ -101,7 +101,7 @@ import jax.random as jr
 import jaxtyping as jt
 import lineax as lx
 import numpy as np
-from pipekit import Operator
+from pipekit_ops import Operator
 from pipekit_cycle import DAState, EnsembleDACycle, protocols
 
 jax.config.update("jax_enable_x64", True)
