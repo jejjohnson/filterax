@@ -591,8 +591,8 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "griffe", specifier = ">=1.0" },
-    { name = "pipekit-cycle", git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-cycle&tag=pipekit-ops-v0.2.1" },
-    { name = "pipekit-ops", git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-ops&tag=pipekit-ops-v0.2.1" },
+    { name = "pipekit-cycle", git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-cycle&tag=pipekit-array-v0.1.4" },
+    { name = "pipekit-ops", git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-ops&tag=pipekit-array-v0.1.4" },
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
@@ -1696,15 +1696,15 @@ wheels = [
 [[package]]
 name = "pipekit-cycle"
 version = "0.1.0"
-source = { git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-cycle&tag=pipekit-ops-v0.2.1#8e357a1f3eb82b15e15bf18be4de04d4d9535855" }
+source = { git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-cycle&tag=pipekit-array-v0.1.4#30a6c197a3d70e9d23029501bdf0202bca728f35" }
 dependencies = [
     { name = "pipekit-ops" },
 ]
 
 [[package]]
 name = "pipekit-ops"
-version = "0.2.1"
-source = { git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-ops&tag=pipekit-ops-v0.2.1#8e357a1f3eb82b15e15bf18be4de04d4d9535855" }
+version = "0.2.3"
+source = { git = "https://github.com/jejjohnson/pipekit?subdirectory=packages%2Fpipekit-ops&tag=pipekit-array-v0.1.4#30a6c197a3d70e9d23029501bdf0202bca728f35" }
 
 [[package]]
 name = "platformdirs"
