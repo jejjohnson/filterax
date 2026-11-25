@@ -82,10 +82,10 @@ docs = [
 ]
 
 # pipekit is not on PyPI; the dev group resolves pipekit-cycle (and the
-# pipekit-ops core it depends on) from the single pipekit-array-v0.1.4 tag.
+# pipekit-ops core it depends on) from the single pipekit-array-v0.2.0 tag.
 [tool.uv.sources]
-pipekit-ops = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-ops", tag = "pipekit-array-v0.1.4" }
-pipekit-cycle = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-cycle", tag = "pipekit-array-v0.1.4" }
+pipekit-ops = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-ops", tag = "pipekit-array-v0.2.0" }
+pipekit-cycle = { git = "https://github.com/jejjohnson/pipekit", subdirectory = "packages/pipekit-cycle", tag = "pipekit-array-v0.2.0" }
 
 [build-system]
 requires = ["hatchling"]
