@@ -5,7 +5,7 @@ How should reverse-mode gradients flow through the ``T``-cycle scan of
 declarative strategies, named to match the shared pipekit / diffrax
 vocabulary (filterax does not depend on pipekit — specs are matched
 structurally, so the identically-named classes from
-``pipekit_cycle.adjoints`` are accepted interchangeably):
+``pipekit_cycle.cycles`` are accepted interchangeably):
 
 * :class:`DirectAdjoint` — plain scan: exact gradients, the whole
   forward tape is stored, memory $O(T)$. The default.

@@ -136,7 +136,7 @@ def differentiable_assimilate(
             :class:`filterax.differentiable.TruncatedAdjoint` (biased:
             gradients flow through the trailing ``k`` cycles only —
             O(1) backward memory in ``T`` and chaos-tolerant). The
-            structurally identical ``pipekit_cycle.adjoints`` specs are
+            structurally identical ``pipekit_cycle.cycles`` specs are
             accepted interchangeably. Forward values are identical
             under every strategy.
         checkpoint: Deprecated — use
