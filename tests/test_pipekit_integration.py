@@ -16,7 +16,7 @@ import lineax as lx
 import numpy as np
 import pytest
 from pipekit_cycle import EnsembleDACycle, protocols
-from pipekit_cycle.state import DAState
+from pipekit_cycle.cycles import DAState
 from pipekit_ops import Const
 
 from filterax.filters import ETKF, EnSRF

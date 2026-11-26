@@ -9,7 +9,7 @@ Gradient strategies for training through the filter:
   recomputation), or :class:`TruncatedAdjoint` (biased: trailing-``k``
   cycles only — ``O(1)`` memory in ``T`` and tolerant of chaotic
   gradient explosion). The names match the shared pipekit / diffrax
-  vocabulary; ``pipekit_cycle.adjoints`` specs are accepted
+  vocabulary; ``pipekit_cycle.cycles`` specs are accepted
   interchangeably.
 * :func:`road_enkf_loss_and_grad` / :func:`road_enkf_grad_step` —
   ROAD-EnKF local-gradient strategy with :func:`jax.lax.stop_gradient`
