@@ -1,0 +1,3253 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="API reference for filterax, generated from Google-style docstrings.">
+      
+      
+        <meta name="author" content="J. Emmanuel Johnson">
+      
+      
+      
+        <link rel="prev" href="../filters/">
+      
+      
+        <link rel="next" href="../smoothers/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Advanced filters - filterax API reference</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#advanced-sequential-filters" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="filterax API reference" class="md-header__button md-logo" aria-label="filterax API reference" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            filterax API reference
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Advanced filters
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../protocols/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Protocols & Types
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../primitives/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Primitives
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../localization/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Localization
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../inflation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inflation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../filters/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Filters
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Advanced filters
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../smoothers/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Smoothers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../processes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Processes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../schedulers/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Schedulers
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../optax/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  optax integration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../differentiable/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Differentiable training
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../diagnostics/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Diagnostics
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../pipekit/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  pipekit integration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../integrations/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Integrations
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="filterax API reference" class="md-nav__button md-logo" aria-label="filterax API reference" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    filterax API reference
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jejjohnson/filterax" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jejjohnson/filterax
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocols/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocols & Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Localization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../inflation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inflation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../filters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced filters
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced filters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#picking-an-advanced-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Picking an advanced filter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ESTKF" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ESTKF
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ESTKF">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ESTKF.analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ETKF_Livings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ETKF_Livings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ETKF_Livings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ETKF_Livings.analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.EnSRF_Serial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;EnSRF_Serial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" EnSRF_Serial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.EnSRF_Serial.analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smoothers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smoothers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../processes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schedulers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schedulers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../optax/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    optax integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../differentiable/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Differentiable training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipekit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pipekit integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#picking-an-advanced-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Picking an advanced filter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ESTKF" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ESTKF
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ESTKF">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ESTKF.analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ETKF_Livings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ETKF_Livings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ETKF_Livings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.ETKF_Livings.analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.EnSRF_Serial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;EnSRF_Serial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" EnSRF_Serial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filterax.filters.EnSRF_Serial.analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="advanced-sequential-filters">Advanced Sequential Filters<a class="headerlink" href="#advanced-sequential-filters" title="Permanent link">&para;</a></h1>
+<p>Specialised deterministic variants of the everyday
+<a href="../filters/">Layer-1 filters</a> (<code>ETKF</code>, <code>EnSRF</code>, <code>StochasticEnKF</code>, <code>LETKF</code>).
+Use those as the defaults; reach for these when you need the specific
+properties below. All three implement
+<a class="autorefs autorefs-internal" title="            AbstractSequentialFilter" href="../protocols/#filterax.AbstractSequentialFilter"><code>AbstractSequentialFilter</code></a>, so they
+slot into the same Layer-2 loops and pipekit adapters.</p>
+<h2 id="picking-an-advanced-filter">Picking an advanced filter<a class="headerlink" href="#picking-an-advanced-filter" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Family</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="autorefs autorefs-internal" title="            ETKF_Livings" href="#filterax.filters.ETKF_Livings"><code>filterax.filters.ETKF_Livings</code></a></td>
+<td>Deterministic, randomised</td>
+<td>When the symmetric-sqrt ETKF develops preferred ensemble directions over long runs — the random mean-preserving rotation averages out the degeneracy.</td>
+</tr>
+<tr>
+<td><a class="autorefs autorefs-internal" title="            EnSRF_Serial" href="#filterax.filters.EnSRF_Serial"><code>filterax.filters.EnSRF_Serial</code></a></td>
+<td>Deterministic, scalar-serial</td>
+<td>When <code>R</code> is diagonal and you want to avoid any <code>N_y × N_y</code> solve. Cost <code>O(N_e N_x N_y)</code> with no matrix inversion.</td>
+</tr>
+<tr>
+<td><a class="autorefs autorefs-internal" title="            ESTKF" href="#filterax.filters.ESTKF"><code>filterax.filters.ESTKF</code></a></td>
+<td>Deterministic, reduced-rank</td>
+<td>When you think in error-subspace terms or cross-validate against PDAF. It runs the same analysis as ETKF, and gives the same results.</td>
+</tr>
+</tbody>
+</table>
+<p>For the parametric (non-ensemble)
+<a class="autorefs autorefs-internal" title="            SquareRootKF" href="../filters/#filterax.filters.SquareRootKF"><code>SquareRootKF</code></a> — linear-Gaussian baselines
+and twin-experiment ground truths — see the <a href="../filters/">Filters</a> page.</p>
+<p>Note that <code>ETKF_Livings</code> is stochastic (the rotation draws from a PRNG key),
+so it is rejected by the <a href="../differentiable/">differentiable training</a>
+entry points, like <code>StochasticEnKF</code>.</p>
+<h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+
+    <div class="doc doc-contents first">
+
+        <p>Layer-1 sequential filters: the one-shot analysis steps, such as <code>filters.ETKF()</code>.</p>
+<p>Re-exports the analysis steps of <code>filterax._filters._sequential</code>: <code>StochasticEnKF</code>,
+<code>ETKF</code>, <code>EnSRF</code>, <code>LETKF</code>, and the variants <code>ETKF_Livings</code>, with a mean-preserving
+random rotation, <code>EnSRF_Serial</code>, with one scalar update per observation, and <code>ESTKF</code>,
+in the error subspace. The parametric <code>SquareRootKF</code> and its <code>SquareRootFilterResult</code>
+live in <code>filterax._filters._parametric</code> and are re-exported here for convenience.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="filterax.filters.ESTKF" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>ESTKF</code>
+
+
+<a href="#filterax.filters.ESTKF" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            AbstractSequentialFilter (filterax._protocols.AbstractSequentialFilter)" href="../protocols/#filterax.AbstractSequentialFilter">AbstractSequentialFilter</a></code></p>
+
+
+
+        <p>Error-subspace transform Kalman filter, which is the ETKF update.</p>
+<div class="highlight"><pre><span></span><code>Λ_L = (N_ℰ − 1) I + Lᵀ H̃ Σ_ε⁻¹ H̃ᵀ L,   w̄_L = Λ_L⁻¹ Lᵀ H̃ Σ_ε⁻¹ r̄
+W_L = ((N_ℰ − 1) Λ_L⁻¹)^½
+x̄_t|t = x̄_t|t−1 + X̃ᵀ L w̄_L,   X̃_t|t = L W_L Lᵀ X̃
+</code></pre></div>
+<p>Nerger et al. (2012) write the ETKF in the (N_ℰ − 1)-dimensional error subspace,
+through a projection L of shape (N_ℰ, N_ℰ − 1) with Lᵀ L = I and Lᵀ 1 = 0. The rows
+of X̃ and H̃ sum to zero, so their columns are orthogonal to 1 and L Lᵀ acts on them
+as the identity. The subspace form therefore gives the same w̄ = L w̄_L and
+W X̃ = L W_L Lᵀ X̃ as <code>ETKF</code>, and this class runs that analysis through
+<code>gaussx.etkf_analysis</code>, keeping the name and formulation for readers of the
+error-subspace literature.</p>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>The same analysis as <code>ETKF</code>:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">lineax</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lx</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">filterax.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">ESTKF</span><span class="p">,</span> <span class="n">ETKF</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">particles</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">obs_noise</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">DiagonalLinearOperator</span><span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">ESTKF</span><span class="p">()</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">etkf</span> <span class="o">=</span> <span class="n">ETKF</span><span class="p">()</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="n">etkf</span><span class="o">.</span><span class="n">particles</span><span class="p">))</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go">True</span>
+</code></pre></div>
+
+
+<details class="references" open>
+  <summary>References</summary>
+  <p>Nerger et al. (2012), <em>Mon. Wea. Rev.</em> 140, 2335–2345.</p>
+</details>
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/filterax/_filters/_sequential.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-889">889</a></span>
+<span class="normal"><a href="#__codelineno-0-890">890</a></span>
+<span class="normal"><a href="#__codelineno-0-891">891</a></span>
+<span class="normal"><a href="#__codelineno-0-892">892</a></span>
+<span class="normal"><a href="#__codelineno-0-893">893</a></span>
+<span class="normal"><a href="#__codelineno-0-894">894</a></span>
+<span class="normal"><a href="#__codelineno-0-895">895</a></span>
+<span class="normal"><a href="#__codelineno-0-896">896</a></span>
+<span class="normal"><a href="#__codelineno-0-897">897</a></span>
+<span class="normal"><a href="#__codelineno-0-898">898</a></span>
+<span class="normal"><a href="#__codelineno-0-899">899</a></span>
+<span class="normal"><a href="#__codelineno-0-900">900</a></span>
+<span class="normal"><a href="#__codelineno-0-901">901</a></span>
+<span class="normal"><a href="#__codelineno-0-902">902</a></span>
+<span class="normal"><a href="#__codelineno-0-903">903</a></span>
+<span class="normal"><a href="#__codelineno-0-904">904</a></span>
+<span class="normal"><a href="#__codelineno-0-905">905</a></span>
+<span class="normal"><a href="#__codelineno-0-906">906</a></span>
+<span class="normal"><a href="#__codelineno-0-907">907</a></span>
+<span class="normal"><a href="#__codelineno-0-908">908</a></span>
+<span class="normal"><a href="#__codelineno-0-909">909</a></span>
+<span class="normal"><a href="#__codelineno-0-910">910</a></span>
+<span class="normal"><a href="#__codelineno-0-911">911</a></span>
+<span class="normal"><a href="#__codelineno-0-912">912</a></span>
+<span class="normal"><a href="#__codelineno-0-913">913</a></span>
+<span class="normal"><a href="#__codelineno-0-914">914</a></span>
+<span class="normal"><a href="#__codelineno-0-915">915</a></span>
+<span class="normal"><a href="#__codelineno-0-916">916</a></span>
+<span class="normal"><a href="#__codelineno-0-917">917</a></span>
+<span class="normal"><a href="#__codelineno-0-918">918</a></span>
+<span class="normal"><a href="#__codelineno-0-919">919</a></span>
+<span class="normal"><a href="#__codelineno-0-920">920</a></span>
+<span class="normal"><a href="#__codelineno-0-921">921</a></span>
+<span class="normal"><a href="#__codelineno-0-922">922</a></span>
+<span class="normal"><a href="#__codelineno-0-923">923</a></span>
+<span class="normal"><a href="#__codelineno-0-924">924</a></span>
+<span class="normal"><a href="#__codelineno-0-925">925</a></span>
+<span class="normal"><a href="#__codelineno-0-926">926</a></span>
+<span class="normal"><a href="#__codelineno-0-927">927</a></span>
+<span class="normal"><a href="#__codelineno-0-928">928</a></span>
+<span class="normal"><a href="#__codelineno-0-929">929</a></span>
+<span class="normal"><a href="#__codelineno-0-930">930</a></span>
+<span class="normal"><a href="#__codelineno-0-931">931</a></span>
+<span class="normal"><a href="#__codelineno-0-932">932</a></span>
+<span class="normal"><a href="#__codelineno-0-933">933</a></span>
+<span class="normal"><a href="#__codelineno-0-934">934</a></span>
+<span class="normal"><a href="#__codelineno-0-935">935</a></span>
+<span class="normal"><a href="#__codelineno-0-936">936</a></span>
+<span class="normal"><a href="#__codelineno-0-937">937</a></span>
+<span class="normal"><a href="#__codelineno-0-938">938</a></span>
+<span class="normal"><a href="#__codelineno-0-939">939</a></span>
+<span class="normal"><a href="#__codelineno-0-940">940</a></span>
+<span class="normal"><a href="#__codelineno-0-941">941</a></span>
+<span class="normal"><a href="#__codelineno-0-942">942</a></span>
+<span class="normal"><a href="#__codelineno-0-943">943</a></span>
+<span class="normal"><a href="#__codelineno-0-944">944</a></span>
+<span class="normal"><a href="#__codelineno-0-945">945</a></span>
+<span class="normal"><a href="#__codelineno-0-946">946</a></span>
+<span class="normal"><a href="#__codelineno-0-947">947</a></span>
+<span class="normal"><a href="#__codelineno-0-948">948</a></span>
+<span class="normal"><a href="#__codelineno-0-949">949</a></span>
+<span class="normal"><a href="#__codelineno-0-950">950</a></span>
+<span class="normal"><a href="#__codelineno-0-951">951</a></span>
+<span class="normal"><a href="#__codelineno-0-952">952</a></span>
+<span class="normal"><a href="#__codelineno-0-953">953</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="k">class</span><span class="w"> </span><span class="nc">ESTKF</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Error-subspace transform Kalman filter, which is the ETKF update.</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a><span class="sd">        Λ_L = (N_ℰ − 1) I + Lᵀ H̃ Σ_ε⁻¹ H̃ᵀ L,   w̄_L = Λ_L⁻¹ Lᵀ H̃ Σ_ε⁻¹ r̄</span>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a><span class="sd">        W_L = ((N_ℰ − 1) Λ_L⁻¹)^½</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="sd">        x̄_t|t = x̄_t|t−1 + X̃ᵀ L w̄_L,   X̃_t|t = L W_L Lᵀ X̃</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a><span class="sd">    Nerger et al. (2012) write the ETKF in the (N_ℰ − 1)-dimensional error subspace,</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a><span class="sd">    through a projection L of shape (N_ℰ, N_ℰ − 1) with Lᵀ L = I and Lᵀ 1 = 0. The rows</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a><span class="sd">    of X̃ and H̃ sum to zero, so their columns are orthogonal to 1 and L Lᵀ acts on them</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a><span class="sd">    as the identity. The subspace form therefore gives the same w̄ = L w̄_L and</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a><span class="sd">    W X̃ = L W_L Lᵀ X̃ as `ETKF`, and this class runs that analysis through</span>
+<a id="__codelineno-0-901" name="__codelineno-0-901"></a><span class="sd">    `gaussx.etkf_analysis`, keeping the name and formulation for readers of the</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a><span class="sd">    error-subspace literature.</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a>
+<a id="__codelineno-0-904" name="__codelineno-0-904"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-905" name="__codelineno-0-905"></a><span class="sd">        The same analysis as `ETKF`:</span>
+<a id="__codelineno-0-906" name="__codelineno-0-906"></a>
+<a id="__codelineno-0-907" name="__codelineno-0-907"></a><span class="sd">        &gt;&gt;&gt; import jax.numpy as jnp</span>
+<a id="__codelineno-0-908" name="__codelineno-0-908"></a><span class="sd">        &gt;&gt;&gt; import lineax as lx</span>
+<a id="__codelineno-0-909" name="__codelineno-0-909"></a><span class="sd">        &gt;&gt;&gt; from filterax.filters import ESTKF, ETKF</span>
+<a id="__codelineno-0-910" name="__codelineno-0-910"></a><span class="sd">        &gt;&gt;&gt; particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a><span class="sd">        &gt;&gt;&gt; obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))</span>
+<a id="__codelineno-0-912" name="__codelineno-0-912"></a><span class="sd">        &gt;&gt;&gt; result = ESTKF().analysis(</span>
+<a id="__codelineno-0-913" name="__codelineno-0-913"></a><span class="sd">        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise</span>
+<a id="__codelineno-0-914" name="__codelineno-0-914"></a><span class="sd">        ... )</span>
+<a id="__codelineno-0-915" name="__codelineno-0-915"></a><span class="sd">        &gt;&gt;&gt; etkf = ETKF().analysis(</span>
+<a id="__codelineno-0-916" name="__codelineno-0-916"></a><span class="sd">        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise</span>
+<a id="__codelineno-0-917" name="__codelineno-0-917"></a><span class="sd">        ... )</span>
+<a id="__codelineno-0-918" name="__codelineno-0-918"></a><span class="sd">        &gt;&gt;&gt; bool(jnp.array_equal(result.particles, etkf.particles))</span>
+<a id="__codelineno-0-919" name="__codelineno-0-919"></a><span class="sd">        True</span>
+<a id="__codelineno-0-920" name="__codelineno-0-920"></a>
+<a id="__codelineno-0-921" name="__codelineno-0-921"></a><span class="sd">    References:</span>
+<a id="__codelineno-0-922" name="__codelineno-0-922"></a><span class="sd">        Nerger et al. (2012), *Mon. Wea. Rev.* 140, 2335–2345.</span>
+<a id="__codelineno-0-923" name="__codelineno-0-923"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-924" name="__codelineno-0-924"></a>
+<a id="__codelineno-0-925" name="__codelineno-0-925"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-926" name="__codelineno-0-926"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-927" name="__codelineno-0-927"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-928" name="__codelineno-0-928"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-929" name="__codelineno-0-929"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span>
+<a id="__codelineno-0-930" name="__codelineno-0-930"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-931" name="__codelineno-0-931"></a>        <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-0-932" name="__codelineno-0-932"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-933" name="__codelineno-0-933"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;ESTKF analysis step, the ETKF update.</span>
+<a id="__codelineno-0-934" name="__codelineno-0-934"></a>
+<a id="__codelineno-0-935" name="__codelineno-0-935"></a><span class="sd">        Algorithm:</span>
+<a id="__codelineno-0-936" name="__codelineno-0-936"></a><span class="sd">            1. Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).</span>
+<a id="__codelineno-0-937" name="__codelineno-0-937"></a><span class="sd">            2. Form w̄ and W in ensemble space and apply them to X̃.</span>
+<a id="__codelineno-0-938" name="__codelineno-0-938"></a><span class="sd">            3. Score r̄ under 𝒩(0, Σ̂_y).</span>
+<a id="__codelineno-0-939" name="__codelineno-0-939"></a>
+<a id="__codelineno-0-940" name="__codelineno-0-940"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-941" name="__codelineno-0-941"></a><span class="sd">            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</span>
+<a id="__codelineno-0-942" name="__codelineno-0-942"></a><span class="sd">            obs: Observation y.</span>
+<a id="__codelineno-0-943" name="__codelineno-0-943"></a><span class="sd">            obs_op: Observation operator h, applied to one state.</span>
+<a id="__codelineno-0-944" name="__codelineno-0-944"></a><span class="sd">            obs_noise: Observation-error covariance Σ_ε.</span>
+<a id="__codelineno-0-945" name="__codelineno-0-945"></a>
+<a id="__codelineno-0-946" name="__codelineno-0-946"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-947" name="__codelineno-0-947"></a><span class="sd">            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).</span>
+<a id="__codelineno-0-948" name="__codelineno-0-948"></a>
+<a id="__codelineno-0-949" name="__codelineno-0-949"></a><span class="sd">        Raises:</span>
+<a id="__codelineno-0-950" name="__codelineno-0-950"></a><span class="sd">            ValueError: From gaussx, if N_ℰ &lt; 2, or ``obs`` or ``obs_noise`` does not</span>
+<a id="__codelineno-0-951" name="__codelineno-0-951"></a><span class="sd">                match D_y.</span>
+<a id="__codelineno-0-952" name="__codelineno-0-952"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-953" name="__codelineno-0-953"></a>        <span class="k">return</span> <span class="n">_etkf_analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_op</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="filterax.filters.ESTKF.analysis" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s1">&#39;N_e N_x&#39;</span><span class="p">],</span> <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s1">&#39; N_y&#39;</span><span class="p">],</span> <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span></code>
+
+<a href="#filterax.filters.ESTKF.analysis" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>ESTKF analysis step, the ETKF update.</p>
+
+
+<details class="algorithm" open>
+  <summary>Algorithm</summary>
+  <ol>
+<li>Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).</li>
+<li>Form w̄ and W in ensemble space and apply them to X̃.</li>
+<li>Score r̄ under 𝒩(0, Σ̂_y).</li>
+</ol>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>particles</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.Float">Float</span>[<span title="jaxtyping.Array">Array</span>, &#39;N_e N_x&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.Float">Float</span>[<span title="jaxtyping.Array">Array</span>, &#39; N_y&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation y.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs_op</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AbstractObsOperator (filterax._protocols.AbstractObsOperator)" href="../protocols/#filterax.AbstractObsOperator">AbstractObsOperator</a> | <span title="filterax._filters._sequential.ObsCallable">ObsCallable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation operator h, applied to one state.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs_noise</code>
+            </td>
+            <td>
+                  <code><span title="lineax.AbstractLinearOperator">AbstractLinearOperator</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation-error covariance Σ_ε.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AnalysisResult (filterax._types.AnalysisResult)" href="../protocols/#filterax.AnalysisResult">AnalysisResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>From gaussx, if N_ℰ &lt; 2, or <code>obs</code> or <code>obs_noise</code> does not
+match D_y.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/filterax/_filters/_sequential.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-925">925</a></span>
+<span class="normal"><a href="#__codelineno-0-926">926</a></span>
+<span class="normal"><a href="#__codelineno-0-927">927</a></span>
+<span class="normal"><a href="#__codelineno-0-928">928</a></span>
+<span class="normal"><a href="#__codelineno-0-929">929</a></span>
+<span class="normal"><a href="#__codelineno-0-930">930</a></span>
+<span class="normal"><a href="#__codelineno-0-931">931</a></span>
+<span class="normal"><a href="#__codelineno-0-932">932</a></span>
+<span class="normal"><a href="#__codelineno-0-933">933</a></span>
+<span class="normal"><a href="#__codelineno-0-934">934</a></span>
+<span class="normal"><a href="#__codelineno-0-935">935</a></span>
+<span class="normal"><a href="#__codelineno-0-936">936</a></span>
+<span class="normal"><a href="#__codelineno-0-937">937</a></span>
+<span class="normal"><a href="#__codelineno-0-938">938</a></span>
+<span class="normal"><a href="#__codelineno-0-939">939</a></span>
+<span class="normal"><a href="#__codelineno-0-940">940</a></span>
+<span class="normal"><a href="#__codelineno-0-941">941</a></span>
+<span class="normal"><a href="#__codelineno-0-942">942</a></span>
+<span class="normal"><a href="#__codelineno-0-943">943</a></span>
+<span class="normal"><a href="#__codelineno-0-944">944</a></span>
+<span class="normal"><a href="#__codelineno-0-945">945</a></span>
+<span class="normal"><a href="#__codelineno-0-946">946</a></span>
+<span class="normal"><a href="#__codelineno-0-947">947</a></span>
+<span class="normal"><a href="#__codelineno-0-948">948</a></span>
+<span class="normal"><a href="#__codelineno-0-949">949</a></span>
+<span class="normal"><a href="#__codelineno-0-950">950</a></span>
+<span class="normal"><a href="#__codelineno-0-951">951</a></span>
+<span class="normal"><a href="#__codelineno-0-952">952</a></span>
+<span class="normal"><a href="#__codelineno-0-953">953</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-925" name="__codelineno-0-925"></a><span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-926" name="__codelineno-0-926"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-927" name="__codelineno-0-927"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-928" name="__codelineno-0-928"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-929" name="__codelineno-0-929"></a>    <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span>
+<a id="__codelineno-0-930" name="__codelineno-0-930"></a>    <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-931" name="__codelineno-0-931"></a>    <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-0-932" name="__codelineno-0-932"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-933" name="__codelineno-0-933"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;ESTKF analysis step, the ETKF update.</span>
+<a id="__codelineno-0-934" name="__codelineno-0-934"></a>
+<a id="__codelineno-0-935" name="__codelineno-0-935"></a><span class="sd">    Algorithm:</span>
+<a id="__codelineno-0-936" name="__codelineno-0-936"></a><span class="sd">        1. Map the members to observation space, h⁽ᵉ⁾ = h(x⁽ᵉ⁾).</span>
+<a id="__codelineno-0-937" name="__codelineno-0-937"></a><span class="sd">        2. Form w̄ and W in ensemble space and apply them to X̃.</span>
+<a id="__codelineno-0-938" name="__codelineno-0-938"></a><span class="sd">        3. Score r̄ under 𝒩(0, Σ̂_y).</span>
+<a id="__codelineno-0-939" name="__codelineno-0-939"></a>
+<a id="__codelineno-0-940" name="__codelineno-0-940"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-941" name="__codelineno-0-941"></a><span class="sd">        particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</span>
+<a id="__codelineno-0-942" name="__codelineno-0-942"></a><span class="sd">        obs: Observation y.</span>
+<a id="__codelineno-0-943" name="__codelineno-0-943"></a><span class="sd">        obs_op: Observation operator h, applied to one state.</span>
+<a id="__codelineno-0-944" name="__codelineno-0-944"></a><span class="sd">        obs_noise: Observation-error covariance Σ_ε.</span>
+<a id="__codelineno-0-945" name="__codelineno-0-945"></a>
+<a id="__codelineno-0-946" name="__codelineno-0-946"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-947" name="__codelineno-0-947"></a><span class="sd">        The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).</span>
+<a id="__codelineno-0-948" name="__codelineno-0-948"></a>
+<a id="__codelineno-0-949" name="__codelineno-0-949"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-950" name="__codelineno-0-950"></a><span class="sd">        ValueError: From gaussx, if N_ℰ &lt; 2, or ``obs`` or ``obs_noise`` does not</span>
+<a id="__codelineno-0-951" name="__codelineno-0-951"></a><span class="sd">            match D_y.</span>
+<a id="__codelineno-0-952" name="__codelineno-0-952"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-953" name="__codelineno-0-953"></a>    <span class="k">return</span> <span class="n">_etkf_analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_op</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="filterax.filters.ETKF_Livings" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>ETKF_Livings</code>
+
+
+<a href="#filterax.filters.ETKF_Livings" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            AbstractSequentialFilter (filterax._protocols.AbstractSequentialFilter)" href="../protocols/#filterax.AbstractSequentialFilter">AbstractSequentialFilter</a></code></p>
+
+
+
+        <p>ETKF followed by a mean-preserving random rotation (Livings et al. 2008).</p>
+<div class="highlight"><pre><span></span><code>X̃_t|t = Q W X̃,   Qᵀ Q = I,   Q 1 = 1
+</code></pre></div>
+<p>The symmetric square root W of <code>ETKF</code> is deterministic, and over many cycles it can
+develop preferred directions, so that the ensemble collapses onto a small invariant
+subspace. A random rotation Q of the analysis anomalies breaks that symmetry. Since
+Q 1 = 1 implies Qᵀ 1 = 1, the anomalies still sum to zero and the analysis mean is
+unchanged. The analysis is <code>gaussx.etkf_analysis</code>, and the filter adds the
+rotation.</p>
+<p>The stored <code>key</code> is only the default, as for <code>StochasticEnKF</code>:
+<code>analysis(..., key=step_key)</code> overrides it for one call. Calling <code>analysis</code> in
+a loop without a fresh key repeats the same rotation in every window, which defeats
+its purpose.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="filterax.filters.ETKF_Livings.key">key</span></code></td>
+            <td>
+                  <code><span title="jaxtyping.PRNGKeyArray">PRNGKeyArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Default PRNG key for Q, used when <code>analysis</code> gets no <code>key</code>. An integer
+is turned into <code>jr.PRNGKey(key)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>The rotation keeps the ETKF mean:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.random</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jr</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">lineax</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lx</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">filterax.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">ETKF</span><span class="p">,</span> <span class="n">ETKF_Livings</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">particles</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]])</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">obs_noise</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">DiagonalLinearOperator</span><span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">ETKF_Livings</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">jr</span><span class="o">.</span><span class="n">key</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">(4, 2)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">etkf</span> <span class="o">=</span> <span class="n">ETKF</span><span class="p">()</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">mean</span><span class="p">,</span> <span class="n">etkf_mean</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">etkf</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">etkf_mean</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">))</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="go">True</span>
+</code></pre></div>
+
+
+<details class="references" open>
+  <summary>References</summary>
+  <p>Livings, Dance &amp; Nichols (2008), <em>Physica D</em> 237, 1021–1028.</p>
+</details>
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/filterax/_filters/_sequential.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-624">624</a></span>
+<span class="normal"><a href="#__codelineno-0-625">625</a></span>
+<span class="normal"><a href="#__codelineno-0-626">626</a></span>
+<span class="normal"><a href="#__codelineno-0-627">627</a></span>
+<span class="normal"><a href="#__codelineno-0-628">628</a></span>
+<span class="normal"><a href="#__codelineno-0-629">629</a></span>
+<span class="normal"><a href="#__codelineno-0-630">630</a></span>
+<span class="normal"><a href="#__codelineno-0-631">631</a></span>
+<span class="normal"><a href="#__codelineno-0-632">632</a></span>
+<span class="normal"><a href="#__codelineno-0-633">633</a></span>
+<span class="normal"><a href="#__codelineno-0-634">634</a></span>
+<span class="normal"><a href="#__codelineno-0-635">635</a></span>
+<span class="normal"><a href="#__codelineno-0-636">636</a></span>
+<span class="normal"><a href="#__codelineno-0-637">637</a></span>
+<span class="normal"><a href="#__codelineno-0-638">638</a></span>
+<span class="normal"><a href="#__codelineno-0-639">639</a></span>
+<span class="normal"><a href="#__codelineno-0-640">640</a></span>
+<span class="normal"><a href="#__codelineno-0-641">641</a></span>
+<span class="normal"><a href="#__codelineno-0-642">642</a></span>
+<span class="normal"><a href="#__codelineno-0-643">643</a></span>
+<span class="normal"><a href="#__codelineno-0-644">644</a></span>
+<span class="normal"><a href="#__codelineno-0-645">645</a></span>
+<span class="normal"><a href="#__codelineno-0-646">646</a></span>
+<span class="normal"><a href="#__codelineno-0-647">647</a></span>
+<span class="normal"><a href="#__codelineno-0-648">648</a></span>
+<span class="normal"><a href="#__codelineno-0-649">649</a></span>
+<span class="normal"><a href="#__codelineno-0-650">650</a></span>
+<span class="normal"><a href="#__codelineno-0-651">651</a></span>
+<span class="normal"><a href="#__codelineno-0-652">652</a></span>
+<span class="normal"><a href="#__codelineno-0-653">653</a></span>
+<span class="normal"><a href="#__codelineno-0-654">654</a></span>
+<span class="normal"><a href="#__codelineno-0-655">655</a></span>
+<span class="normal"><a href="#__codelineno-0-656">656</a></span>
+<span class="normal"><a href="#__codelineno-0-657">657</a></span>
+<span class="normal"><a href="#__codelineno-0-658">658</a></span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span>
+<span class="normal"><a href="#__codelineno-0-662">662</a></span>
+<span class="normal"><a href="#__codelineno-0-663">663</a></span>
+<span class="normal"><a href="#__codelineno-0-664">664</a></span>
+<span class="normal"><a href="#__codelineno-0-665">665</a></span>
+<span class="normal"><a href="#__codelineno-0-666">666</a></span>
+<span class="normal"><a href="#__codelineno-0-667">667</a></span>
+<span class="normal"><a href="#__codelineno-0-668">668</a></span>
+<span class="normal"><a href="#__codelineno-0-669">669</a></span>
+<span class="normal"><a href="#__codelineno-0-670">670</a></span>
+<span class="normal"><a href="#__codelineno-0-671">671</a></span>
+<span class="normal"><a href="#__codelineno-0-672">672</a></span>
+<span class="normal"><a href="#__codelineno-0-673">673</a></span>
+<span class="normal"><a href="#__codelineno-0-674">674</a></span>
+<span class="normal"><a href="#__codelineno-0-675">675</a></span>
+<span class="normal"><a href="#__codelineno-0-676">676</a></span>
+<span class="normal"><a href="#__codelineno-0-677">677</a></span>
+<span class="normal"><a href="#__codelineno-0-678">678</a></span>
+<span class="normal"><a href="#__codelineno-0-679">679</a></span>
+<span class="normal"><a href="#__codelineno-0-680">680</a></span>
+<span class="normal"><a href="#__codelineno-0-681">681</a></span>
+<span class="normal"><a href="#__codelineno-0-682">682</a></span>
+<span class="normal"><a href="#__codelineno-0-683">683</a></span>
+<span class="normal"><a href="#__codelineno-0-684">684</a></span>
+<span class="normal"><a href="#__codelineno-0-685">685</a></span>
+<span class="normal"><a href="#__codelineno-0-686">686</a></span>
+<span class="normal"><a href="#__codelineno-0-687">687</a></span>
+<span class="normal"><a href="#__codelineno-0-688">688</a></span>
+<span class="normal"><a href="#__codelineno-0-689">689</a></span>
+<span class="normal"><a href="#__codelineno-0-690">690</a></span>
+<span class="normal"><a href="#__codelineno-0-691">691</a></span>
+<span class="normal"><a href="#__codelineno-0-692">692</a></span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span>
+<span class="normal"><a href="#__codelineno-0-701">701</a></span>
+<span class="normal"><a href="#__codelineno-0-702">702</a></span>
+<span class="normal"><a href="#__codelineno-0-703">703</a></span>
+<span class="normal"><a href="#__codelineno-0-704">704</a></span>
+<span class="normal"><a href="#__codelineno-0-705">705</a></span>
+<span class="normal"><a href="#__codelineno-0-706">706</a></span>
+<span class="normal"><a href="#__codelineno-0-707">707</a></span>
+<span class="normal"><a href="#__codelineno-0-708">708</a></span>
+<span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span>
+<span class="normal"><a href="#__codelineno-0-725">725</a></span>
+<span class="normal"><a href="#__codelineno-0-726">726</a></span>
+<span class="normal"><a href="#__codelineno-0-727">727</a></span>
+<span class="normal"><a href="#__codelineno-0-728">728</a></span>
+<span class="normal"><a href="#__codelineno-0-729">729</a></span>
+<span class="normal"><a href="#__codelineno-0-730">730</a></span>
+<span class="normal"><a href="#__codelineno-0-731">731</a></span>
+<span class="normal"><a href="#__codelineno-0-732">732</a></span>
+<span class="normal"><a href="#__codelineno-0-733">733</a></span>
+<span class="normal"><a href="#__codelineno-0-734">734</a></span>
+<span class="normal"><a href="#__codelineno-0-735">735</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-624" name="__codelineno-0-624"></a><span class="k">class</span><span class="w"> </span><span class="nc">ETKF_Livings</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;ETKF followed by a mean-preserving random rotation (Livings et al. 2008).</span>
+<a id="__codelineno-0-626" name="__codelineno-0-626"></a>
+<a id="__codelineno-0-627" name="__codelineno-0-627"></a><span class="sd">        X̃_t|t = Q W X̃,   Qᵀ Q = I,   Q 1 = 1</span>
+<a id="__codelineno-0-628" name="__codelineno-0-628"></a>
+<a id="__codelineno-0-629" name="__codelineno-0-629"></a><span class="sd">    The symmetric square root W of `ETKF` is deterministic, and over many cycles it can</span>
+<a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="sd">    develop preferred directions, so that the ensemble collapses onto a small invariant</span>
+<a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="sd">    subspace. A random rotation Q of the analysis anomalies breaks that symmetry. Since</span>
+<a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="sd">    Q 1 = 1 implies Qᵀ 1 = 1, the anomalies still sum to zero and the analysis mean is</span>
+<a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">    unchanged. The analysis is `gaussx.etkf_analysis`, and the filter adds the</span>
+<a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">    rotation.</span>
+<a id="__codelineno-0-635" name="__codelineno-0-635"></a>
+<a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">    The stored ``key`` is only the default, as for `StochasticEnKF`:</span>
+<a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">    ``analysis(..., key=step_key)`` overrides it for one call. Calling ``analysis`` in</span>
+<a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">    a loop without a fresh key repeats the same rotation in every window, which defeats</span>
+<a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    its purpose.</span>
+<a id="__codelineno-0-640" name="__codelineno-0-640"></a>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">    Attributes:</span>
+<a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">        key: Default PRNG key for Q, used when ``analysis`` gets no ``key``. An integer</span>
+<a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">            is turned into ``jr.PRNGKey(key)``.</span>
+<a id="__codelineno-0-644" name="__codelineno-0-644"></a>
+<a id="__codelineno-0-645" name="__codelineno-0-645"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">        The rotation keeps the ETKF mean:</span>
+<a id="__codelineno-0-647" name="__codelineno-0-647"></a>
+<a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">        &gt;&gt;&gt; import jax.numpy as jnp</span>
+<a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">        &gt;&gt;&gt; import jax.random as jr</span>
+<a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">        &gt;&gt;&gt; import lineax as lx</span>
+<a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">        &gt;&gt;&gt; from filterax.filters import ETKF, ETKF_Livings</span>
+<a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">        &gt;&gt;&gt; particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0], [1.0, 2.0]])</span>
+<a id="__codelineno-0-653" name="__codelineno-0-653"></a><span class="sd">        &gt;&gt;&gt; obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(2))</span>
+<a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">        &gt;&gt;&gt; result = ETKF_Livings(key=0).analysis(</span>
+<a id="__codelineno-0-655" name="__codelineno-0-655"></a><span class="sd">        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise, key=jr.key(3)</span>
+<a id="__codelineno-0-656" name="__codelineno-0-656"></a><span class="sd">        ... )</span>
+<a id="__codelineno-0-657" name="__codelineno-0-657"></a><span class="sd">        &gt;&gt;&gt; result.particles.shape</span>
+<a id="__codelineno-0-658" name="__codelineno-0-658"></a><span class="sd">        (4, 2)</span>
+<a id="__codelineno-0-659" name="__codelineno-0-659"></a><span class="sd">        &gt;&gt;&gt; etkf = ETKF().analysis(</span>
+<a id="__codelineno-0-660" name="__codelineno-0-660"></a><span class="sd">        ...     particles, jnp.array([1.0, 0.5]), lambda x: x, obs_noise</span>
+<a id="__codelineno-0-661" name="__codelineno-0-661"></a><span class="sd">        ... )</span>
+<a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="sd">        &gt;&gt;&gt; mean, etkf_mean = result.particles.mean(0), etkf.particles.mean(0)</span>
+<a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">        &gt;&gt;&gt; bool(jnp.allclose(mean, etkf_mean, atol=1e-5))</span>
+<a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">        True</span>
+<a id="__codelineno-0-665" name="__codelineno-0-665"></a>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">    References:</span>
+<a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">        Livings, Dance &amp; Nichols (2008), *Physica D* 237, 1021–1028.</span>
+<a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-669" name="__codelineno-0-669"></a>
+<a id="__codelineno-0-670" name="__codelineno-0-670"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span>
+<a id="__codelineno-0-671" name="__codelineno-0-671"></a>
+<a id="__codelineno-0-672" name="__codelineno-0-672"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>            <span class="n">key</span> <span class="o">=</span> <span class="n">jr</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>        <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;ETKF analysis step with a random rotation of the anomalies.</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">        Algorithm:</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a><span class="sd">            1. Map the members to observation space and run the ETKF analysis.</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">            2. Split the analysis into its mean and anomalies.</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">            3. Draw Q and rotate the anomalies, then add the mean back.</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="sd">            4. Score r̄ under 𝒩(0, Σ̂_y).</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a><span class="sd">            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a><span class="sd">            obs: Observation y.</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a><span class="sd">            obs_op: Observation operator h, applied to one state.</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a><span class="sd">            obs_noise: Observation-error covariance Σ_ε.</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="sd">            key: PRNG key for this step&#39;s rotation; ``None`` uses ``self.key``, which</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="sd">                repeats the same rotation across calls.</span>
+<a id="__codelineno-0-702" name="__codelineno-0-702"></a>
+<a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).</span>
+<a id="__codelineno-0-705" name="__codelineno-0-705"></a>
+<a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="sd">        Raises:</span>
+<a id="__codelineno-0-707" name="__codelineno-0-707"></a><span class="sd">            ValueError: From gaussx, if N_ℰ &lt; 2, or ``obs`` or ``obs_noise`` does not</span>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">                match D_y.</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>        <span class="n">rotation_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">key</span>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a>        <span class="c1"># h⁽ᵉ⁾ = h(x⁽ᵉ⁾)</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a>        <span class="n">obs_particles</span> <span class="o">=</span> <span class="n">_apply_obs_op</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">particles</span><span class="p">)</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a>        <span class="c1"># x̄_t|t = x̄_t|t−1 + X̃ᵀ w̄,   X̃_t|t = W X̃</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a>        <span class="n">analysis</span> <span class="o">=</span> <span class="n">gaussx</span><span class="o">.</span><span class="n">etkf_analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">,</span> <span class="n">obs_particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a>        <span class="c1"># x̄_t|t</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a>        <span class="n">analysis_mean</span> <span class="o">=</span> <span class="n">ensemble_mean</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a>        <span class="c1"># X̃_t|t</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>        <span class="n">analysis_anomalies</span> <span class="o">=</span> <span class="n">ensemble_anomalies</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a>        <span class="c1"># Q, with Qᵀ 1 = 1, so the rotated anomalies still sum to zero</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a>        <span class="n">rotation</span> <span class="o">=</span> <span class="n">_mean_preserving_rotation</span><span class="p">(</span>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a>            <span class="n">rotation_key</span><span class="p">,</span> <span class="n">particles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">analysis_anomalies</span><span class="o">.</span><span class="n">dtype</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>        <span class="p">)</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>        <span class="c1"># X̃_t|t ← Q X̃_t|t</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>        <span class="n">rotated_anomalies</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>            <span class="s2">&quot;member other, other x -&gt; member x&quot;</span><span class="p">,</span> <span class="n">rotation</span><span class="p">,</span> <span class="n">analysis_anomalies</span>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a>        <span class="p">)</span>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a>        <span class="c1"># x⁽ᵉ⁾_t|t = x̄_t|t + x̃⁽ᵉ⁾_t|t</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a>        <span class="n">analysis_particles</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;x, e x -&gt; e x&quot;</span><span class="p">,</span> <span class="n">analysis_mean</span><span class="p">,</span> <span class="n">rotated_anomalies</span><span class="p">)</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a>        <span class="c1"># log 𝒩(r̄; 0, Σ̂_y)</span>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a>        <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">_innovation_log_likelihood</span><span class="p">(</span><span class="n">obs_particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a>        <span class="k">return</span> <span class="n">AnalysisResult</span><span class="p">(</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a>            <span class="n">particles</span><span class="o">=</span><span class="n">analysis_particles</span><span class="p">,</span> <span class="n">log_likelihood</span><span class="o">=</span><span class="n">log_likelihood</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a>        <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="filterax.filters.ETKF_Livings.analysis" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s1">&#39;N_e N_x&#39;</span><span class="p">],</span> <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s1">&#39; N_y&#39;</span><span class="p">],</span> <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span></code>
+
+<a href="#filterax.filters.ETKF_Livings.analysis" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>ETKF analysis step with a random rotation of the anomalies.</p>
+
+
+<details class="algorithm" open>
+  <summary>Algorithm</summary>
+  <ol>
+<li>Map the members to observation space and run the ETKF analysis.</li>
+<li>Split the analysis into its mean and anomalies.</li>
+<li>Draw Q and rotate the anomalies, then add the mean back.</li>
+<li>Score r̄ under 𝒩(0, Σ̂_y).</li>
+</ol>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>particles</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.Float">Float</span>[<span title="jaxtyping.Array">Array</span>, &#39;N_e N_x&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.Float">Float</span>[<span title="jaxtyping.Array">Array</span>, &#39; N_y&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation y.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs_op</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AbstractObsOperator (filterax._protocols.AbstractObsOperator)" href="../protocols/#filterax.AbstractObsOperator">AbstractObsOperator</a> | <span title="filterax._filters._sequential.ObsCallable">ObsCallable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation operator h, applied to one state.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs_noise</code>
+            </td>
+            <td>
+                  <code><span title="lineax.AbstractLinearOperator">AbstractLinearOperator</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation-error covariance Σ_ε.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.PRNGKeyArray">PRNGKeyArray</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PRNG key for this step's rotation; <code>None</code> uses <code>self.key</code>, which
+repeats the same rotation across calls.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AnalysisResult (filterax._types.AnalysisResult)" href="../protocols/#filterax.AnalysisResult">AnalysisResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>From gaussx, if N_ℰ &lt; 2, or <code>obs</code> or <code>obs_noise</code> does not
+match D_y.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/filterax/_filters/_sequential.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-677">677</a></span>
+<span class="normal"><a href="#__codelineno-0-678">678</a></span>
+<span class="normal"><a href="#__codelineno-0-679">679</a></span>
+<span class="normal"><a href="#__codelineno-0-680">680</a></span>
+<span class="normal"><a href="#__codelineno-0-681">681</a></span>
+<span class="normal"><a href="#__codelineno-0-682">682</a></span>
+<span class="normal"><a href="#__codelineno-0-683">683</a></span>
+<span class="normal"><a href="#__codelineno-0-684">684</a></span>
+<span class="normal"><a href="#__codelineno-0-685">685</a></span>
+<span class="normal"><a href="#__codelineno-0-686">686</a></span>
+<span class="normal"><a href="#__codelineno-0-687">687</a></span>
+<span class="normal"><a href="#__codelineno-0-688">688</a></span>
+<span class="normal"><a href="#__codelineno-0-689">689</a></span>
+<span class="normal"><a href="#__codelineno-0-690">690</a></span>
+<span class="normal"><a href="#__codelineno-0-691">691</a></span>
+<span class="normal"><a href="#__codelineno-0-692">692</a></span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span>
+<span class="normal"><a href="#__codelineno-0-701">701</a></span>
+<span class="normal"><a href="#__codelineno-0-702">702</a></span>
+<span class="normal"><a href="#__codelineno-0-703">703</a></span>
+<span class="normal"><a href="#__codelineno-0-704">704</a></span>
+<span class="normal"><a href="#__codelineno-0-705">705</a></span>
+<span class="normal"><a href="#__codelineno-0-706">706</a></span>
+<span class="normal"><a href="#__codelineno-0-707">707</a></span>
+<span class="normal"><a href="#__codelineno-0-708">708</a></span>
+<span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span>
+<span class="normal"><a href="#__codelineno-0-725">725</a></span>
+<span class="normal"><a href="#__codelineno-0-726">726</a></span>
+<span class="normal"><a href="#__codelineno-0-727">727</a></span>
+<span class="normal"><a href="#__codelineno-0-728">728</a></span>
+<span class="normal"><a href="#__codelineno-0-729">729</a></span>
+<span class="normal"><a href="#__codelineno-0-730">730</a></span>
+<span class="normal"><a href="#__codelineno-0-731">731</a></span>
+<span class="normal"><a href="#__codelineno-0-732">732</a></span>
+<span class="normal"><a href="#__codelineno-0-733">733</a></span>
+<span class="normal"><a href="#__codelineno-0-734">734</a></span>
+<span class="normal"><a href="#__codelineno-0-735">735</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-677" name="__codelineno-0-677"></a><span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>    <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>    <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>    <span class="n">key</span><span class="p">:</span> <span class="n">PRNGKeyArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>    <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;ETKF analysis step with a random rotation of the anomalies.</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">    Algorithm:</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a><span class="sd">        1. Map the members to observation space and run the ETKF analysis.</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">        2. Split the analysis into its mean and anomalies.</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">        3. Draw Q and rotate the anomalies, then add the mean back.</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="sd">        4. Score r̄ under 𝒩(0, Σ̂_y).</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a><span class="sd">        particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a><span class="sd">        obs: Observation y.</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a><span class="sd">        obs_op: Observation operator h, applied to one state.</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a><span class="sd">        obs_noise: Observation-error covariance Σ_ε.</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a><span class="sd">        key: PRNG key for this step&#39;s rotation; ``None`` uses ``self.key``, which</span>
+<a id="__codelineno-0-701" name="__codelineno-0-701"></a><span class="sd">            repeats the same rotation across calls.</span>
+<a id="__codelineno-0-702" name="__codelineno-0-702"></a>
+<a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="sd">        The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y).</span>
+<a id="__codelineno-0-705" name="__codelineno-0-705"></a>
+<a id="__codelineno-0-706" name="__codelineno-0-706"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-707" name="__codelineno-0-707"></a><span class="sd">        ValueError: From gaussx, if N_ℰ &lt; 2, or ``obs`` or ``obs_noise`` does not</span>
+<a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">            match D_y.</span>
+<a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>    <span class="n">rotation_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">key</span>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a>    <span class="c1"># h⁽ᵉ⁾ = h(x⁽ᵉ⁾)</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a>    <span class="n">obs_particles</span> <span class="o">=</span> <span class="n">_apply_obs_op</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">particles</span><span class="p">)</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a>    <span class="c1"># x̄_t|t = x̄_t|t−1 + X̃ᵀ w̄,   X̃_t|t = W X̃</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a>    <span class="n">analysis</span> <span class="o">=</span> <span class="n">gaussx</span><span class="o">.</span><span class="n">etkf_analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">,</span> <span class="n">obs_particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a>    <span class="c1"># x̄_t|t</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a>    <span class="n">analysis_mean</span> <span class="o">=</span> <span class="n">ensemble_mean</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a>    <span class="c1"># X̃_t|t</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>    <span class="n">analysis_anomalies</span> <span class="o">=</span> <span class="n">ensemble_anomalies</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a>    <span class="c1"># Q, with Qᵀ 1 = 1, so the rotated anomalies still sum to zero</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a>    <span class="n">rotation</span> <span class="o">=</span> <span class="n">_mean_preserving_rotation</span><span class="p">(</span>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a>        <span class="n">rotation_key</span><span class="p">,</span> <span class="n">particles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">analysis_anomalies</span><span class="o">.</span><span class="n">dtype</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a>    <span class="p">)</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a>    <span class="c1"># X̃_t|t ← Q X̃_t|t</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a>    <span class="n">rotated_anomalies</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>        <span class="s2">&quot;member other, other x -&gt; member x&quot;</span><span class="p">,</span> <span class="n">rotation</span><span class="p">,</span> <span class="n">analysis_anomalies</span>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a>    <span class="p">)</span>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a>    <span class="c1"># x⁽ᵉ⁾_t|t = x̄_t|t + x̃⁽ᵉ⁾_t|t</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a>    <span class="n">analysis_particles</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;x, e x -&gt; e x&quot;</span><span class="p">,</span> <span class="n">analysis_mean</span><span class="p">,</span> <span class="n">rotated_anomalies</span><span class="p">)</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a>    <span class="c1"># log 𝒩(r̄; 0, Σ̂_y)</span>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a>    <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">_innovation_log_likelihood</span><span class="p">(</span><span class="n">obs_particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">)</span>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a>    <span class="k">return</span> <span class="n">AnalysisResult</span><span class="p">(</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a>        <span class="n">particles</span><span class="o">=</span><span class="n">analysis_particles</span><span class="p">,</span> <span class="n">log_likelihood</span><span class="o">=</span><span class="n">log_likelihood</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a>    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="filterax.filters.EnSRF_Serial" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>EnSRF_Serial</code>
+
+
+<a href="#filterax.filters.EnSRF_Serial" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            AbstractSequentialFilter (filterax._protocols.AbstractSequentialFilter)" href="../protocols/#filterax.AbstractSequentialFilter">AbstractSequentialFilter</a></code></p>
+
+
+
+        <p>Serial ensemble square-root filter, one observation at a time.</p>
+<div class="highlight"><pre><span></span><code>g_k = Σ̂_xy,k / (Σ̂_h,kk + Σ_ε,kk)
+x̄ ← x̄ + g_k (y_k − h̄_k)
+α_k = 1 / (1 + √(Σ_ε,kk / (Σ̂_h,kk + Σ_ε,kk)))
+x̃⁽ᵉ⁾ ← x̃⁽ᵉ⁾ − α_k g_k h̃⁽ᵉ⁾_k
+</code></pre></div>
+<p>Each observation k is a scalar update with the gain column g_k and the reduced gain
+α_k g_k for the anomalies (Whitaker &amp; Hamill 2002), so there is no matrix inverse,
+only inner products. The observations must be uncorrelated, so Σ_ε must be
+diagonal; use <code>ETKF</code> or <code>EnSRF</code> for a general Σ_ε, or decorrelate first. gaussx has
+no serial update, so this filter is filterax's own.</p>
+<p>h is reapplied to the current ensemble before every scalar update, so the sweep
+stays consistent for a nonlinear h, where the observation-space anomalies cannot
+be updated by linear bookkeeping. That costs D_y N_ℰ calls of h on top of the
+O(N_ℰ D_x D_y) of the updates. The log-likelihood is of the forecast, before the
+sweep.</p>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>One observation agrees with <code>ETKF</code>:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">lineax</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">lx</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">filterax.filters</span><span class="w"> </span><span class="kn">import</span> <span class="n">ETKF</span><span class="p">,</span> <span class="n">EnSRF_Serial</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">particles</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">obs_noise</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">DiagonalLinearOperator</span><span class="p">(</span><span class="mf">0.1</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">EnSRF_Serial</span><span class="p">()</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">shape</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">(3, 2)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">etkf</span> <span class="o">=</span> <span class="n">ETKF</span><span class="p">()</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="n">etkf</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">))</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go">True</span>
+</code></pre></div>
+    <p>A correlated Σ_ε is rejected:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dense</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">MatrixLinearOperator</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">EnSRF_Serial</span><span class="p">()</span><span class="o">.</span><span class="n">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.5</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">dense</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gt">Traceback (most recent call last):</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c">...</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gr">NotImplementedError</span>: <span class="n">EnSRF_Serial requires diagonal observation noise;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="x">pre-decorrelate or use filterax.filters.EnSRF for general Γ.</span>
+</code></pre></div>
+
+
+<details class="references" open>
+  <summary>References</summary>
+  <p>Whitaker &amp; Hamill (2002), <em>Mon. Wea. Rev.</em> 130, 1913–1924.</p>
+</details>
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/filterax/_filters/_sequential.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-738">738</a></span>
+<span class="normal"><a href="#__codelineno-0-739">739</a></span>
+<span class="normal"><a href="#__codelineno-0-740">740</a></span>
+<span class="normal"><a href="#__codelineno-0-741">741</a></span>
+<span class="normal"><a href="#__codelineno-0-742">742</a></span>
+<span class="normal"><a href="#__codelineno-0-743">743</a></span>
+<span class="normal"><a href="#__codelineno-0-744">744</a></span>
+<span class="normal"><a href="#__codelineno-0-745">745</a></span>
+<span class="normal"><a href="#__codelineno-0-746">746</a></span>
+<span class="normal"><a href="#__codelineno-0-747">747</a></span>
+<span class="normal"><a href="#__codelineno-0-748">748</a></span>
+<span class="normal"><a href="#__codelineno-0-749">749</a></span>
+<span class="normal"><a href="#__codelineno-0-750">750</a></span>
+<span class="normal"><a href="#__codelineno-0-751">751</a></span>
+<span class="normal"><a href="#__codelineno-0-752">752</a></span>
+<span class="normal"><a href="#__codelineno-0-753">753</a></span>
+<span class="normal"><a href="#__codelineno-0-754">754</a></span>
+<span class="normal"><a href="#__codelineno-0-755">755</a></span>
+<span class="normal"><a href="#__codelineno-0-756">756</a></span>
+<span class="normal"><a href="#__codelineno-0-757">757</a></span>
+<span class="normal"><a href="#__codelineno-0-758">758</a></span>
+<span class="normal"><a href="#__codelineno-0-759">759</a></span>
+<span class="normal"><a href="#__codelineno-0-760">760</a></span>
+<span class="normal"><a href="#__codelineno-0-761">761</a></span>
+<span class="normal"><a href="#__codelineno-0-762">762</a></span>
+<span class="normal"><a href="#__codelineno-0-763">763</a></span>
+<span class="normal"><a href="#__codelineno-0-764">764</a></span>
+<span class="normal"><a href="#__codelineno-0-765">765</a></span>
+<span class="normal"><a href="#__codelineno-0-766">766</a></span>
+<span class="normal"><a href="#__codelineno-0-767">767</a></span>
+<span class="normal"><a href="#__codelineno-0-768">768</a></span>
+<span class="normal"><a href="#__codelineno-0-769">769</a></span>
+<span class="normal"><a href="#__codelineno-0-770">770</a></span>
+<span class="normal"><a href="#__codelineno-0-771">771</a></span>
+<span class="normal"><a href="#__codelineno-0-772">772</a></span>
+<span class="normal"><a href="#__codelineno-0-773">773</a></span>
+<span class="normal"><a href="#__codelineno-0-774">774</a></span>
+<span class="normal"><a href="#__codelineno-0-775">775</a></span>
+<span class="normal"><a href="#__codelineno-0-776">776</a></span>
+<span class="normal"><a href="#__codelineno-0-777">777</a></span>
+<span class="normal"><a href="#__codelineno-0-778">778</a></span>
+<span class="normal"><a href="#__codelineno-0-779">779</a></span>
+<span class="normal"><a href="#__codelineno-0-780">780</a></span>
+<span class="normal"><a href="#__codelineno-0-781">781</a></span>
+<span class="normal"><a href="#__codelineno-0-782">782</a></span>
+<span class="normal"><a href="#__codelineno-0-783">783</a></span>
+<span class="normal"><a href="#__codelineno-0-784">784</a></span>
+<span class="normal"><a href="#__codelineno-0-785">785</a></span>
+<span class="normal"><a href="#__codelineno-0-786">786</a></span>
+<span class="normal"><a href="#__codelineno-0-787">787</a></span>
+<span class="normal"><a href="#__codelineno-0-788">788</a></span>
+<span class="normal"><a href="#__codelineno-0-789">789</a></span>
+<span class="normal"><a href="#__codelineno-0-790">790</a></span>
+<span class="normal"><a href="#__codelineno-0-791">791</a></span>
+<span class="normal"><a href="#__codelineno-0-792">792</a></span>
+<span class="normal"><a href="#__codelineno-0-793">793</a></span>
+<span class="normal"><a href="#__codelineno-0-794">794</a></span>
+<span class="normal"><a href="#__codelineno-0-795">795</a></span>
+<span class="normal"><a href="#__codelineno-0-796">796</a></span>
+<span class="normal"><a href="#__codelineno-0-797">797</a></span>
+<span class="normal"><a href="#__codelineno-0-798">798</a></span>
+<span class="normal"><a href="#__codelineno-0-799">799</a></span>
+<span class="normal"><a href="#__codelineno-0-800">800</a></span>
+<span class="normal"><a href="#__codelineno-0-801">801</a></span>
+<span class="normal"><a href="#__codelineno-0-802">802</a></span>
+<span class="normal"><a href="#__codelineno-0-803">803</a></span>
+<span class="normal"><a href="#__codelineno-0-804">804</a></span>
+<span class="normal"><a href="#__codelineno-0-805">805</a></span>
+<span class="normal"><a href="#__codelineno-0-806">806</a></span>
+<span class="normal"><a href="#__codelineno-0-807">807</a></span>
+<span class="normal"><a href="#__codelineno-0-808">808</a></span>
+<span class="normal"><a href="#__codelineno-0-809">809</a></span>
+<span class="normal"><a href="#__codelineno-0-810">810</a></span>
+<span class="normal"><a href="#__codelineno-0-811">811</a></span>
+<span class="normal"><a href="#__codelineno-0-812">812</a></span>
+<span class="normal"><a href="#__codelineno-0-813">813</a></span>
+<span class="normal"><a href="#__codelineno-0-814">814</a></span>
+<span class="normal"><a href="#__codelineno-0-815">815</a></span>
+<span class="normal"><a href="#__codelineno-0-816">816</a></span>
+<span class="normal"><a href="#__codelineno-0-817">817</a></span>
+<span class="normal"><a href="#__codelineno-0-818">818</a></span>
+<span class="normal"><a href="#__codelineno-0-819">819</a></span>
+<span class="normal"><a href="#__codelineno-0-820">820</a></span>
+<span class="normal"><a href="#__codelineno-0-821">821</a></span>
+<span class="normal"><a href="#__codelineno-0-822">822</a></span>
+<span class="normal"><a href="#__codelineno-0-823">823</a></span>
+<span class="normal"><a href="#__codelineno-0-824">824</a></span>
+<span class="normal"><a href="#__codelineno-0-825">825</a></span>
+<span class="normal"><a href="#__codelineno-0-826">826</a></span>
+<span class="normal"><a href="#__codelineno-0-827">827</a></span>
+<span class="normal"><a href="#__codelineno-0-828">828</a></span>
+<span class="normal"><a href="#__codelineno-0-829">829</a></span>
+<span class="normal"><a href="#__codelineno-0-830">830</a></span>
+<span class="normal"><a href="#__codelineno-0-831">831</a></span>
+<span class="normal"><a href="#__codelineno-0-832">832</a></span>
+<span class="normal"><a href="#__codelineno-0-833">833</a></span>
+<span class="normal"><a href="#__codelineno-0-834">834</a></span>
+<span class="normal"><a href="#__codelineno-0-835">835</a></span>
+<span class="normal"><a href="#__codelineno-0-836">836</a></span>
+<span class="normal"><a href="#__codelineno-0-837">837</a></span>
+<span class="normal"><a href="#__codelineno-0-838">838</a></span>
+<span class="normal"><a href="#__codelineno-0-839">839</a></span>
+<span class="normal"><a href="#__codelineno-0-840">840</a></span>
+<span class="normal"><a href="#__codelineno-0-841">841</a></span>
+<span class="normal"><a href="#__codelineno-0-842">842</a></span>
+<span class="normal"><a href="#__codelineno-0-843">843</a></span>
+<span class="normal"><a href="#__codelineno-0-844">844</a></span>
+<span class="normal"><a href="#__codelineno-0-845">845</a></span>
+<span class="normal"><a href="#__codelineno-0-846">846</a></span>
+<span class="normal"><a href="#__codelineno-0-847">847</a></span>
+<span class="normal"><a href="#__codelineno-0-848">848</a></span>
+<span class="normal"><a href="#__codelineno-0-849">849</a></span>
+<span class="normal"><a href="#__codelineno-0-850">850</a></span>
+<span class="normal"><a href="#__codelineno-0-851">851</a></span>
+<span class="normal"><a href="#__codelineno-0-852">852</a></span>
+<span class="normal"><a href="#__codelineno-0-853">853</a></span>
+<span class="normal"><a href="#__codelineno-0-854">854</a></span>
+<span class="normal"><a href="#__codelineno-0-855">855</a></span>
+<span class="normal"><a href="#__codelineno-0-856">856</a></span>
+<span class="normal"><a href="#__codelineno-0-857">857</a></span>
+<span class="normal"><a href="#__codelineno-0-858">858</a></span>
+<span class="normal"><a href="#__codelineno-0-859">859</a></span>
+<span class="normal"><a href="#__codelineno-0-860">860</a></span>
+<span class="normal"><a href="#__codelineno-0-861">861</a></span>
+<span class="normal"><a href="#__codelineno-0-862">862</a></span>
+<span class="normal"><a href="#__codelineno-0-863">863</a></span>
+<span class="normal"><a href="#__codelineno-0-864">864</a></span>
+<span class="normal"><a href="#__codelineno-0-865">865</a></span>
+<span class="normal"><a href="#__codelineno-0-866">866</a></span>
+<span class="normal"><a href="#__codelineno-0-867">867</a></span>
+<span class="normal"><a href="#__codelineno-0-868">868</a></span>
+<span class="normal"><a href="#__codelineno-0-869">869</a></span>
+<span class="normal"><a href="#__codelineno-0-870">870</a></span>
+<span class="normal"><a href="#__codelineno-0-871">871</a></span>
+<span class="normal"><a href="#__codelineno-0-872">872</a></span>
+<span class="normal"><a href="#__codelineno-0-873">873</a></span>
+<span class="normal"><a href="#__codelineno-0-874">874</a></span>
+<span class="normal"><a href="#__codelineno-0-875">875</a></span>
+<span class="normal"><a href="#__codelineno-0-876">876</a></span>
+<span class="normal"><a href="#__codelineno-0-877">877</a></span>
+<span class="normal"><a href="#__codelineno-0-878">878</a></span>
+<span class="normal"><a href="#__codelineno-0-879">879</a></span>
+<span class="normal"><a href="#__codelineno-0-880">880</a></span>
+<span class="normal"><a href="#__codelineno-0-881">881</a></span>
+<span class="normal"><a href="#__codelineno-0-882">882</a></span>
+<span class="normal"><a href="#__codelineno-0-883">883</a></span>
+<span class="normal"><a href="#__codelineno-0-884">884</a></span>
+<span class="normal"><a href="#__codelineno-0-885">885</a></span>
+<span class="normal"><a href="#__codelineno-0-886">886</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-738" name="__codelineno-0-738"></a><span class="k">class</span><span class="w"> </span><span class="nc">EnSRF_Serial</span><span class="p">(</span><span class="n">AbstractSequentialFilter</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Serial ensemble square-root filter, one observation at a time.</span>
+<a id="__codelineno-0-740" name="__codelineno-0-740"></a>
+<a id="__codelineno-0-741" name="__codelineno-0-741"></a><span class="sd">        g_k = Σ̂_xy,k / (Σ̂_h,kk + Σ_ε,kk)</span>
+<a id="__codelineno-0-742" name="__codelineno-0-742"></a><span class="sd">        x̄ ← x̄ + g_k (y_k − h̄_k)</span>
+<a id="__codelineno-0-743" name="__codelineno-0-743"></a><span class="sd">        α_k = 1 / (1 + √(Σ_ε,kk / (Σ̂_h,kk + Σ_ε,kk)))</span>
+<a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="sd">        x̃⁽ᵉ⁾ ← x̃⁽ᵉ⁾ − α_k g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-745" name="__codelineno-0-745"></a>
+<a id="__codelineno-0-746" name="__codelineno-0-746"></a><span class="sd">    Each observation k is a scalar update with the gain column g_k and the reduced gain</span>
+<a id="__codelineno-0-747" name="__codelineno-0-747"></a><span class="sd">    α_k g_k for the anomalies (Whitaker &amp; Hamill 2002), so there is no matrix inverse,</span>
+<a id="__codelineno-0-748" name="__codelineno-0-748"></a><span class="sd">    only inner products. The observations must be uncorrelated, so Σ_ε must be</span>
+<a id="__codelineno-0-749" name="__codelineno-0-749"></a><span class="sd">    diagonal; use `ETKF` or `EnSRF` for a general Σ_ε, or decorrelate first. gaussx has</span>
+<a id="__codelineno-0-750" name="__codelineno-0-750"></a><span class="sd">    no serial update, so this filter is filterax&#39;s own.</span>
+<a id="__codelineno-0-751" name="__codelineno-0-751"></a>
+<a id="__codelineno-0-752" name="__codelineno-0-752"></a><span class="sd">    h is reapplied to the current ensemble before every scalar update, so the sweep</span>
+<a id="__codelineno-0-753" name="__codelineno-0-753"></a><span class="sd">    stays consistent for a nonlinear h, where the observation-space anomalies cannot</span>
+<a id="__codelineno-0-754" name="__codelineno-0-754"></a><span class="sd">    be updated by linear bookkeeping. That costs D_y N_ℰ calls of h on top of the</span>
+<a id="__codelineno-0-755" name="__codelineno-0-755"></a><span class="sd">    O(N_ℰ D_x D_y) of the updates. The log-likelihood is of the forecast, before the</span>
+<a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">    sweep.</span>
+<a id="__codelineno-0-757" name="__codelineno-0-757"></a>
+<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">        One observation agrees with `ETKF`:</span>
+<a id="__codelineno-0-760" name="__codelineno-0-760"></a>
+<a id="__codelineno-0-761" name="__codelineno-0-761"></a><span class="sd">        &gt;&gt;&gt; import jax.numpy as jnp</span>
+<a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">        &gt;&gt;&gt; import lineax as lx</span>
+<a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">        &gt;&gt;&gt; from filterax.filters import ETKF, EnSRF_Serial</span>
+<a id="__codelineno-0-764" name="__codelineno-0-764"></a><span class="sd">        &gt;&gt;&gt; particles = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])</span>
+<a id="__codelineno-0-765" name="__codelineno-0-765"></a><span class="sd">        &gt;&gt;&gt; obs_noise = lx.DiagonalLinearOperator(0.1 * jnp.ones(1))</span>
+<a id="__codelineno-0-766" name="__codelineno-0-766"></a><span class="sd">        &gt;&gt;&gt; result = EnSRF_Serial().analysis(</span>
+<a id="__codelineno-0-767" name="__codelineno-0-767"></a><span class="sd">        ...     particles, jnp.array([1.5]), lambda x: x[:1], obs_noise</span>
+<a id="__codelineno-0-768" name="__codelineno-0-768"></a><span class="sd">        ... )</span>
+<a id="__codelineno-0-769" name="__codelineno-0-769"></a><span class="sd">        &gt;&gt;&gt; result.particles.shape</span>
+<a id="__codelineno-0-770" name="__codelineno-0-770"></a><span class="sd">        (3, 2)</span>
+<a id="__codelineno-0-771" name="__codelineno-0-771"></a><span class="sd">        &gt;&gt;&gt; etkf = ETKF().analysis(</span>
+<a id="__codelineno-0-772" name="__codelineno-0-772"></a><span class="sd">        ...     particles, jnp.array([1.5]), lambda x: x[:1], obs_noise</span>
+<a id="__codelineno-0-773" name="__codelineno-0-773"></a><span class="sd">        ... )</span>
+<a id="__codelineno-0-774" name="__codelineno-0-774"></a><span class="sd">        &gt;&gt;&gt; bool(jnp.allclose(result.particles, etkf.particles, atol=1e-5))</span>
+<a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="sd">        True</span>
+<a id="__codelineno-0-776" name="__codelineno-0-776"></a>
+<a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">        A correlated Σ_ε is rejected:</span>
+<a id="__codelineno-0-778" name="__codelineno-0-778"></a>
+<a id="__codelineno-0-779" name="__codelineno-0-779"></a><span class="sd">        &gt;&gt;&gt; dense = lx.MatrixLinearOperator(jnp.eye(1))</span>
+<a id="__codelineno-0-780" name="__codelineno-0-780"></a><span class="sd">        &gt;&gt;&gt; EnSRF_Serial().analysis(</span>
+<a id="__codelineno-0-781" name="__codelineno-0-781"></a><span class="sd">        ...     particles, jnp.array([1.5]), lambda x: x[:1], dense</span>
+<a id="__codelineno-0-782" name="__codelineno-0-782"></a><span class="sd">        ... )  # doctest: +NORMALIZE_WHITESPACE</span>
+<a id="__codelineno-0-783" name="__codelineno-0-783"></a><span class="sd">        Traceback (most recent call last):</span>
+<a id="__codelineno-0-784" name="__codelineno-0-784"></a><span class="sd">        ...</span>
+<a id="__codelineno-0-785" name="__codelineno-0-785"></a><span class="sd">        NotImplementedError: EnSRF_Serial requires diagonal observation noise;</span>
+<a id="__codelineno-0-786" name="__codelineno-0-786"></a><span class="sd">        pre-decorrelate or use filterax.filters.EnSRF for general Γ.</span>
+<a id="__codelineno-0-787" name="__codelineno-0-787"></a>
+<a id="__codelineno-0-788" name="__codelineno-0-788"></a><span class="sd">    References:</span>
+<a id="__codelineno-0-789" name="__codelineno-0-789"></a><span class="sd">        Whitaker &amp; Hamill (2002), *Mon. Wea. Rev.* 130, 1913–1924.</span>
+<a id="__codelineno-0-790" name="__codelineno-0-790"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-791" name="__codelineno-0-791"></a>
+<a id="__codelineno-0-792" name="__codelineno-0-792"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>        <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>        <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>        <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span>
+<a id="__codelineno-0-797" name="__codelineno-0-797"></a>        <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-798" name="__codelineno-0-798"></a>        <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-0-799" name="__codelineno-0-799"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-800" name="__codelineno-0-800"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serial EnSRF analysis step.</span>
+<a id="__codelineno-0-801" name="__codelineno-0-801"></a>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="sd">        Algorithm:</span>
+<a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="sd">            1. Check that Σ_ε is diagonal and read its variances Σ_ε,kk.</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">            2. For each observation k in turn, map the current members, form g_k and</span>
+<a id="__codelineno-0-805" name="__codelineno-0-805"></a><span class="sd">               α_k, and update the mean and the anomalies.</span>
+<a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">            3. Score the forecast&#39;s r̄ under 𝒩(0, Σ̂_y).</span>
+<a id="__codelineno-0-807" name="__codelineno-0-807"></a>
+<a id="__codelineno-0-808" name="__codelineno-0-808"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-809" name="__codelineno-0-809"></a><span class="sd">            particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</span>
+<a id="__codelineno-0-810" name="__codelineno-0-810"></a><span class="sd">            obs: Observation y.</span>
+<a id="__codelineno-0-811" name="__codelineno-0-811"></a><span class="sd">            obs_op: Observation operator h, applied to one state.</span>
+<a id="__codelineno-0-812" name="__codelineno-0-812"></a><span class="sd">            obs_noise: Diagonal observation-error covariance Σ_ε.</span>
+<a id="__codelineno-0-813" name="__codelineno-0-813"></a>
+<a id="__codelineno-0-814" name="__codelineno-0-814"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-815" name="__codelineno-0-815"></a><span class="sd">            The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y) of the</span>
+<a id="__codelineno-0-816" name="__codelineno-0-816"></a><span class="sd">            forecast.</span>
+<a id="__codelineno-0-817" name="__codelineno-0-817"></a>
+<a id="__codelineno-0-818" name="__codelineno-0-818"></a><span class="sd">        Raises:</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a><span class="sd">            ValueError: If N_ℰ &lt; 2.</span>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a><span class="sd">            NotImplementedError: If ``obs_noise`` is not a</span>
+<a id="__codelineno-0-821" name="__codelineno-0-821"></a><span class="sd">                `lineax.DiagonalLinearOperator`.</span>
+<a id="__codelineno-0-822" name="__codelineno-0-822"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a>        <span class="n">N_e</span> <span class="o">=</span> <span class="n">particles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-824" name="__codelineno-0-824"></a>        <span class="n">check_ensemble_size</span><span class="p">(</span><span class="n">N_e</span><span class="p">)</span>
+<a id="__codelineno-0-825" name="__codelineno-0-825"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs_noise</span><span class="p">,</span> <span class="n">lx</span><span class="o">.</span><span class="n">DiagonalLinearOperator</span><span class="p">):</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a>            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a>                <span class="s2">&quot;EnSRF_Serial requires diagonal observation noise; pre-&quot;</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a>                <span class="s2">&quot;decorrelate or use filterax.filters.EnSRF for general Γ.&quot;</span>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a>            <span class="p">)</span>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a>        <span class="c1"># Σ_ε,kk</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a>        <span class="n">obs_variances</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">obs_noise</span><span class="p">)</span>
+<a id="__codelineno-0-832" name="__codelineno-0-832"></a>        <span class="c1"># h⁽ᵉ⁾ = h(x⁽ᵉ⁾) of the forecast, for the log-likelihood</span>
+<a id="__codelineno-0-833" name="__codelineno-0-833"></a>        <span class="n">initial_obs_particles</span> <span class="o">=</span> <span class="n">_apply_obs_op</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">particles</span><span class="p">)</span>
+<a id="__codelineno-0-834" name="__codelineno-0-834"></a>
+<a id="__codelineno-0-835" name="__codelineno-0-835"></a>        <span class="c1"># jnp, not einx, in the step: einx raises AxisSizeError on D_x = 0 with</span>
+<a id="__codelineno-0-836" name="__codelineno-0-836"></a>        <span class="c1"># another message than today&#39;s</span>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a>        <span class="c1"># the carry stays named parts: JAX quotes its name in a carry dtype error</span>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">assimilate_one</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a>            <span class="c1"># h⁽ᵉ⁾ = h(x⁽ᵉ⁾) of the current members, so a nonlinear h stays consistent</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a>            <span class="n">current_obs</span> <span class="o">=</span> <span class="n">_apply_obs_op</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">parts</span><span class="p">)</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a>            <span class="n">obs_k</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a>            <span class="n">obs_variance_k</span> <span class="o">=</span> <span class="n">obs_variances</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a>            <span class="c1"># h⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a>            <span class="n">obs_column</span> <span class="o">=</span> <span class="n">current_obs</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a>            <span class="c1"># h̄_k = (1 / N_ℰ) ∑ₑ h⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a>            <span class="n">obs_mean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">obs_column</span><span class="p">)</span>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a>            <span class="c1"># h̃⁽ᵉ⁾_k = h⁽ᵉ⁾_k − h̄_k</span>
+<a id="__codelineno-0-848" name="__codelineno-0-848"></a>            <span class="n">obs_anomaly</span> <span class="o">=</span> <span class="n">obs_column</span> <span class="o">-</span> <span class="n">obs_mean</span>
+<a id="__codelineno-0-849" name="__codelineno-0-849"></a>            <span class="c1"># Σ̂_h,kk = ∑ₑ (h̃⁽ᵉ⁾_k)² / (N_ℰ − 1)</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a>            <span class="n">obs_sample_variance</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">obs_anomaly</span> <span class="o">*</span> <span class="n">obs_anomaly</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">N_e</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a>            <span class="c1"># Σ̂_h,kk + Σ_ε,kk</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a>            <span class="n">innovation_variance</span> <span class="o">=</span> <span class="n">obs_sample_variance</span> <span class="o">+</span> <span class="n">obs_variance_k</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a>            <span class="c1"># x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a>            <span class="n">mean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a>            <span class="c1"># x̃⁽ᵉ⁾ = x⁽ᵉ⁾ − x̄</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a>            <span class="n">anomalies</span> <span class="o">=</span> <span class="n">parts</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a>            <span class="c1"># ∑ₑ h̃⁽ᵉ⁾_k x̃⁽ᵉ⁾</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a>            <span class="n">cross_sum</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="s2">&quot;e, e x -&gt; x&quot;</span><span class="p">,</span> <span class="n">obs_anomaly</span><span class="p">,</span> <span class="n">anomalies</span><span class="p">)</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a>            <span class="c1"># Σ̂_xy,k = ∑ₑ h̃⁽ᵉ⁾_k x̃⁽ᵉ⁾ / (N_ℰ − 1)</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a>            <span class="n">cross_covariance</span> <span class="o">=</span> <span class="n">cross_sum</span> <span class="o">/</span> <span class="p">(</span><span class="n">N_e</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a>            <span class="c1"># g_k = Σ̂_xy,k / (Σ̂_h,kk + Σ_ε,kk)</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a>            <span class="n">gain_column</span> <span class="o">=</span> <span class="n">cross_covariance</span> <span class="o">/</span> <span class="n">innovation_variance</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>            <span class="c1"># x̄ ← x̄ + g_k (y_k − h̄_k)</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a>            <span class="n">new_mean</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">gain_column</span> <span class="o">*</span> <span class="p">(</span><span class="n">obs_k</span> <span class="o">-</span> <span class="n">obs_mean</span><span class="p">)</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a>            <span class="c1"># α_k = 1 / (1 + √(Σ_ε,kk / (Σ̂_h,kk + Σ_ε,kk)))</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a>            <span class="n">reduction</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">obs_variance_k</span> <span class="o">/</span> <span class="n">innovation_variance</span><span class="p">))</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a>            <span class="c1"># g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a>            <span class="n">gain_outer</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="s2">&quot;x, e -&gt; e x&quot;</span><span class="p">,</span> <span class="n">gain_column</span><span class="p">,</span> <span class="n">obs_anomaly</span><span class="p">)</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>            <span class="c1"># α_k g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>            <span class="n">anomaly_update</span> <span class="o">=</span> <span class="n">reduction</span> <span class="o">*</span> <span class="n">gain_outer</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a>            <span class="c1"># x⁽ᵉ⁾ ← x̄ + x̃⁽ᵉ⁾ − α_k g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a>            <span class="n">updated</span> <span class="o">=</span> <span class="n">new_mean</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="p">(</span><span class="n">anomalies</span> <span class="o">-</span> <span class="n">anomaly_update</span><span class="p">)</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>            <span class="k">return</span> <span class="n">updated</span><span class="p">,</span> <span class="kc">None</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>        <span class="n">N_y</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a>        <span class="n">analysis_particles</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">assimilate_one</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_y</span><span class="p">))</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>        <span class="c1"># log 𝒩(r̄; 0, Σ̂_y) of the forecast</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>        <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">_innovation_log_likelihood</span><span class="p">(</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>            <span class="n">initial_obs_particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>        <span class="p">)</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>        <span class="k">return</span> <span class="n">AnalysisResult</span><span class="p">(</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>            <span class="n">particles</span><span class="o">=</span><span class="n">analysis_particles</span><span class="p">,</span> <span class="n">log_likelihood</span><span class="o">=</span><span class="n">log_likelihood</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>        <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="filterax.filters.EnSRF_Serial.analysis" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">analysis</span><span class="p">(</span><span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s1">&#39;N_e N_x&#39;</span><span class="p">],</span> <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s1">&#39; N_y&#39;</span><span class="p">],</span> <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span> <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span></code>
+
+<a href="#filterax.filters.EnSRF_Serial.analysis" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Serial EnSRF analysis step.</p>
+
+
+<details class="algorithm" open>
+  <summary>Algorithm</summary>
+  <ol>
+<li>Check that Σ_ε is diagonal and read its variances Σ_ε,kk.</li>
+<li>For each observation k in turn, map the current members, form g_k and
+   α_k, and update the mean and the anomalies.</li>
+<li>Score the forecast's r̄ under 𝒩(0, Σ̂_y).</li>
+</ol>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>particles</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.Float">Float</span>[<span title="jaxtyping.Array">Array</span>, &#39;N_e N_x&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs</code>
+            </td>
+            <td>
+                  <code><span title="jaxtyping.Float">Float</span>[<span title="jaxtyping.Array">Array</span>, &#39; N_y&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation y.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs_op</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AbstractObsOperator (filterax._protocols.AbstractObsOperator)" href="../protocols/#filterax.AbstractObsOperator">AbstractObsOperator</a> | <span title="filterax._filters._sequential.ObsCallable">ObsCallable</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observation operator h, applied to one state.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obs_noise</code>
+            </td>
+            <td>
+                  <code><span title="lineax.AbstractLinearOperator">AbstractLinearOperator</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Diagonal observation-error covariance Σ_ε.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AnalysisResult (filterax._types.AnalysisResult)" href="../protocols/#filterax.AnalysisResult">AnalysisResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y) of the</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="            AnalysisResult (filterax._types.AnalysisResult)" href="../protocols/#filterax.AnalysisResult">AnalysisResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>forecast.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If N_ℰ &lt; 2.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="NotImplementedError">NotImplementedError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>obs_noise</code> is not a
+<code>lineax.DiagonalLinearOperator</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/filterax/_filters/_sequential.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-792">792</a></span>
+<span class="normal"><a href="#__codelineno-0-793">793</a></span>
+<span class="normal"><a href="#__codelineno-0-794">794</a></span>
+<span class="normal"><a href="#__codelineno-0-795">795</a></span>
+<span class="normal"><a href="#__codelineno-0-796">796</a></span>
+<span class="normal"><a href="#__codelineno-0-797">797</a></span>
+<span class="normal"><a href="#__codelineno-0-798">798</a></span>
+<span class="normal"><a href="#__codelineno-0-799">799</a></span>
+<span class="normal"><a href="#__codelineno-0-800">800</a></span>
+<span class="normal"><a href="#__codelineno-0-801">801</a></span>
+<span class="normal"><a href="#__codelineno-0-802">802</a></span>
+<span class="normal"><a href="#__codelineno-0-803">803</a></span>
+<span class="normal"><a href="#__codelineno-0-804">804</a></span>
+<span class="normal"><a href="#__codelineno-0-805">805</a></span>
+<span class="normal"><a href="#__codelineno-0-806">806</a></span>
+<span class="normal"><a href="#__codelineno-0-807">807</a></span>
+<span class="normal"><a href="#__codelineno-0-808">808</a></span>
+<span class="normal"><a href="#__codelineno-0-809">809</a></span>
+<span class="normal"><a href="#__codelineno-0-810">810</a></span>
+<span class="normal"><a href="#__codelineno-0-811">811</a></span>
+<span class="normal"><a href="#__codelineno-0-812">812</a></span>
+<span class="normal"><a href="#__codelineno-0-813">813</a></span>
+<span class="normal"><a href="#__codelineno-0-814">814</a></span>
+<span class="normal"><a href="#__codelineno-0-815">815</a></span>
+<span class="normal"><a href="#__codelineno-0-816">816</a></span>
+<span class="normal"><a href="#__codelineno-0-817">817</a></span>
+<span class="normal"><a href="#__codelineno-0-818">818</a></span>
+<span class="normal"><a href="#__codelineno-0-819">819</a></span>
+<span class="normal"><a href="#__codelineno-0-820">820</a></span>
+<span class="normal"><a href="#__codelineno-0-821">821</a></span>
+<span class="normal"><a href="#__codelineno-0-822">822</a></span>
+<span class="normal"><a href="#__codelineno-0-823">823</a></span>
+<span class="normal"><a href="#__codelineno-0-824">824</a></span>
+<span class="normal"><a href="#__codelineno-0-825">825</a></span>
+<span class="normal"><a href="#__codelineno-0-826">826</a></span>
+<span class="normal"><a href="#__codelineno-0-827">827</a></span>
+<span class="normal"><a href="#__codelineno-0-828">828</a></span>
+<span class="normal"><a href="#__codelineno-0-829">829</a></span>
+<span class="normal"><a href="#__codelineno-0-830">830</a></span>
+<span class="normal"><a href="#__codelineno-0-831">831</a></span>
+<span class="normal"><a href="#__codelineno-0-832">832</a></span>
+<span class="normal"><a href="#__codelineno-0-833">833</a></span>
+<span class="normal"><a href="#__codelineno-0-834">834</a></span>
+<span class="normal"><a href="#__codelineno-0-835">835</a></span>
+<span class="normal"><a href="#__codelineno-0-836">836</a></span>
+<span class="normal"><a href="#__codelineno-0-837">837</a></span>
+<span class="normal"><a href="#__codelineno-0-838">838</a></span>
+<span class="normal"><a href="#__codelineno-0-839">839</a></span>
+<span class="normal"><a href="#__codelineno-0-840">840</a></span>
+<span class="normal"><a href="#__codelineno-0-841">841</a></span>
+<span class="normal"><a href="#__codelineno-0-842">842</a></span>
+<span class="normal"><a href="#__codelineno-0-843">843</a></span>
+<span class="normal"><a href="#__codelineno-0-844">844</a></span>
+<span class="normal"><a href="#__codelineno-0-845">845</a></span>
+<span class="normal"><a href="#__codelineno-0-846">846</a></span>
+<span class="normal"><a href="#__codelineno-0-847">847</a></span>
+<span class="normal"><a href="#__codelineno-0-848">848</a></span>
+<span class="normal"><a href="#__codelineno-0-849">849</a></span>
+<span class="normal"><a href="#__codelineno-0-850">850</a></span>
+<span class="normal"><a href="#__codelineno-0-851">851</a></span>
+<span class="normal"><a href="#__codelineno-0-852">852</a></span>
+<span class="normal"><a href="#__codelineno-0-853">853</a></span>
+<span class="normal"><a href="#__codelineno-0-854">854</a></span>
+<span class="normal"><a href="#__codelineno-0-855">855</a></span>
+<span class="normal"><a href="#__codelineno-0-856">856</a></span>
+<span class="normal"><a href="#__codelineno-0-857">857</a></span>
+<span class="normal"><a href="#__codelineno-0-858">858</a></span>
+<span class="normal"><a href="#__codelineno-0-859">859</a></span>
+<span class="normal"><a href="#__codelineno-0-860">860</a></span>
+<span class="normal"><a href="#__codelineno-0-861">861</a></span>
+<span class="normal"><a href="#__codelineno-0-862">862</a></span>
+<span class="normal"><a href="#__codelineno-0-863">863</a></span>
+<span class="normal"><a href="#__codelineno-0-864">864</a></span>
+<span class="normal"><a href="#__codelineno-0-865">865</a></span>
+<span class="normal"><a href="#__codelineno-0-866">866</a></span>
+<span class="normal"><a href="#__codelineno-0-867">867</a></span>
+<span class="normal"><a href="#__codelineno-0-868">868</a></span>
+<span class="normal"><a href="#__codelineno-0-869">869</a></span>
+<span class="normal"><a href="#__codelineno-0-870">870</a></span>
+<span class="normal"><a href="#__codelineno-0-871">871</a></span>
+<span class="normal"><a href="#__codelineno-0-872">872</a></span>
+<span class="normal"><a href="#__codelineno-0-873">873</a></span>
+<span class="normal"><a href="#__codelineno-0-874">874</a></span>
+<span class="normal"><a href="#__codelineno-0-875">875</a></span>
+<span class="normal"><a href="#__codelineno-0-876">876</a></span>
+<span class="normal"><a href="#__codelineno-0-877">877</a></span>
+<span class="normal"><a href="#__codelineno-0-878">878</a></span>
+<span class="normal"><a href="#__codelineno-0-879">879</a></span>
+<span class="normal"><a href="#__codelineno-0-880">880</a></span>
+<span class="normal"><a href="#__codelineno-0-881">881</a></span>
+<span class="normal"><a href="#__codelineno-0-882">882</a></span>
+<span class="normal"><a href="#__codelineno-0-883">883</a></span>
+<span class="normal"><a href="#__codelineno-0-884">884</a></span>
+<span class="normal"><a href="#__codelineno-0-885">885</a></span>
+<span class="normal"><a href="#__codelineno-0-886">886</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-792" name="__codelineno-0-792"></a><span class="k">def</span><span class="w"> </span><span class="nf">analysis</span><span class="p">(</span>
+<a id="__codelineno-0-793" name="__codelineno-0-793"></a>    <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-794" name="__codelineno-0-794"></a>    <span class="n">particles</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot;N_e N_x&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-795" name="__codelineno-0-795"></a>    <span class="n">obs</span><span class="p">:</span> <span class="n">Float</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="s2">&quot; N_y&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-796" name="__codelineno-0-796"></a>    <span class="n">obs_op</span><span class="p">:</span> <span class="n">AbstractObsOperator</span> <span class="o">|</span> <span class="n">ObsCallable</span><span class="p">,</span>
+<a id="__codelineno-0-797" name="__codelineno-0-797"></a>    <span class="n">obs_noise</span><span class="p">:</span> <span class="n">lx</span><span class="o">.</span><span class="n">AbstractLinearOperator</span><span class="p">,</span>
+<a id="__codelineno-0-798" name="__codelineno-0-798"></a>    <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-0-799" name="__codelineno-0-799"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalysisResult</span><span class="p">:</span>
+<a id="__codelineno-0-800" name="__codelineno-0-800"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Serial EnSRF analysis step.</span>
+<a id="__codelineno-0-801" name="__codelineno-0-801"></a>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="sd">    Algorithm:</span>
+<a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="sd">        1. Check that Σ_ε is diagonal and read its variances Σ_ε,kk.</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">        2. For each observation k in turn, map the current members, form g_k and</span>
+<a id="__codelineno-0-805" name="__codelineno-0-805"></a><span class="sd">           α_k, and update the mean and the anomalies.</span>
+<a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">        3. Score the forecast&#39;s r̄ under 𝒩(0, Σ̂_y).</span>
+<a id="__codelineno-0-807" name="__codelineno-0-807"></a>
+<a id="__codelineno-0-808" name="__codelineno-0-808"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-809" name="__codelineno-0-809"></a><span class="sd">        particles: Forecast ensemble x⁽ᵉ⁾_t|t−1, one row per member.</span>
+<a id="__codelineno-0-810" name="__codelineno-0-810"></a><span class="sd">        obs: Observation y.</span>
+<a id="__codelineno-0-811" name="__codelineno-0-811"></a><span class="sd">        obs_op: Observation operator h, applied to one state.</span>
+<a id="__codelineno-0-812" name="__codelineno-0-812"></a><span class="sd">        obs_noise: Diagonal observation-error covariance Σ_ε.</span>
+<a id="__codelineno-0-813" name="__codelineno-0-813"></a>
+<a id="__codelineno-0-814" name="__codelineno-0-814"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-815" name="__codelineno-0-815"></a><span class="sd">        The analysis ensemble and the log-likelihood log 𝒩(r̄; 0, Σ̂_y) of the</span>
+<a id="__codelineno-0-816" name="__codelineno-0-816"></a><span class="sd">        forecast.</span>
+<a id="__codelineno-0-817" name="__codelineno-0-817"></a>
+<a id="__codelineno-0-818" name="__codelineno-0-818"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a><span class="sd">        ValueError: If N_ℰ &lt; 2.</span>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a><span class="sd">        NotImplementedError: If ``obs_noise`` is not a</span>
+<a id="__codelineno-0-821" name="__codelineno-0-821"></a><span class="sd">            `lineax.DiagonalLinearOperator`.</span>
+<a id="__codelineno-0-822" name="__codelineno-0-822"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a>    <span class="n">N_e</span> <span class="o">=</span> <span class="n">particles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-824" name="__codelineno-0-824"></a>    <span class="n">check_ensemble_size</span><span class="p">(</span><span class="n">N_e</span><span class="p">)</span>
+<a id="__codelineno-0-825" name="__codelineno-0-825"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obs_noise</span><span class="p">,</span> <span class="n">lx</span><span class="o">.</span><span class="n">DiagonalLinearOperator</span><span class="p">):</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a>            <span class="s2">&quot;EnSRF_Serial requires diagonal observation noise; pre-&quot;</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a>            <span class="s2">&quot;decorrelate or use filterax.filters.EnSRF for general Γ.&quot;</span>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a>        <span class="p">)</span>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a>    <span class="c1"># Σ_ε,kk</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a>    <span class="n">obs_variances</span> <span class="o">=</span> <span class="n">lx</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">obs_noise</span><span class="p">)</span>
+<a id="__codelineno-0-832" name="__codelineno-0-832"></a>    <span class="c1"># h⁽ᵉ⁾ = h(x⁽ᵉ⁾) of the forecast, for the log-likelihood</span>
+<a id="__codelineno-0-833" name="__codelineno-0-833"></a>    <span class="n">initial_obs_particles</span> <span class="o">=</span> <span class="n">_apply_obs_op</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">particles</span><span class="p">)</span>
+<a id="__codelineno-0-834" name="__codelineno-0-834"></a>
+<a id="__codelineno-0-835" name="__codelineno-0-835"></a>    <span class="c1"># jnp, not einx, in the step: einx raises AxisSizeError on D_x = 0 with</span>
+<a id="__codelineno-0-836" name="__codelineno-0-836"></a>    <span class="c1"># another message than today&#39;s</span>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a>    <span class="c1"># the carry stays named parts: JAX quotes its name in a carry dtype error</span>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">assimilate_one</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a>        <span class="c1"># h⁽ᵉ⁾ = h(x⁽ᵉ⁾) of the current members, so a nonlinear h stays consistent</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a>        <span class="n">current_obs</span> <span class="o">=</span> <span class="n">_apply_obs_op</span><span class="p">(</span><span class="n">obs_op</span><span class="p">,</span> <span class="n">parts</span><span class="p">)</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a>        <span class="n">obs_k</span> <span class="o">=</span> <span class="n">obs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a>        <span class="n">obs_variance_k</span> <span class="o">=</span> <span class="n">obs_variances</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a>        <span class="c1"># h⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a>        <span class="n">obs_column</span> <span class="o">=</span> <span class="n">current_obs</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a>        <span class="c1"># h̄_k = (1 / N_ℰ) ∑ₑ h⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a>        <span class="n">obs_mean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">obs_column</span><span class="p">)</span>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a>        <span class="c1"># h̃⁽ᵉ⁾_k = h⁽ᵉ⁾_k − h̄_k</span>
+<a id="__codelineno-0-848" name="__codelineno-0-848"></a>        <span class="n">obs_anomaly</span> <span class="o">=</span> <span class="n">obs_column</span> <span class="o">-</span> <span class="n">obs_mean</span>
+<a id="__codelineno-0-849" name="__codelineno-0-849"></a>        <span class="c1"># Σ̂_h,kk = ∑ₑ (h̃⁽ᵉ⁾_k)² / (N_ℰ − 1)</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a>        <span class="n">obs_sample_variance</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">obs_anomaly</span> <span class="o">*</span> <span class="n">obs_anomaly</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">N_e</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a>        <span class="c1"># Σ̂_h,kk + Σ_ε,kk</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a>        <span class="n">innovation_variance</span> <span class="o">=</span> <span class="n">obs_sample_variance</span> <span class="o">+</span> <span class="n">obs_variance_k</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a>        <span class="c1"># x̄ = (1 / N_ℰ) ∑ₑ x⁽ᵉ⁾</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a>        <span class="n">mean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">parts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a>        <span class="c1"># x̃⁽ᵉ⁾ = x⁽ᵉ⁾ − x̄</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a>        <span class="n">anomalies</span> <span class="o">=</span> <span class="n">parts</span> <span class="o">-</span> <span class="n">mean</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a>        <span class="c1"># ∑ₑ h̃⁽ᵉ⁾_k x̃⁽ᵉ⁾</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a>        <span class="n">cross_sum</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="s2">&quot;e, e x -&gt; x&quot;</span><span class="p">,</span> <span class="n">obs_anomaly</span><span class="p">,</span> <span class="n">anomalies</span><span class="p">)</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a>        <span class="c1"># Σ̂_xy,k = ∑ₑ h̃⁽ᵉ⁾_k x̃⁽ᵉ⁾ / (N_ℰ − 1)</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a>        <span class="n">cross_covariance</span> <span class="o">=</span> <span class="n">cross_sum</span> <span class="o">/</span> <span class="p">(</span><span class="n">N_e</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a>        <span class="c1"># g_k = Σ̂_xy,k / (Σ̂_h,kk + Σ_ε,kk)</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a>        <span class="n">gain_column</span> <span class="o">=</span> <span class="n">cross_covariance</span> <span class="o">/</span> <span class="n">innovation_variance</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>        <span class="c1"># x̄ ← x̄ + g_k (y_k − h̄_k)</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a>        <span class="n">new_mean</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">gain_column</span> <span class="o">*</span> <span class="p">(</span><span class="n">obs_k</span> <span class="o">-</span> <span class="n">obs_mean</span><span class="p">)</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a>        <span class="c1"># α_k = 1 / (1 + √(Σ_ε,kk / (Σ̂_h,kk + Σ_ε,kk)))</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a>        <span class="n">reduction</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">obs_variance_k</span> <span class="o">/</span> <span class="n">innovation_variance</span><span class="p">))</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a>        <span class="c1"># g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a>        <span class="n">gain_outer</span> <span class="o">=</span> <span class="n">einx</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="s2">&quot;x, e -&gt; e x&quot;</span><span class="p">,</span> <span class="n">gain_column</span><span class="p">,</span> <span class="n">obs_anomaly</span><span class="p">)</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>        <span class="c1"># α_k g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>        <span class="n">anomaly_update</span> <span class="o">=</span> <span class="n">reduction</span> <span class="o">*</span> <span class="n">gain_outer</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a>        <span class="c1"># x⁽ᵉ⁾ ← x̄ + x̃⁽ᵉ⁾ − α_k g_k h̃⁽ᵉ⁾_k</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a>        <span class="n">updated</span> <span class="o">=</span> <span class="n">new_mean</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="p">(</span><span class="n">anomalies</span> <span class="o">-</span> <span class="n">anomaly_update</span><span class="p">)</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>        <span class="k">return</span> <span class="n">updated</span><span class="p">,</span> <span class="kc">None</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>    <span class="n">N_y</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a>    <span class="n">analysis_particles</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">assimilate_one</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N_y</span><span class="p">))</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>    <span class="c1"># log 𝒩(r̄; 0, Σ̂_y) of the forecast</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>    <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">_innovation_log_likelihood</span><span class="p">(</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>        <span class="n">initial_obs_particles</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">obs_noise</span>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>    <span class="p">)</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>    <span class="k">return</span> <span class="n">AnalysisResult</span><span class="p">(</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>        <span class="n">particles</span><span class="o">=</span><span class="n">analysis_particles</span><span class="p">,</span> <span class="n">log_likelihood</span><span class="o">=</span><span class="n">log_likelihood</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
